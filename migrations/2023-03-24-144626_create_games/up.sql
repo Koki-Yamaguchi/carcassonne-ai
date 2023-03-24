@@ -1,0 +1,4 @@
+CREATE TABLE game (
+  id SERIAL PRIMARY KEY,
+  note TEXT NOT NULL
+)
