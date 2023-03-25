@@ -4,15 +4,18 @@ mod schema;
 mod handlers;
 mod database;
 mod game;
+mod player;
 
-use handlers::{ get_games, get_game, create };
+use handlers::{ get_games, get_game, create_game };
+use handlers::{ create_player };
 
 #[launch]
 fn rocket() -> _ {
   rocket::build()
-    .mount("/games", routes![
+    .mount("/", routes![
       get_game,
       get_games,
-      create,
+      create_game,
+      create_player,
     ])
 }

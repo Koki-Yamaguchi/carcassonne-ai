@@ -6,22 +6,34 @@ use std::env;
 
 use crate::database;
 use crate::game;
+use crate::player;
 
-#[get("/")]
+#[post("/players/create", format = "application/json", data = "<params>")]
+pub fn create_player(params: Json<player::CreatePlayer>) -> Json<player::Player> {
+  let conn = &mut establish_connection();
+
+  Json(database::create_player(conn, params.name.clone()))
+}
+
+#[get("/games")]
 pub fn get_games() -> &'static str {
   "Games List Here"
 }
 
-#[get("/<game_id>")]
+#[get("/games/<game_id>")]
 pub fn get_game(game_id: &str) -> String {
   format!("Game (id: {})", game_id)
 }
 
-#[post("/create", format = "application/json", data = "<gm>")]
-pub fn create(gm: Json<game::Game>) -> Json<game::Game> {
+#[post("/games/create", format = "application/json", data = "<params>")]
+pub fn create_game(params: Json<game::CreateGame>) -> Json<game::Game> {
   let conn = &mut establish_connection();
-
-  Json(database::create_game(conn, gm.note.clone()))
+  Json(database::create_game(
+    conn,
+    params.note.clone(),
+    params.player0_id,
+    params.player1_id,
+  ))
 }
 
 fn establish_connection() -> PgConnection {

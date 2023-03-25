@@ -8,24 +8,27 @@ Carcassonne AI の実装
 登録なしでも遊べるようにするかは未定だが、勝率等保存できるのがよさそうだし情報も見たい
 Twitter & Google があれば OK ？
 
-User
+Player
 - id
 - email
 - name
 - twitter id?
 - created_at
+- is_ai
+
+AI も Player とみなしてよい
 
 ## Game の作成
 ゲーム情報を持つ Game を作成して試合を開始する
 
 Game
 - id
-- user_id
-- ai_id
+- player0_id
+- player1_id
+- player0_point
+- player1_point
 - created_at
 - ended_at
-- user_point
-- ai_point
 
 ## Game の進行
 盤面は move の列で表現
