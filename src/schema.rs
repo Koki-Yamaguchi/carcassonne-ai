@@ -10,6 +10,7 @@ diesel::table! {
         player1_point -> Int4,
         created_at -> Timestamp,
         ended_at -> Nullable<Timestamp>,
+        next_tile_id -> Nullable<Int4>,
     }
 }
 

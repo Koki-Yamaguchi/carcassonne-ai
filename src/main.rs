@@ -7,7 +7,7 @@ mod game;
 mod player;
 
 use handlers::{ get_games, get_game, create_game };
-use handlers::{ create_player };
+use handlers::{ create_player, create_tile_move };
 
 #[launch]
 fn rocket() -> _ {
@@ -17,5 +17,6 @@ fn rocket() -> _ {
       get_games,
       create_game,
       create_player,
+      create_tile_move,
     ])
 }

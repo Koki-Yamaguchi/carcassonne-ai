@@ -7,6 +7,7 @@ use crate::schema;
 use crate::game;
 use crate::player;
 use crate::game::mov;
+use crate::game::tile;
 
 #[derive(Insertable)]
 #[diesel(table_name = schema::player)]
@@ -22,6 +23,7 @@ struct NewGame {
   player1_id: i32,
   player0_point: i32,
   player1_point: i32,
+  next_tile_id: Option<i32>,
 }
 
 #[derive(Insertable)]
@@ -52,7 +54,6 @@ pub struct QueryMove {
   pub meeple_pos: i32,
 }
 
-
 pub fn create_player(conn: &mut PgConnection, name: String) -> player::Player {
   let new_player = NewPlayer{
     name: name,
@@ -68,6 +69,7 @@ pub fn create_game(
   note: String,
   player0_id: i32,
   player1_id: i32,
+  next_tile_id: Option<i32>,
 ) -> game::Game {
   let new_game = NewGame{
     note: note,
@@ -75,6 +77,7 @@ pub fn create_game(
     player1_id: player1_id,
     player0_point: 0,
     player1_point: 0,
+    next_tile_id: next_tile_id,
   };
   let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
   let r = diesel::insert_into(schema::game::table)
@@ -84,7 +87,18 @@ pub fn create_game(
   return r;
 }
 
-pub fn create_move(mv: mov::Move) -> QueryMove {
+pub fn list_moves(gmid: i32) -> Vec<mov::Move> {
+  let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+  use self::schema::move_::dsl::*;
+  let results = move_
+    .filter(game_id.eq(gmid))
+    .order(ord.asc())
+    .load::<QueryMove>(conn)
+    .expect("Error loading posts");
+  results.into_iter().map(|v| to_move(v)).collect()
+}
+
+pub fn create_move(mv: mov::Move) -> mov::Move {
   let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
 
   let new_move = match mv {
@@ -92,7 +106,7 @@ pub fn create_move(mv: mov::Move) -> QueryMove {
       ord: m.ord,
       game_id: m.game_id,
       player_id: m.player_id,
-      tile_id: 0, // fixme
+      tile_id: m.tile.to_id(),
       meeple_id: -1,
       rot: m.rot,
       tile_pos_y: m.pos.0,
@@ -121,14 +135,43 @@ pub fn create_move(mv: mov::Move) -> QueryMove {
       tile_pos_x: -1,
       meeple_pos: -1,
     },
+    mov::Move::InvalidMove => {
+      return mov::Move::InvalidMove
+    }
   };
 
-  let r = diesel::insert_into(schema::move_::table)
+  let query_move = diesel::insert_into(schema::move_::table)
     .values(&new_move)
-    .get_result(conn)
+    .get_result::<QueryMove>(conn)
     .expect("Error saving new move");
 
-  return r;
+  to_move(query_move)
+}
+
+fn to_move(qm: QueryMove) -> mov::Move {
+  match (qm.tile_id, qm.meeple_id) {
+    (-1, -1) => mov::Move::SMove (mov::SkipMove {
+      ord: qm.ord,
+      game_id: qm.game_id,
+      player_id: qm.player_id,
+    }),
+    (-1, _) => mov::Move::MMove (mov::MeepleMove {
+      ord: qm.ord,
+      game_id: qm.game_id,
+      player_id: qm.player_id,
+      meeple_id: qm.meeple_id,
+      pos: qm.meeple_pos,
+    }),
+    (_, -1) => mov::Move::TMove (mov::TileMove {
+      ord: qm.ord,
+      game_id: qm.game_id,
+      player_id: qm.player_id,
+      tile: tile::to_tile(qm.tile_id),
+      rot: qm.rot,
+      pos: (qm.tile_pos_y, qm.tile_pos_x),
+    }),
+    (_, _) => mov::Move::InvalidMove
+  }
 }
 
 fn establish_connection() -> PgConnection {
