@@ -31,6 +31,13 @@ pub struct CreateMeepleMove {
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
+pub struct CreateSkipMove {
+  pub game_id: i32,
+  pub player_id: i32,
+}
+
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
 pub struct CreateGame {
   pub note: String,
   pub player0_id: i32,
@@ -83,6 +90,15 @@ pub fn create_meeple_move(params: Json<CreateMeepleMove>) -> Json<game::Meepleab
     params.player_id,
     params.meeple_id,
     params.pos,
+  );
+  Json(g)
+}
+
+#[post("/skip-moves/create", format = "application/json", data = "<params>")]
+pub fn create_skip_move(params: Json<CreateSkipMove>) -> Json<game::MeepleablePositions> {
+  let g = game::create_skip_move(
+    params.game_id,
+    params.player_id,
   );
   Json(g)
 }

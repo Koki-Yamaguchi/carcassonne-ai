@@ -90,3 +90,24 @@ pub fn create_meeple_move(game_id: i32, player_id: i32, meeple_id: i32, pos: i32
     meepleable_positions: vec![1, 2, 3],
   }
 }
+
+pub fn create_skip_move(game_id: i32, player_id: i32) -> MeepleablePositions {
+  let moves = database::list_moves(game_id);
+  assert!(moves.len() != 0);
+
+  let ord = match moves.last().unwrap() {
+    MMove(m) => { m.ord + 1 },
+    TMove(m) => { m.ord + 1 },
+    SMove(m) => { m.ord + 1 },
+    InvalidMove => { 0 }
+  };
+
+  let mv = SMove( SkipMove { ord, game_id, player_id } );
+
+  database::create_move(mv);
+
+  // actually return how point changes and skip goes back
+  MeepleablePositions {
+    meepleable_positions: vec![1, 2, 3],
+  }
+}
