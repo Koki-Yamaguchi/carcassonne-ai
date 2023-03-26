@@ -7,7 +7,7 @@ use diesel::prelude::*;
 use crate::database;
 use mov::Move::*;
 use tile::Tile::*;
-use mov::{ TileMove, SkipMove };
+use mov::{ TileMove, MeepleMove, SkipMove };
 
 #[derive(Serialize, Queryable, Clone)]
 #[serde(crate = "rocket::serde")]
@@ -26,7 +26,7 @@ pub struct Game {
 #[derive(Serialize, Queryable, Clone)]
 #[serde(crate = "rocket::serde")]
 pub struct MeepleablePositions {
-  positions: Vec<i32>,
+  pub meepleable_positions: Vec<i32>,
 }
 
 pub fn create_game(note: String, player0_id: i32, player1_id: i32) -> Game {
@@ -59,13 +59,34 @@ pub fn create_tile_move(game_id: i32, player_id: i32, tile: tile::Tile, rot: i32
     InvalidMove => { 0 }
   };
 
-  let mv = TMove( TileMove { ord: ord, game_id: game_id, player_id: player_id, tile: tile, rot: rot, pos: pos } );
+  let mv = TMove( TileMove { ord, game_id, player_id, tile, rot, pos } );
 
   database::create_move(mv);
 
   // update game.next_tile_id
 
   MeepleablePositions {
-    positions: vec![1, 2, 3], // calculate meepleable positions on the tile
+    meepleable_positions: vec![1, 2, 3], // calculate meepleable positions on the tile
+  }
+}
+
+pub fn create_meeple_move(game_id: i32, player_id: i32, meeple_id: i32, pos: i32) -> MeepleablePositions {
+  let moves = database::list_moves(game_id);
+  assert!(moves.len() != 0);
+
+  let ord = match moves.last().unwrap() {
+    MMove(m) => { m.ord + 1 },
+    TMove(m) => { m.ord + 1 },
+    SMove(m) => { m.ord + 1 },
+    InvalidMove => { 0 }
+  };
+
+  let mv = MMove( MeepleMove { ord, game_id, player_id, meeple_id, pos } );
+
+  database::create_move(mv);
+
+  // actually return how point changes and meeple goes back
+  MeepleablePositions {
+    meepleable_positions: vec![1, 2, 3],
   }
 }

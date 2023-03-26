@@ -22,6 +22,15 @@ pub struct CreateTileMove {
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
+pub struct CreateMeepleMove {
+  pub game_id: i32,
+  pub player_id: i32,
+  pub meeple_id: i32,
+  pub pos: i32,
+}
+
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
 pub struct CreateGame {
   pub note: String,
   pub player0_id: i32,
@@ -63,6 +72,17 @@ pub fn create_tile_move(params: Json<CreateTileMove>) -> Json<game::MeepleablePo
     tile::to_tile(params.tile_id),
     params.rot,
     (params.pos_y, params.pos_x),
+  );
+  Json(g)
+}
+
+#[post("/meeple-moves/create", format = "application/json", data = "<params>")]
+pub fn create_meeple_move(params: Json<CreateMeepleMove>) -> Json<game::MeepleablePositions> {
+  let g = game::create_meeple_move(
+    params.game_id,
+    params.player_id,
+    params.meeple_id,
+    params.pos,
   );
   Json(g)
 }
