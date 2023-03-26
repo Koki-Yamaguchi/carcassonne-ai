@@ -1,8 +1,8 @@
 use rocket::serde::{json::Json};
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
-use dotenvy::dotenv;
 use std::env;
+use dotenvy::dotenv;
 
 use crate::database;
 use crate::game;
@@ -27,13 +27,12 @@ pub fn get_game(game_id: &str) -> String {
 
 #[post("/games/create", format = "application/json", data = "<params>")]
 pub fn create_game(params: Json<game::CreateGame>) -> Json<game::Game> {
-  let conn = &mut establish_connection();
-  Json(database::create_game(
-    conn,
+  let g = game::create_game(
     params.note.clone(),
     params.player0_id,
     params.player1_id,
-  ))
+  );
+  Json(g)
 }
 
 fn establish_connection() -> PgConnection {
