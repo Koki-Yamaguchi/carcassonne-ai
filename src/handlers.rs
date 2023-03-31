@@ -27,6 +27,8 @@ pub struct CreateMeepleMove {
   pub player_id: i32,
   pub meeple_id: i32,
   pub pos: i32,
+  pub tile_pos_y: i32,
+  pub tile_pos_x: i32,
 }
 
 #[derive(Deserialize)]
@@ -84,21 +86,13 @@ pub fn create_tile_move(params: Json<CreateTileMove>) -> Json<game::MeepleablePo
 }
 
 #[post("/meeple-moves/create", format = "application/json", data = "<params>")]
-pub fn create_meeple_move(params: Json<CreateMeepleMove>) -> Json<game::MeepleablePositions> {
+pub fn create_meeple_move(params: Json<CreateMeepleMove>) -> Json<Vec<game::CompleteEvent>> {
   let g = game::create_meeple_move(
     params.game_id,
     params.player_id,
     params.meeple_id,
+    (params.tile_pos_y, params.tile_pos_x),
     params.pos,
-  );
-  Json(g)
-}
-
-#[post("/skip-moves/create", format = "application/json", data = "<params>")]
-pub fn create_skip_move(params: Json<CreateSkipMove>) -> Json<game::MeepleablePositions> {
-  let g = game::create_skip_move(
-    params.game_id,
-    params.player_id,
   );
   Json(g)
 }

@@ -120,20 +120,9 @@ pub fn create_move(mv: mov::Move) -> mov::Move {
       tile_id: -1,
       meeple_id: m.meeple_id,
       rot: -1,
-      tile_pos_y: -1,
-      tile_pos_x: -1,
-      meeple_pos: m.pos,
-    },
-    mov::Move::SMove(m) => InsertMove {
-      ord: m.ord,
-      game_id: m.game_id,
-      player_id: m.player_id,
-      tile_id: -1,
-      meeple_id: -1,
-      rot: -1,
-      tile_pos_y: -1,
-      tile_pos_x: -1,
-      meeple_pos: -1,
+      tile_pos_y: m.tile_pos.0,
+      tile_pos_x: m.tile_pos.1,
+      meeple_pos: m.meeple_pos,
     },
     mov::Move::InvalidMove => {
       return mov::Move::InvalidMove
@@ -150,17 +139,13 @@ pub fn create_move(mv: mov::Move) -> mov::Move {
 
 fn to_move(qm: QueryMove) -> mov::Move {
   match (qm.tile_id, qm.meeple_id) {
-    (-1, -1) => mov::Move::SMove (mov::SkipMove {
-      ord: qm.ord,
-      game_id: qm.game_id,
-      player_id: qm.player_id,
-    }),
     (-1, _) => mov::Move::MMove (mov::MeepleMove {
       ord: qm.ord,
       game_id: qm.game_id,
       player_id: qm.player_id,
       meeple_id: qm.meeple_id,
-      pos: qm.meeple_pos,
+      meeple_pos: qm.meeple_pos,
+      tile_pos: (qm.tile_pos_y, qm.tile_pos_x),
     }),
     (_, -1) => mov::Move::TMove (mov::TileMove {
       ord: qm.ord,
