@@ -19,6 +19,7 @@ pub struct Status {
   pub player1_point: i32,
 }
 
+#[allow(dead_code)]
 pub struct Error {
   msg: String
 }
@@ -94,6 +95,9 @@ impl TileItem {
       Tile::VerticalSeparator => [Field, City, Field, City],
       Tile::TripleCityWithRoad => [City, City, City, Road],
       Tile::TripleCityWithRoadWithCOA => [City, City, City, Road],
+      Tile::Triangle => [Field, City, City, Field],
+      Tile::TriangleWithCOA => [Field, City, City, Field],
+      Tile::QuadrupleCityWithCOA => [City, City, City, City],
       Tile::Invalid => [Field, Field, Field, Field],
     }
   }
@@ -472,6 +476,48 @@ impl TileItem {
           DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
         ], // bottom
       ],
+      Tile::Triangle => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // bottom
+      ],
+      Tile::TriangleWithCOA => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // bottom
+      ],
+      Tile::QuadrupleCityWithCOA => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // bottom
+      ],
       Tile::Invalid => vec![vec![]],
     }
   }
@@ -596,6 +642,17 @@ impl TileItem {
         DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
         DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
         DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+      ],
+      Tile::Triangle => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+      ],
+      Tile::TriangleWithCOA => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+      ],
+      Tile::QuadrupleCityWithCOA => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
       ],
       Tile::Invalid => vec![],
     }
@@ -724,6 +781,17 @@ fn create_mergeable_features(mf: &mut MergeableFeature, t: &TileItem) {
       mf.new_feature(t.id, 1, false);
       mf.new_feature(t.id, 1, false);
     },
+    Tile::Triangle => {
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 2, false);
+    },
+    Tile::TriangleWithCOA => {
+      mf.new_feature(t.id, 2, true);
+      mf.new_feature(t.id, 2, false);
+    },
+    Tile::QuadrupleCityWithCOA => {
+      mf.new_feature(t.id, 4, true);
+    },
     Tile::Invalid => {}
   }
 }
@@ -787,6 +855,13 @@ fn set_cities_to_fields(mf: &mut MergeableFeature, t: &TileItem) {
       mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
       mf.set_cities((t.feature_starting_id + 3) as usize, (t.feature_starting_id + 0) as usize);
     }
+    Tile::Triangle => {
+      mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
+    },
+    Tile::TriangleWithCOA => {
+      mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
+    },
+    Tile::QuadrupleCityWithCOA => {}
     Tile::Invalid => {}
   }
 }
@@ -1354,6 +1429,7 @@ fn calculate_test_for_monastery_completion() {
   }
 }
 
+#[allow(dead_code)]
 fn add_move(mvs: &mut Vec<Move>, tile: Tile, rot: i32, pos: (i32, i32), meeple_id: i32, meeple_pos: i32) {
   mvs.push(Move::TMove( TileMove { ord: -1, game_id: -1, player_id: -1, tile, rot, pos, } ));
   mvs.push(Move::MMove( MeepleMove { ord: -1, game_id: -1, player_id: -1, meeple_id: meeple_id, tile_pos: pos, meeple_pos } ));
@@ -1545,7 +1621,7 @@ fn calculate_test() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::TripleCity, 3, (46, 54), -1, -1);
+  add_move(&mut mvs, Tile::TripleCityWithCOA, 3, (46, 54), -1, -1);
   add_move(&mut mvs, Tile::VerticalSeparator, 0, (46, 55), 1, 2);
   add_move(&mut mvs, Tile::Left, 2, (45, 55), 13, 0);
 
@@ -1594,6 +1670,178 @@ fn calculate_test() {
       assert_eq!(res.complete_events[0].point, 4);
       assert_eq!(res.player0_point, 27);
       assert_eq!(res.player1_point, 29);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::Monastery, 0, (48, 51), 4, 0);
+  add_move(&mut mvs, Tile::TriangleWithCOA, 3, (53, 53), 8, 1);
+  add_move(&mut mvs, Tile::TripleCityWithRoadWithCOA, 1, (47, 54), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 2, (52, 53), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 1, (54, 48), 5, 0);
+  add_move(&mut mvs, Tile::Straight, 0, (51, 53), -1, -1);
+  add_move(&mut mvs, Tile::MonasteryWithRoad, 2, (48, 50), 6, 0);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, MonasteryFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![2]);
+      assert_eq!(res.complete_events[0].point, 9);
+      assert_eq!(res.player0_point, 36);
+      assert_eq!(res.player1_point, 29);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::Connector, 0, (45, 50), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 1, (53, 48), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 3, (50, 53), -1, -1);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, MonasteryFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![13]);
+      assert_eq!(res.complete_events[0].point, 9);
+      assert_eq!(res.player0_point, 36);
+      assert_eq!(res.player1_point, 38);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::TriangleWithRoadWithCOA, 1, (48, 54), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 0, (51, 54), 11, 2);
+  add_move(&mut mvs, Tile::Curve, 1, (47, 51), -1, -1);
+  add_move(&mut mvs, Tile::Right, 2, (52, 54), 13, 2);
+  add_move(&mut mvs, Tile::StartingTile, 3, (55, 52), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 0, (50, 54), -1, -1);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, RoadFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![13]);
+      assert_eq!(res.complete_events[0].point, 6);
+      assert_eq!(res.player0_point, 36);
+      assert_eq!(res.player1_point, 44);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::Monastery, 0, (55, 53), 2, 1);
+  add_move(&mut mvs, Tile::TriangleWithRoad, 1, (55, 51), -1, -1);
+  add_move(&mut mvs, Tile::Left, 2, (43, 55), -1, -1);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, CityFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![3]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 40);
+      assert_eq!(res.player1_point, 44);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::Monastery, 0, (52, 48), 13, 0);
+  add_move(&mut mvs, Tile::TriangleWithCOA, 1, (53, 54), -1, -1);
+  add_move(&mut mvs, Tile::CityCap, 1, (45, 49), -1, -1);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, CityFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![10]);
+      assert_eq!(res.complete_events[0].point, 6);
+      assert_eq!(res.player0_point, 40);
+      assert_eq!(res.player1_point, 50);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::QuadrupleCityWithCOA, 0, (48, 55), -1, -1);
+  add_move(&mut mvs, Tile::ConnectorWithCOA, 0, (53, 55), 13, 1);
+  add_move(&mut mvs, Tile::CityCapWithCrossroad, 3, (47, 50), 3, 2);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 2);
+      assert_eq!(res.complete_events[0].feature, RoadFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![3]);
+      assert_eq!(res.complete_events[0].point, 2);
+      assert_eq!(res.complete_events[1].feature, MonasteryFeature);
+      assert_eq!(res.complete_events[1].meeple_ids, vec![4]);
+      assert_eq!(res.complete_events[1].point, 9);
+      assert_eq!(res.player0_point, 51);
+      assert_eq!(res.player1_point, 50);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::VerticalSeparator, 1, (53, 56), -1, -1);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, CityFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![13]);
+      assert_eq!(res.complete_events[0].point, 12);
+      assert_eq!(res.player0_point, 51);
+      assert_eq!(res.player1_point, 62);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::Curve, 0, (46, 51), 3, 0);
+  add_move(&mut mvs, Tile::Triangle, 2, (54, 55), 13, 1);
+  add_move(&mut mvs, Tile::Triangle, 2, (55, 54), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 1, (49, 54), -1, -1);
+  add_move(&mut mvs, Tile::Separator, 2, (47, 49), 4, 1);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, CityFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![4]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 55);
+      assert_eq!(res.player1_point, 62);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::Triangle, 0, (54, 53), -1, -1);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, CityFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![12]);
+      assert_eq!(res.complete_events[0].point, 10);
+      assert_eq!(res.player0_point, 55);
+      assert_eq!(res.player1_point, 72);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::TripleCityWithRoadWithCOA, 1, (44, 56), 4, 1);
+
+  let status = calculate(&mvs, true);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.player0_point, 113);
+      assert_eq!(res.player1_point, 116);
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }

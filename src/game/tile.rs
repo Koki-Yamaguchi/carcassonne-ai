@@ -22,6 +22,9 @@ pub enum Tile {
   VerticalSeparator,
   TripleCityWithRoad,
   TripleCityWithRoadWithCOA,
+  Triangle,
+  TriangleWithCOA,
+  QuadrupleCityWithCOA,
 }
 
 impl Tile {
@@ -48,6 +51,9 @@ impl Tile {
       Tile::VerticalSeparator => 18,
       Tile::TripleCityWithRoad => 19,
       Tile::TripleCityWithRoadWithCOA => 20,
+      Tile::Triangle => 21,
+      Tile::TriangleWithCOA => 22,
+      Tile::QuadrupleCityWithCOA => 23,
       Tile::Invalid => -1,
     }
   }
@@ -76,6 +82,9 @@ pub fn to_tile(id: i32) -> Tile {
     18 => Tile::VerticalSeparator,
     19 => Tile::TripleCityWithRoad,
     20 => Tile::TripleCityWithRoadWithCOA,
+    21 => Tile::Triangle,
+    22 => Tile::TriangleWithCOA,
+    23 => Tile::QuadrupleCityWithCOA,
     _ => Tile::Invalid,
   }
 }
