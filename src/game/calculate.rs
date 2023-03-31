@@ -1436,7 +1436,8 @@ fn add_move(mvs: &mut Vec<Move>, tile: Tile, rot: i32, pos: (i32, i32), meeple_i
 }
 
 #[test]
-fn calculate_test() {
+fn calculate_test0() {
+  /* actual game here: https://boardgamearena.com/table?table=361472535 */
   let mut mvs = vec![];
 
   add_move(&mut mvs, Tile::StartingTile, 0, (50, 50), -1, -1);
@@ -1842,6 +1843,298 @@ fn calculate_test() {
     Ok(res) => {
       assert_eq!(res.player0_point, 113);
       assert_eq!(res.player1_point, 116);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+}
+
+#[test]
+fn calculate_test1() {
+  /* actual game here: https://boardgamearena.com/table?table=361578832 */
+  let mut mvs = vec![];
+  add_move(&mut mvs, Tile::StartingTile, 0, (50, 50), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 1, (50, 51), 0, 1);
+  add_move(&mut mvs, Tile::TriangleWithRoad, 3, (49, 50), 7, 0);
+  add_move(&mut mvs, Tile::TripleRoad, 1, (49, 51), 1, 4);
+  add_move(&mut mvs, Tile::TripleCityWithRoad, 0, (48, 51), 8, 2);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![8]);
+      assert_eq!(res.complete_events[0].point, 2);
+      assert_eq!(res.player0_point, 0);
+      assert_eq!(res.player1_point, 2);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::Triangle, 0, (48, 52), 2, 0);
+  add_move(&mut mvs, Tile::TripleCityWithCOA, 0, (49, 49), -1, -1);
+  add_move(&mut mvs, Tile::CityCap, 1, (50, 52), 3, 0);
+  add_move(&mut mvs, Tile::TripleRoad, 3, (48, 53), 8, 2);
+  add_move(&mut mvs, Tile::ConnectorWithCOA, 0, (50, 53), -1, -1);
+  add_move(&mut mvs, Tile::TripleCityWithRoadWithCOA, 0, (47, 53), 9, 0);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![8]);
+      assert_eq!(res.complete_events[0].point, 2);
+      assert_eq!(res.player0_point, 0);
+      assert_eq!(res.player1_point, 4);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::Curve, 3, (50, 49), -1, -1);
+  add_move(&mut mvs, Tile::CityCapWithCrossroad, 0, (48, 54), 8, 2);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![8]);
+      assert_eq!(res.complete_events[0].point, 2);
+      assert_eq!(res.player0_point, 0);
+      assert_eq!(res.player1_point, 6);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::Right, 3, (50, 54), -1, -1);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![3]);
+      assert_eq!(res.complete_events[0].point, 8);
+      assert_eq!(res.player0_point, 8);
+      assert_eq!(res.player1_point, 6);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::TripleRoad, 0, (51, 50), 8, 1);
+  add_move(&mut mvs, Tile::Connector, 1, (50, 48), 3, 1);
+  add_move(&mut mvs, Tile::QuadrupleCityWithCOA, 0, (48, 49), -1, -1);
+  add_move(&mut mvs, Tile::Triangle, 2, (49, 48), -1, -1);
+  add_move(&mut mvs, Tile::TripleCity, 2, (47, 49), -1, -1);
+  add_move(&mut mvs, Tile::TripleCityWithRoadWithCOA, 0, (48, 50), -1, -1);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![1]);
+      assert_eq!(res.complete_events[0].point, 3);
+      assert_eq!(res.player0_point, 11);
+      assert_eq!(res.player1_point, 6);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::Straight, 0, (49, 54), 10, 1);
+  add_move(&mut mvs, Tile::VerticalSeparator, 0, (51, 48), 1, 2);
+  add_move(&mut mvs, Tile::TriangleWithCOA, 2, (47, 52), -1, -1);
+  add_move(&mut mvs, Tile::TriangleWithCOA, 1, (46, 52), 4, 0);
+  add_move(&mut mvs, Tile::Curve, 2, (51, 49), -1, -1);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![0, 8]);
+      assert_eq!(res.complete_events[0].point, 6);
+      assert_eq!(res.player0_point, 17);
+      assert_eq!(res.player1_point, 12);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::StartingTile, 0, (52, 48), -1, -1);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![1]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 21);
+      assert_eq!(res.player1_point, 12);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::Monastery, 0, (49, 52), 8, 0);
+  add_move(&mut mvs, Tile::MonasteryWithRoad, 2, (49, 53), 0, 0);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![0]);
+      assert_eq!(res.complete_events[0].point, 9);
+      assert_eq!(res.complete_events[1].meeple_ids, vec![8]);
+      assert_eq!(res.complete_events[1].point, 9);
+      assert_eq!(res.player0_point, 30);
+      assert_eq!(res.player1_point, 21);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::TripleCity, 3, (47, 54), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 0, (47, 55), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 0, (46, 51), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 0, (46, 55), -1, -1);
+  add_move(&mut mvs, Tile::Left, 2, (46, 54), -1, -1);
+  add_move(&mut mvs, Tile::CityCap, 2, (53, 48), 0, 0);
+  add_move(&mut mvs, Tile::Curve, 3, (45, 54), 8, 1);
+  add_move(&mut mvs, Tile::Triangle, 3, (46, 53), -1, -1);
+  add_move(&mut mvs, Tile::TriangleWithRoadWithCOA, 1, (45, 51), 11, 0);
+  add_move(&mut mvs, Tile::MonasteryWithRoad, 2, (45, 53), 5, 0);
+  add_move(&mut mvs, Tile::TripleRoad, 1, (50, 55), -1, -1);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![10]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 30);
+      assert_eq!(res.player1_point, 25);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::Separator, 1, (54, 48), 1, 0);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![0]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 34);
+      assert_eq!(res.player1_point, 25);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::Right, 3, (52, 47), 12, 0);
+  add_move(&mut mvs, Tile::Left, 3, (54, 49), -1, -1);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![1]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 38);
+      assert_eq!(res.player1_point, 25);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::Straight, 1, (45, 55), -1, -1);
+  add_move(&mut mvs, Tile::Monastery, 0, (53, 47), 0, 0);
+  add_move(&mut mvs, Tile::TriangleWithRoadWithCOA, 2, (48, 55), -1, -1);
+  add_move(&mut mvs, Tile::TriangleWithRoad, 0, (44, 53), 1, 0);
+  add_move(&mut mvs, Tile::Straight, 1, (45, 56), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 1, (44, 54), -1, -1);
+  add_move(&mut mvs, Tile::QuadrupleRoad, 1, (45, 57), -1, -1);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![8]);
+      assert_eq!(res.complete_events[0].point, 9);
+      assert_eq!(res.player0_point, 38);
+      assert_eq!(res.player1_point, 34);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::CityCap, 1, (44, 52), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 0, (43, 54), 8, 1);
+  add_move(&mut mvs, Tile::CityCapWithCrossroad, 2, (51, 55), 6, 0);
+  add_move(&mut mvs, Tile::Curve, 2, (43, 52), -1, -1);
+  add_move(&mut mvs, Tile::CityCap, 0, (52, 55), -1, -1);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![6]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 42);
+      assert_eq!(res.player1_point, 34);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::TriangleWithRoad, 0, (42, 54), -1, -1);
+  add_move(&mut mvs, Tile::CityCapWithCrossroad, 0, (42, 52), 6, 0);
+  add_move(&mut mvs, Tile::VerticalSeparator, 2, (46, 50), 10, 0);
+  add_move(&mut mvs, Tile::Curve, 0, (43, 51), -1, -1);
+  add_move(&mut mvs, Tile::ConnectorWithCOA, 0, (52, 46), -1, -1);
+  add_move(&mut mvs, Tile::StartingTile, 2, (41, 52), -1, -1);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![6]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 46);
+      assert_eq!(res.player1_point, 34);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::Monastery, 0, (44, 55), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 0, (54, 47), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 1, (42, 55), -1, -1);
+  add_move(&mut mvs, Tile::VerticalSeparator, 1, (47, 48), 6, 2);
+  add_move(&mut mvs, Tile::StartingTile, 1, (52, 45), -1, -1);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![12]);
+      assert_eq!(res.complete_events[0].point, 8);
+      assert_eq!(res.player0_point, 46);
+      assert_eq!(res.player1_point, 42);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::Straight, 1, (54, 46), -1, -1);
+  add_move(&mut mvs, Tile::TripleCity, 3, (47, 50), -1, -1);
+  add_move(&mut mvs, Tile::CityCap, 1, (47, 47), -1, -1);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![6]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 50);
+      assert_eq!(res.player1_point, 42);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::Left, 3, (55, 48), 12, 1);
+  add_move(&mut mvs, Tile::Right, 2, (43, 53), 6, 1);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![1]);
+      assert_eq!(res.complete_events[0].point, 6);
+      assert_eq!(res.player0_point, 56);
+      assert_eq!(res.player1_point, 42);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  add_move(&mut mvs, Tile::Separator, 2, (51, 53), 13, 2);
+  add_move(&mut mvs, Tile::Monastery, 0, (53, 46), 1, 0);
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].meeple_ids, vec![0]);
+      assert_eq!(res.complete_events[0].point, 9);
+      assert_eq!(res.player0_point, 65);
+      assert_eq!(res.player1_point, 42);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  let status = calculate(&mvs, true);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events[0].feature, FieldFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, [6]);
+      assert_eq!(res.complete_events[0].point, 3);
+      assert_eq!(res.complete_events[1].feature, RoadFeature);
+      assert_eq!(res.complete_events[1].meeple_ids, [8]);
+      assert_eq!(res.complete_events[1].point, 6);
+      assert_eq!(res.complete_events[2].feature, CityFeature);
+      assert_eq!(res.complete_events[2].meeple_ids, [11]);
+      assert_eq!(res.complete_events[2].point, 2);
+      assert_eq!(res.complete_events[3].feature, MonasteryFeature);
+      assert_eq!(res.complete_events[3].meeple_ids, [5]);
+      assert_eq!(res.complete_events[3].point, 8);
+      assert_eq!(res.complete_events[4].feature, CityFeature);
+      assert_eq!(res.complete_events[4].meeple_ids, [7, 3, 2, 9, 4, 10]);
+      assert_eq!(res.complete_events[4].point, 27);
+      assert_eq!(res.complete_events[5].feature, FieldFeature);
+      assert_eq!(res.complete_events[5].meeple_ids, [13]);
+      assert_eq!(res.complete_events[5].point, 3);
+      assert_eq!(res.complete_events[6].feature, FieldFeature);
+      assert_eq!(res.complete_events[6].meeple_ids, [12]);
+      assert_eq!(res.complete_events[6].point, 9);
+      assert_eq!(res.complete_events[7].feature, MonasteryFeature);
+      assert_eq!(res.complete_events[7].meeple_ids, [1]);
+      assert_eq!(res.complete_events[7].point, 7);
+      assert_eq!(res.player0_point, 110);
+      assert_eq!(res.player1_point, 89);
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
