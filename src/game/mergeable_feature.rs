@@ -75,4 +75,8 @@ impl MergeableFeature {
         let x = self.root(x);
         self.rank[x]
     }
+    pub fn reduce_open_sides(&mut self, x: usize, count: i32) {
+      let x = self.root(x);
+      self.open_sides[x] -= count;
+    }
 }

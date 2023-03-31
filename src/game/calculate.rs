@@ -48,6 +48,7 @@ pub enum Feature {
   FieldFeature,
   RoadFeature,
   CityFeature,
+  MonasteryFeature,
 }
 
 impl Feature {
@@ -56,6 +57,7 @@ impl Feature {
       FieldFeature => { "field".to_string() }
       RoadFeature => { "road".to_string() }
       CityFeature => { "city".to_string() }
+      MonasteryFeature => { "monastery".to_string() }
     }
   }
 }
@@ -104,7 +106,7 @@ impl TileItem {
   fn feature_size(self) -> i32 {
     match self.tile {
       Tile::StartingTile => 4,
-      Tile::Monastery => 1,
+      Tile::Monastery => 2,
       Tile::CityCapWithCrossroad => 7,
       Tile::TriagnleWithRoad => 4,
       Tile::TriagnleWithRoadWithCOA => 4,
@@ -134,17 +136,17 @@ impl TileItem {
       ],
       Tile::Monastery => vec![
         vec![
-          DistinctFeature { id: self.feature_starting_id, feature: FieldFeature },
-        ],
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // right
         vec![
-          DistinctFeature { id: self.feature_starting_id, feature: FieldFeature },
-        ],
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // top
         vec![
-          DistinctFeature { id: self.feature_starting_id, feature: FieldFeature },
-        ],
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // left
         vec![
-          DistinctFeature { id: self.feature_starting_id, feature: FieldFeature },
-        ],
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // bottom
       ],
       Tile::CityCapWithCrossroad => vec![
         vec![
@@ -214,7 +216,8 @@ impl TileItem {
         DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
       ],
       Tile::Monastery => vec![
-        DistinctFeature { id: self.feature_starting_id, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 0, feature: MonasteryFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
       ],
       Tile::CityCapWithCrossroad => vec![
         DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
@@ -251,6 +254,7 @@ fn create_mergeable_features(mf: &mut MergeableFeature, t: Tile) {
       mf.new_feature(3, false);
     },
     Tile::Monastery => {
+      mf.new_feature(9, false);
       mf.new_feature(4, false);
     },
     Tile::CityCapWithCrossroad => {
@@ -314,7 +318,6 @@ pub fn calculate(moves: &Vec<Move>) -> Result<Status, Error> {
 
         let y = m.pos.0 as usize;
         let x = m.pos.1 as usize;
-        println!("y = {}, x = {}", y, x);
         match board[y][x] {
           Empty => {}
           _ => return Err(Error{ msg: "invalid moves".to_string() })
@@ -322,7 +325,7 @@ pub fn calculate(moves: &Vec<Move>) -> Result<Status, Error> {
         match (y, x, &board[y - 1][x], &board[y + 1][x], &board[y][x - 1], &board[y][x + 1]) {
           (50, 50, _, _, _, _) => {} /* initial tile */
           (_, _, &Empty, &Empty, &Empty, &Empty) => {
-            return Err(Error{ msg: "invalid moves dlfkdjsfldj".to_string() })
+            return Err(Error{ msg: "invalid moves".to_string() })
           }
           (_, _, _, _, _, _) => {}
         }
@@ -374,6 +377,8 @@ pub fn calculate(moves: &Vec<Move>) -> Result<Status, Error> {
           }
           Empty => {}
         }
+
+        // update meepleable positions
         match board[y][x] {
           Empty => {
             return Err(Error{ msg: "invalid moves".to_string() })
@@ -388,8 +393,52 @@ pub fn calculate(moves: &Vec<Move>) -> Result<Status, Error> {
             }
           }
         }
+
+        // update open side for monastery that was placed just now
+        match m.tile {
+          Tile::Monastery => {
+            let mut filled_count = 0;
+            for dy in -1..2 {
+              for dx in -1..2 {
+                filled_count += match board[(y as i32 + dy) as usize][(x as i32 + dx) as usize] {
+                  Empty => { 0 }
+                  _ => { 1 }
+                }
+              }
+            }
+            assert!(filled_count <= 9);
+            mergeable_features.reduce_open_sides(
+              current_tile.feature_starting_id as usize,
+              filled_count,
+            );
+          }
+          _ => {}
+        }
+
+        // update open side for monastery that had been placed around the current tile
+        for dy in -1..2 {
+          for dx in -1..2 {
+            if dy == 0 && dx == 0 {
+              continue;
+            }
+            let ny = (y as i32 + dy) as usize;
+            let nx = (x as i32 + dx) as usize;
+            match board[ny][nx] {
+              Tile(t) => {
+                match t.tile {
+                  Tile::Monastery => {
+                    mergeable_features.reduce_open_sides(t.feature_starting_id as usize, 1);
+                  }
+                  _ => {}
+                }
+              }
+              Empty => { }
+            }
+          }
+        }
       }
       Move::MMove(m) => {
+        complete_events.clear();
         let y = m.tile_pos.0 as usize;
         let x = m.tile_pos.1 as usize;
         if m.meeple_id != -1 {
@@ -411,7 +460,6 @@ pub fn calculate(moves: &Vec<Move>) -> Result<Status, Error> {
             return Err(Error{ msg: "invalid moves".to_string() })
           }
           Tile(t) => {
-            complete_events.clear();
             for f in &t.features() {
               if mergeable_features.is_completed(f.id as usize) {
                 let sz = mergeable_features.size(f.id as usize);
@@ -426,8 +474,11 @@ pub fn calculate(moves: &Vec<Move>) -> Result<Status, Error> {
                   CityFeature => {
                     (sz * 2) as i32
                   }
+                  MonasteryFeature => {
+                    9
+                  }
                   FieldFeature => {
-                    0i32
+                    0
                   }
                 };
                 let mut player0_meeples = 0;
@@ -454,6 +505,43 @@ pub fn calculate(moves: &Vec<Move>) -> Result<Status, Error> {
             }
           }
         }
+
+        // resolve meeples on adjacent monasteries
+        for dy in -1..2 {
+          for dx in -1..2 {
+            if dy == 0 && dx == 0 {
+              continue;
+            }
+            let ny = (y as i32 + dy) as usize;
+            let nx = (x as i32 + dx) as usize;
+            match board[ny][nx] {
+              Tile(t) => {
+                match t.tile {
+                  Tile::Monastery => {
+                    if mergeable_features.is_completed(t.feature_starting_id as usize) {
+                      let meeple_ids = mergeable_features.get_meeples(t.feature_starting_id as usize);
+                      if meeple_ids.len() == 0 {
+                        continue;
+                      }
+                      if meeple_ids[0] < 7 {
+                        player0_point += 9;
+                      } else {
+                        player1_point += 9;
+                      }
+                      complete_events.push(CompleteEvent {
+                        feature: MonasteryFeature,
+                        meeple_ids,
+                        point: 9,
+                      });
+                    }
+                  }
+                  _ => {}
+                }
+              }
+              Empty => { }
+            }
+          }
+        }
       }
       Move::InvalidMove => {}
     }
@@ -467,7 +555,7 @@ pub fn calculate(moves: &Vec<Move>) -> Result<Status, Error> {
 }
 
 #[test]
-fn calculate_test_for_road_and_city() {
+fn calculate_test_for_road_and_city_completion() {
   let game_id = 0;
   let player0_id = 0;
   let player1_id = 1;
@@ -571,6 +659,81 @@ fn calculate_test_for_road_and_city() {
       assert_eq!(res.complete_events[0].point, 10);
       assert_eq!(res.player0_point, 13);
       assert_eq!(res.player1_point, 4);
+    },
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+}
+
+#[test]
+fn calculate_test_for_monastery_completion() {
+  let game_id = 0;
+  let player0_id = 0;
+  let player1_id = 1;
+  let mut mvs = vec![
+    Move::TMove( TileMove { ord: 0, game_id, player_id: player1_id, tile: Tile::StartingTile, rot: 0, pos: (50, 50) } ),
+    Move::MMove( MeepleMove { ord: 1, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (50, 50), meeple_pos: -1 } ),
+  ];
+
+  mvs.push(Move::TMove( TileMove { ord: 2, game_id, player_id: player0_id, tile: Tile::Monastery, rot: 0, pos: (51, 50) } ));
+  let status = calculate(&mvs);
+  match status {
+    Ok(res) => { assert_eq!(res.meepleable_positions, vec![0, 1]); },
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  mvs.push(Move::MMove( MeepleMove { ord: 3, game_id, player_id: player0_id, meeple_id: 0, tile_pos: (51, 50), meeple_pos: 0 } ));
+  let status = calculate(&mvs);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 0);
+      assert_eq!(res.player0_point, 0);
+      assert_eq!(res.player1_point, 0);
+    },
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  mvs.push(Move::TMove( TileMove { ord: 4, game_id, player_id: player1_id, tile: Tile::Monastery, rot: 0, pos: (52, 50) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 5, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (52, 50), meeple_pos: -1 } ));
+
+  mvs.push(Move::TMove( TileMove { ord: 6, game_id, player_id: player0_id, tile: Tile::Monastery, rot: 0, pos: (52, 49) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 7, game_id, player_id: player0_id, meeple_id: -1, tile_pos: (52, 49), meeple_pos: -1 } ));
+
+  mvs.push(Move::TMove( TileMove { ord: 8, game_id, player_id: player1_id, tile: Tile::Monastery, rot: 0, pos: (52, 48) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 9, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (52, 48), meeple_pos: -1 } ));
+
+  mvs.push(Move::TMove( TileMove { ord: 10, game_id, player_id: player0_id, tile: Tile::Monastery, rot: 0, pos: (51, 48) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 11, game_id, player_id: player0_id, meeple_id: -1, tile_pos: (51, 48), meeple_pos: -1 } ));
+
+  mvs.push(Move::TMove( TileMove { ord: 12, game_id, player_id: player0_id, tile: Tile::Monastery, rot: 0, pos: (52, 51) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 13, game_id, player_id: player0_id, meeple_id: -1, tile_pos: (52, 51), meeple_pos: -1 } ));
+
+  mvs.push(Move::TMove( TileMove { ord: 14, game_id, player_id: player1_id, tile: Tile::Monastery, rot: 0, pos: (51, 51) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 15, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (51, 51), meeple_pos: -1 } ));
+
+  mvs.push(Move::TMove( TileMove { ord: 16, game_id, player_id: player0_id, tile: Tile::StartingTile, rot: 0, pos: (50, 51) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 17, game_id, player_id: player0_id, meeple_id: -1, tile_pos: (50, 51), meeple_pos: -1 } ));
+
+  mvs.push(Move::TMove( TileMove { ord: 18, game_id, player_id: player1_id, tile: Tile::StartingTile, rot: 0, pos: (50, 49) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 19, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (50, 49), meeple_pos: -1 } ));
+
+  mvs.push(Move::TMove( TileMove { ord: 20, game_id, player_id: player0_id, tile: Tile::StartingTile, rot: 0, pos: (50, 48) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 21, game_id, player_id: player0_id, meeple_id: -1, tile_pos: (50, 48), meeple_pos: -1 } ));
+
+  mvs.push(Move::TMove( TileMove { ord: 22, game_id, player_id: player1_id, tile: Tile::Monastery, rot: 0, pos: (51, 49) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 23, game_id, player_id: player1_id, meeple_id: 7, tile_pos: (51, 49), meeple_pos: 0 } ));
+
+  let status = calculate(&mvs);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 2);
+      assert_eq!(res.complete_events[0].feature, MonasteryFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![7]);
+      assert_eq!(res.complete_events[0].point, 9);
+      assert_eq!(res.complete_events[1].feature, MonasteryFeature);
+      assert_eq!(res.complete_events[1].meeple_ids, vec![0]);
+      assert_eq!(res.complete_events[1].point, 9);
+      assert_eq!(res.player0_point, 9);
+      assert_eq!(res.player1_point, 9);
     },
     Err(e) => { panic!("Error: {}", e.msg); }
   }
