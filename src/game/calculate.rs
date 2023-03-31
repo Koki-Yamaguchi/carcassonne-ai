@@ -74,10 +74,26 @@ impl TileItem {
     match self.tile {
       Tile::StartingTile => [Road, City, Road, Field],
       Tile::Monastery => [Field, Field, Field, Field],
+      Tile::MonasteryWithRoad => [Field, Field, Field, Road],
       Tile::CityCapWithCrossroad => [Road, City, Road, Road],
-      Tile::TriagnleWithRoad => [Road, City, City, Road],
-      Tile::TriagnleWithRoadWithCOA => [Road, City, City, Road],
-      Tile::Invalid => [Field, Field, Field, Field]
+      Tile::TriangleWithRoad => [Road, City, City, Road],
+      Tile::TriangleWithRoadWithCOA => [Road, City, City, Road],
+      Tile::Straight => [Field, Road, Field, Road],
+      Tile::CityCap => [Field, City, Field, Field],
+      Tile::Separator => [Field, City, City, Field],
+      Tile::TripleRoad => [Road, Field, Road, Road],
+      Tile::Curve => [Field, Field, Road, Road],
+      Tile::QuadrupleRoad => [Road, Road, Road, Road],
+      Tile::Connector => [City, Field, City, Field],
+      Tile::ConnectorWithCOA => [City, Field, City, Field],
+      Tile::Left => [Field, City, Road, Road],
+      Tile::Right => [Road, City, Field, Road],
+      Tile::TripleCity => [City, City, City, Field],
+      Tile::TripleCityWithCOA => [City, City, City, Field],
+      Tile::VerticalSeparator => [Field, City, Field, City],
+      Tile::TripleCityWithRoad => [City, City, City, Road],
+      Tile::TripleCityWithRoadWithCOA => [City, City, City, Road],
+      Tile::Invalid => [Field, Field, Field, Field],
     }
   }
   fn right(self) -> Side {
@@ -103,16 +119,6 @@ impl TileItem {
   }
   fn bottom_features(self) -> Vec<DistinctFeature> {
     self.side_features()[((self.rot + 3) % 4) as usize].clone()
-  }
-  fn feature_size(self) -> i32 {
-    match self.tile {
-      Tile::StartingTile => 4,
-      Tile::Monastery => 2,
-      Tile::CityCapWithCrossroad => 7,
-      Tile::TriagnleWithRoad => 4,
-      Tile::TriagnleWithRoadWithCOA => 4,
-      Tile::Invalid => 0,
-    }
   }
   // side_features defined so that they are not influenced by the effect of turn
   fn side_features(self) -> Vec<Vec<DistinctFeature>> {
@@ -149,6 +155,22 @@ impl TileItem {
           DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
         ], // bottom
       ],
+      Tile::MonasteryWithRoad => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // bottom
+      ],
       Tile::CityCapWithCrossroad => vec![
         vec![
           DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
@@ -169,7 +191,7 @@ impl TileItem {
           DistinctFeature { id: self.feature_starting_id + 4, feature: FieldFeature },
         ], // bottom
       ],
-      Tile::TriagnleWithRoad => vec![
+      Tile::TriangleWithRoad => vec![
         vec![
           DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
           DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
@@ -187,11 +209,255 @@ impl TileItem {
           DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
         ], // bottom
       ],
-      Tile::TriagnleWithRoadWithCOA => vec![
+      Tile::TriangleWithRoadWithCOA => vec![
         vec![
           DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
           DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
           DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // bottom
+      ],
+      Tile::Straight => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 1, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 1, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+        ], // bottom
+      ],
+      Tile::CityCap => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // bottom
+      ],
+      Tile::Separator => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: CityFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+        ], // bottom
+      ],
+      Tile::TripleRoad => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 5, feature: FieldFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 1, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 5, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 4, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+        ], // bottom
+      ],
+      Tile::Curve => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 1, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 1, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+        ], // bottom
+      ],
+      Tile::QuadrupleRoad => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 4, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 7, feature: FieldFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 1, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 5, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 3, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 7, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 6, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 5, feature: FieldFeature },
+        ], // bottom
+      ],
+      Tile::Connector => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: CityFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: CityFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+        ], // bottom
+      ],
+      Tile::ConnectorWithCOA => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: CityFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: CityFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+        ], // bottom
+      ],
+      Tile::Left => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+        ], // bottom
+      ],
+      Tile::Right => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // bottom
+      ],
+      Tile::TripleCity => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // bottom
+      ],
+      Tile::TripleCityWithCOA => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // bottom
+      ],
+      Tile::VerticalSeparator => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 2, feature: CityFeature },
+        ], // bottom
+      ],
+      Tile::TripleCityWithRoad => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // bottom
+      ],
+      Tile::TripleCityWithRoadWithCOA => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
         ], // right
         vec![
           DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
@@ -220,6 +486,11 @@ impl TileItem {
         DistinctFeature { id: self.feature_starting_id + 0, feature: MonasteryFeature },
         DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
       ],
+      Tile::MonasteryWithRoad => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: MonasteryFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+      ],
       Tile::CityCapWithCrossroad => vec![
         DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
         DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
@@ -229,13 +500,97 @@ impl TileItem {
         DistinctFeature { id: self.feature_starting_id + 5, feature: RoadFeature },
         DistinctFeature { id: self.feature_starting_id + 6, feature: FieldFeature },
       ],
-      Tile::TriagnleWithRoad => vec![
+      Tile::TriangleWithRoad => vec![
         DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
         DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
         DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
         DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
       ],
-      Tile::TriagnleWithRoadWithCOA => vec![
+      Tile::TriangleWithRoadWithCOA => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+        DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+      ],
+      Tile::Straight => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: RoadFeature },
+        DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+      ],
+      Tile::CityCap => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+      ],
+      Tile::Separator => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: CityFeature },
+        DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+      ],
+      Tile::TripleRoad => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: RoadFeature },
+        DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+        DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 4, feature: RoadFeature },
+        DistinctFeature { id: self.feature_starting_id + 5, feature: FieldFeature },
+      ],
+      Tile::Curve => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: RoadFeature },
+        DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+      ],
+      Tile::QuadrupleRoad => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: RoadFeature },
+        DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 3, feature: RoadFeature },
+        DistinctFeature { id: self.feature_starting_id + 4, feature: RoadFeature },
+        DistinctFeature { id: self.feature_starting_id + 5, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 6, feature: RoadFeature },
+        DistinctFeature { id: self.feature_starting_id + 7, feature: FieldFeature },
+      ],
+      Tile::Connector => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: CityFeature },
+        DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+      ],
+      Tile::ConnectorWithCOA => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: CityFeature },
+        DistinctFeature { id: self.feature_starting_id + 2, feature: FieldFeature },
+      ],
+      Tile::Left => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+        DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+      ],
+      Tile::Right => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+        DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+      ],
+      Tile::TripleCity => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+      ],
+      Tile::TripleCityWithCOA => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+      ],
+      Tile::VerticalSeparator => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 2, feature: CityFeature },
+      ],
+      Tile::TripleCityWithRoad => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+        DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+      ],
+      Tile::TripleCityWithRoadWithCOA => vec![
         DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
         DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
         DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
@@ -258,6 +613,11 @@ fn create_mergeable_features(mf: &mut MergeableFeature, t: Tile) {
       mf.new_feature(9, false);
       mf.new_feature(4, false);
     },
+    Tile::MonasteryWithRoad => {
+      mf.new_feature(9, false);
+      mf.new_feature(5, false);
+      mf.new_feature(1, false);
+    },
     Tile::CityCapWithCrossroad => {
       mf.new_feature(1, false);
       mf.new_feature(2, false);
@@ -267,17 +627,101 @@ fn create_mergeable_features(mf: &mut MergeableFeature, t: Tile) {
       mf.new_feature(1, false);
       mf.new_feature(2, false);
     },
-    Tile::TriagnleWithRoad => {
+    Tile::TriangleWithRoad => {
       mf.new_feature(2, false);
       mf.new_feature(2, false);
       mf.new_feature(2, false);
       mf.new_feature(2, false);
     },
-    Tile::TriagnleWithRoadWithCOA => {
+    Tile::TriangleWithRoadWithCOA => {
       mf.new_feature(2, true);
       mf.new_feature(2, false);
       mf.new_feature(2, false);
       mf.new_feature(2, false);
+    },
+    Tile::Straight => {
+      mf.new_feature(3, false);
+      mf.new_feature(2, false);
+      mf.new_feature(3, false);
+    }
+    Tile::CityCap => {
+      mf.new_feature(1, false);
+      mf.new_feature(3, false);
+    },
+    Tile::Separator => {
+      mf.new_feature(1, false);
+      mf.new_feature(1, false);
+      mf.new_feature(2, false);
+    },
+    Tile::TripleRoad => {
+      mf.new_feature(3, false);
+      mf.new_feature(1, false);
+      mf.new_feature(1, false);
+      mf.new_feature(2, false);
+      mf.new_feature(1, false);
+      mf.new_feature(2, false);
+    },
+    Tile::Curve => {
+      mf.new_feature(4, false);
+      mf.new_feature(2, false);
+      mf.new_feature(2, false);
+    }
+    Tile::QuadrupleRoad => {
+      mf.new_feature(2, false);
+      mf.new_feature(1, false);
+      mf.new_feature(2, false);
+      mf.new_feature(1, false);
+      mf.new_feature(1, false);
+      mf.new_feature(2, false);
+      mf.new_feature(1, false);
+      mf.new_feature(2, false);
+    },
+    Tile::Connector => {
+      mf.new_feature(1, false);
+      mf.new_feature(2, false);
+      mf.new_feature(1, false);
+    },
+    Tile::ConnectorWithCOA => {
+      mf.new_feature(1, false);
+      mf.new_feature(2, true);
+      mf.new_feature(1, false);
+    },
+    Tile::Left => {
+      mf.new_feature(1, false);
+      mf.new_feature(3, false);
+      mf.new_feature(2, false);
+      mf.new_feature(2, false);
+    }
+    Tile::Right => {
+      mf.new_feature(1, false);
+      mf.new_feature(3, false);
+      mf.new_feature(2, false);
+      mf.new_feature(2, false);
+    }
+    Tile::TripleCity => {
+      mf.new_feature(3, false);
+      mf.new_feature(1, false);
+    },
+    Tile::TripleCityWithCOA => {
+      mf.new_feature(3, true);
+      mf.new_feature(1, false);
+    },
+    Tile::VerticalSeparator => {
+      mf.new_feature(1, false);
+      mf.new_feature(2, false);
+      mf.new_feature(1, false);
+    },
+    Tile::TripleCityWithRoad => {
+      mf.new_feature(3, false);
+      mf.new_feature(1, false);
+      mf.new_feature(1, false);
+      mf.new_feature(1, false);
+    },
+    Tile::TripleCityWithRoadWithCOA => {
+      mf.new_feature(3, true);
+      mf.new_feature(1, false);
+      mf.new_feature(1, false);
+      mf.new_feature(1, false);
     },
     Tile::Invalid => {}
   }
@@ -289,15 +733,59 @@ fn set_cities_to_fields(mf: &mut MergeableFeature, t: &TileItem) {
       mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
     }
     Tile::Monastery => { },
+    Tile::MonasteryWithRoad => { },
     Tile::CityCapWithCrossroad => {
       mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
     },
-    Tile::TriagnleWithRoad => {
+    Tile::TriangleWithRoad => {
       mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
     },
-    Tile::TriagnleWithRoadWithCOA => {
+    Tile::TriangleWithRoadWithCOA => {
       mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
     },
+    Tile::Straight => {}
+    Tile::CityCap => {
+      mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
+    },
+    Tile::Separator => {
+      mf.set_cities((t.feature_starting_id + 2) as usize, (t.feature_starting_id + 0) as usize);
+      mf.set_cities((t.feature_starting_id + 2) as usize, (t.feature_starting_id + 1) as usize);
+    }
+    Tile::TripleRoad => {}
+    Tile::Curve => {}
+    Tile::QuadrupleRoad => {}
+    Tile::Connector => {
+      mf.set_cities((t.feature_starting_id + 0) as usize, (t.feature_starting_id + 1) as usize);
+      mf.set_cities((t.feature_starting_id + 2) as usize, (t.feature_starting_id + 1) as usize);
+    }
+    Tile::ConnectorWithCOA => {
+      mf.set_cities((t.feature_starting_id + 0) as usize, (t.feature_starting_id + 1) as usize);
+      mf.set_cities((t.feature_starting_id + 2) as usize, (t.feature_starting_id + 1) as usize);
+    }
+    Tile::Left => {
+      mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
+    },
+    Tile::Right => {
+      mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
+    },
+    Tile::TripleCity => {
+      mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
+    }
+    Tile::TripleCityWithCOA => {
+      mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
+    }
+    Tile::VerticalSeparator => {
+      mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
+      mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 2) as usize);
+    }
+    Tile::TripleCityWithRoad => {
+      mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
+      mf.set_cities((t.feature_starting_id + 3) as usize, (t.feature_starting_id + 0) as usize);
+    }
+    Tile::TripleCityWithRoadWithCOA => {
+      mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
+      mf.set_cities((t.feature_starting_id + 3) as usize, (t.feature_starting_id + 0) as usize);
+    }
     Tile::Invalid => {}
   }
 }
@@ -337,7 +825,7 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
         create_mergeable_features(&mut mergeable_features, m.tile);
         set_cities_to_fields(&mut mergeable_features, &current_tile);
 
-        current_feature_id += current_tile.feature_size();
+        current_feature_id += current_tile.features().len() as i32;
 
         let y = m.pos.0 as usize;
         let x = m.pos.1 as usize;
@@ -348,7 +836,7 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
         match (y, x, &board[y - 1][x], &board[y + 1][x], &board[y][x - 1], &board[y][x + 1]) {
           (50, 50, _, _, _, _) => {} /* initial tile */
           (_, _, &Empty, &Empty, &Empty, &Empty) => {
-            return Err(Error{ msg: "invalid moves".to_string() })
+            return Err(Error{ msg: "there must be at least one adjacent tile".to_string() })
           }
           (_, _, _, _, _, _) => {}
         }
@@ -357,16 +845,16 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
         let left_must_be = match board[y][x - 1] { Tile(t) => t.right(), Empty => None };
         let right_must_be = match board[y][x + 1] { Tile(t) => t.left(), Empty => None };
         if top_must_be != None && top_must_be != current_tile.top() {
-          return Err(Error{ msg: "invalid moves".to_string() })
+          return Err(Error{ msg: "top side is not correct".to_string() })
         }
         if bottom_must_be != None && bottom_must_be != current_tile.bottom() {
-          return Err(Error{ msg: "invalid moves".to_string() })
+          return Err(Error{ msg: "bottom side is not correct".to_string() })
         }
         if left_must_be != None && left_must_be != current_tile.left() {
-          return Err(Error{ msg: "invalid moves".to_string() })
+          return Err(Error{ msg: "left side is not correct".to_string() })
         }
         if right_must_be != None && right_must_be != current_tile.right() {
-          return Err(Error{ msg: "invalid moves".to_string() })
+          return Err(Error{ msg: "right side is not correct".to_string() })
         }
 
         // place tile
@@ -404,7 +892,7 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
         // update meepleable positions
         match board[y][x] {
           Empty => {
-            return Err(Error{ msg: "invalid moves".to_string() })
+            return Err(Error{ msg: "tile on (y, x) must exist".to_string() })
           }
           Tile(t) => {
             meepleable_positions.clear();
@@ -419,7 +907,7 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
 
         // update open side for monastery that was placed just now
         match m.tile {
-          Tile::Monastery => {
+          Tile::Monastery | Tile::MonasteryWithRoad => {
             let mut filled_count = 0;
             for dy in -1..2 {
               for dx in -1..2 {
@@ -449,7 +937,7 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
             match board[ny][nx] {
               Tile(t) => {
                 match t.tile {
-                  Tile::Monastery => {
+                  Tile::Monastery | Tile::MonasteryWithRoad => {
                     mergeable_features.reduce_open_sides(t.feature_starting_id as usize, 1);
                   }
                   _ => {}
@@ -467,12 +955,12 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
         if m.meeple_id != -1 {
           match board[y][x] {
             Empty => {
-              return Err(Error{ msg: "invalid moves".to_string() })
+              return Err(Error{ msg: "tile on (y, x) must exist".to_string() })
             }
             Tile(t) => {
               let feature_id = t.feature_starting_id + m.meeple_pos;
               if mergeable_features.get_meeples(feature_id as usize).len() != 0 {
-                return Err(Error{ msg: "invalid moves".to_string() })
+                return Err(Error{ msg: "meepling on this feature is not allowed".to_string() })
               }
               mergeable_features.place_meeple(feature_id as usize, m.meeple_id);
             }
@@ -480,7 +968,7 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
         }
         match board[y][x] {
           Empty => {
-            return Err(Error{ msg: "invalid moves".to_string() })
+            return Err(Error{ msg: "tile on (y, x) must exist".to_string() })
           }
           Tile(t) => {
             for f in &t.features() {
@@ -540,7 +1028,7 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
             match board[ny][nx] {
               Tile(t) => {
                 match t.tile {
-                  Tile::Monastery => {
+                  Tile::Monastery | Tile::MonasteryWithRoad => {
                     if mergeable_features.is_completed(t.feature_starting_id as usize) {
                       let meeple_ids = mergeable_features.get_meeples(t.feature_starting_id as usize);
                       if meeple_ids.len() == 0 {
@@ -670,7 +1158,7 @@ fn calculate_test_for_road_and_city_completion() {
     Move::MMove( MeepleMove { ord: 1, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (50, 50), meeple_pos: -1 } ),
   ];
 
-  mvs.push(Move::TMove( TileMove { ord: 2, game_id, player_id: player0_id, tile: Tile::TriagnleWithRoad, rot: 2, pos: (49, 50) } ));
+  mvs.push(Move::TMove( TileMove { ord: 2, game_id, player_id: player0_id, tile: Tile::TriangleWithRoad, rot: 2, pos: (49, 50) } ));
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => { assert_eq!(res.meepleable_positions, vec![0, 1, 2, 3]); },
@@ -748,7 +1236,7 @@ fn calculate_test_for_road_and_city_completion() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::TMove( TileMove { ord: 10, game_id, player_id: player0_id, tile: Tile::TriagnleWithRoadWithCOA, rot: 3, pos: (49, 51) } ));
+  mvs.push(Move::TMove( TileMove { ord: 10, game_id, player_id: player0_id, tile: Tile::TriangleWithRoadWithCOA, rot: 3, pos: (49, 51) } ));
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => { assert_eq!(res.meepleable_positions, vec![1, 2, 3]); },
@@ -859,4 +1347,251 @@ fn calculate_test_for_monastery_completion() {
     },
     Err(e) => { panic!("Error: {}", e.msg); }
   }
+}
+
+fn add_move(mvs: &mut Vec<Move>, tile: Tile, rot: i32, pos: (i32, i32), meeple_id: i32, meeple_pos: i32) {
+  mvs.push(Move::TMove( TileMove { ord: -1, game_id: -1, player_id: -1, tile, rot, pos, } ));
+  mvs.push(Move::MMove( MeepleMove { ord: -1, game_id: -1, player_id: -1, meeple_id: meeple_id, tile_pos: pos, meeple_pos } ));
+}
+
+#[test]
+fn calculate_test() {
+  let mut mvs = vec![];
+
+  add_move(&mut mvs, Tile::StartingTile, 0, (50, 50), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 1, (50, 51), 0, 1);
+  add_move(&mut mvs, Tile::CityCap, 2, (49, 50), 7, 0);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, CityFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![7]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 0);
+      assert_eq!(res.player1_point, 4);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::Separator, 2, (51, 50), 1, 0);
+  add_move(&mut mvs, Tile::StartingTile, 3, (51, 49), 7, 0);
+  add_move(&mut mvs, Tile::TripleRoad, 0, (50, 49), 2, 4);
+  add_move(&mut mvs, Tile::CityCap, 3, (51, 51), 8, 0);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, CityFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![8]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 0);
+      assert_eq!(res.player1_point, 8);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::Curve, 1, (50, 52), -1, -1);
+  add_move(&mut mvs, Tile::TripleRoad, 0, (52, 51), 8, 1);
+  add_move(&mut mvs, Tile::QuadrupleRoad, 0, (50, 48), 3, 4);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, RoadFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![3]);
+      assert_eq!(res.complete_events[0].point, 2);
+      assert_eq!(res.player0_point, 2);
+      assert_eq!(res.player1_point, 8);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::TripleRoad, 2, (53, 51), 9, 4);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, RoadFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![9]);
+      assert_eq!(res.complete_events[0].point, 2);
+      assert_eq!(res.player0_point, 2);
+      assert_eq!(res.player1_point, 10);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::CityCapWithCrossroad, 0, (49, 52), 3, 0);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, RoadFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![0]);
+      assert_eq!(res.complete_events[0].point, 5);
+      assert_eq!(res.player0_point, 7);
+      assert_eq!(res.player1_point, 10);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::Straight, 1, (49, 53), 9, 1);
+  add_move(&mut mvs, Tile::Curve, 0, (52, 52), 10, 1);
+  add_move(&mut mvs, Tile::ConnectorWithCOA, 1, (48, 52), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 0, (52, 49), -1, -1);
+  add_move(&mut mvs, Tile::Left, 1, (51, 48), 11, 2);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, CityFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![7]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 7);
+      assert_eq!(res.player1_point, 14);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::CityCap, 2, (47, 52), -1, -1);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, CityFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![3]);
+      assert_eq!(res.complete_events[0].point, 8);
+      assert_eq!(res.player0_point, 15);
+      assert_eq!(res.player1_point, 14);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::CityCap, 0, (46, 52), 7, 0);
+  add_move(&mut mvs, Tile::TripleCity, 2, (45, 52), -1, -1);
+  add_move(&mut mvs, Tile::TriangleWithRoad, 2, (53, 52), 12, 0);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, RoadFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![10]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 15);
+      assert_eq!(res.player1_point, 18);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::TripleCity, 1, (46, 53), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 3, (50, 47), -1, -1);
+  add_move(&mut mvs, Tile::CityCapWithCrossroad, 2, (53, 49), 0, 0);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, RoadFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![2]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 19);
+      assert_eq!(res.player1_point, 18);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::TripleCity, 2, (45, 53), -1, -1);
+  add_move(&mut mvs, Tile::StartingTile, 0, (54, 49), -1, -1);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, CityFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![0]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 23);
+      assert_eq!(res.player1_point, 18);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::VerticalSeparator, 1, (45, 51), 10, 2);
+  add_move(&mut mvs, Tile::Right, 0, (52, 50), 0, 1);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, CityFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![1]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 27);
+      assert_eq!(res.player1_point, 18);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::TripleCity, 3, (46, 54), -1, -1);
+  add_move(&mut mvs, Tile::VerticalSeparator, 0, (46, 55), 1, 2);
+  add_move(&mut mvs, Tile::Left, 2, (45, 55), 13, 0);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, CityFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![13]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 27);
+      assert_eq!(res.player1_point, 22);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::TripleCityWithRoad, 3, (47, 55), -1, -1);
+  add_move(&mut mvs, Tile::Monastery, 0, (51, 52), 13, 0);
+  add_move(&mut mvs, Tile::MonasteryWithRoad, 3, (49, 51), 2, 0);
+  add_move(&mut mvs, Tile::TripleRoad, 2, (53, 50), -1, -1);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, RoadFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![8]);
+      assert_eq!(res.complete_events[0].point, 3);
+      assert_eq!(res.player0_point, 27);
+      assert_eq!(res.player1_point, 25);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  add_move(&mut mvs, Tile::Right, 0, (44, 55), 3, 0);
+  add_move(&mut mvs, Tile::TriangleWithRoad, 1, (54, 52), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 0, (50, 46), -1, -1);
+
+  /* add_move(&mut mvs, Tile::TriangleWithRoad, 3, (51, 47), -1, -1);
+
+  let status = calculate(&mvs, false);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 1);
+      assert_eq!(res.complete_events[0].feature, RoadFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![11]);
+      assert_eq!(res.complete_events[0].point, 4);
+      assert_eq!(res.player0_point, 27);
+      assert_eq!(res.player1_point, 29);
+    }
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+  */
 }
