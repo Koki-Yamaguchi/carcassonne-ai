@@ -5,6 +5,7 @@ use self::Side::*;
 use self::Square::*;
 use self::Feature::*;
 
+#[derive(Debug)]
 pub struct CompleteEvent {
   pub feature: Feature,
   pub meeple_ids: Vec<i32>,
@@ -282,6 +283,25 @@ fn create_mergeable_features(mf: &mut MergeableFeature, t: Tile) {
   }
 }
 
+fn set_cities_to_fields(mf: &mut MergeableFeature, t: &TileItem) {
+  match t.tile {
+    Tile::StartingTile => {
+      mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
+    }
+    Tile::Monastery => { },
+    Tile::CityCapWithCrossroad => {
+      mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
+    },
+    Tile::TriagnleWithRoad => {
+      mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
+    },
+    Tile::TriagnleWithRoadWithCOA => {
+      mf.set_cities((t.feature_starting_id + 1) as usize, (t.feature_starting_id + 0) as usize);
+    },
+    Tile::Invalid => {}
+  }
+}
+
 fn merge_features(mf: &mut MergeableFeature, feat0: Vec<DistinctFeature>, feat1: Vec<DistinctFeature>) {
   if feat0.len() == 1 && feat1.len() == 1 {
     mf.unite(feat0[0].id as usize, feat1[0].id as usize);
@@ -292,7 +312,7 @@ fn merge_features(mf: &mut MergeableFeature, feat0: Vec<DistinctFeature>, feat1:
   }
 }
 
-pub fn calculate(moves: &Vec<Move>) -> Result<Status, Error> {
+pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Error> {
   let board_size = 100;
 
   let mut mergeable_features = MergeableFeature::new();
@@ -313,7 +333,10 @@ pub fn calculate(moves: &Vec<Move>) -> Result<Status, Error> {
           rot: m.rot,
           feature_starting_id: current_feature_id,
         };
+
         create_mergeable_features(&mut mergeable_features, m.tile);
+        set_cities_to_fields(&mut mergeable_features, &current_tile);
+
         current_feature_id += current_tile.feature_size();
 
         let y = m.pos.0 as usize;
@@ -546,6 +569,89 @@ pub fn calculate(moves: &Vec<Move>) -> Result<Status, Error> {
       Move::InvalidMove => {}
     }
   }
+
+  if !get_final_status {
+    return Ok(Status {
+      meepleable_positions,
+      complete_events,
+      player0_point,
+      player1_point,
+    });
+  }
+
+  let mut complete_events = vec![];
+
+  for y in 0..board_size {
+    for x in 0..board_size {
+      match board[y][x] {
+        Tile(t) => {
+          let fs = t.features();
+          for f in &fs {
+            let meeple_ids = mergeable_features.get_meeples(f.id as usize);
+            if meeple_ids.len() == 0 {
+              continue;
+            }
+
+            if mergeable_features.is_completed(f.id as usize) {
+              continue;
+            }
+            if mergeable_features.is_done(f.id as usize) {
+              continue;
+            }
+
+            let pts = match f.feature {
+              RoadFeature => {
+                let sz = mergeable_features.size(f.id as usize);
+                sz as i32
+              },
+              CityFeature => {
+                let sz = mergeable_features.size(f.id as usize);
+                sz as i32
+              },
+              MonasteryFeature => {
+                let open_sides = mergeable_features.get_open_sides(f.id as usize);
+                (9 - open_sides) as i32
+              },
+              FieldFeature => {
+                let mut p = 0;
+                let cities = mergeable_features.get_facing_cities(f.id as usize);
+                for city in &cities {
+                  if mergeable_features.is_completed(*city) {
+                    p += 3;
+                  }
+                }
+                p
+              },
+            };
+            let mut player0_meeples = 0;
+            let mut player1_meeples = 0;
+            for meeple_id in &meeple_ids {
+              if *meeple_id < 7 {
+                player0_meeples += 1;
+              } else {
+                player1_meeples += 1;
+              }
+            }
+            if player0_meeples >= player1_meeples {
+              player0_point += pts;
+            }
+            if player1_meeples >= player0_meeples {
+              player1_point += pts;
+            }
+            complete_events.push(CompleteEvent {
+              feature: f.feature.clone(),
+              meeple_ids,
+              point: pts,
+            });
+
+            mergeable_features.set_as_done(f.id as usize);
+          }
+        }
+        Empty => {}
+      }
+    }
+  }
+
   Ok(Status {
     meepleable_positions,
     complete_events,
@@ -565,14 +671,14 @@ fn calculate_test_for_road_and_city_completion() {
   ];
 
   mvs.push(Move::TMove( TileMove { ord: 2, game_id, player_id: player0_id, tile: Tile::TriagnleWithRoad, rot: 2, pos: (49, 50) } ));
-  let status = calculate(&mvs);
+  let status = calculate(&mvs, false);
   match status {
     Ok(res) => { assert_eq!(res.meepleable_positions, vec![0, 1, 2, 3]); },
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
   mvs.push(Move::MMove( MeepleMove { ord: 3, game_id, player_id: player0_id, meeple_id: 0, tile_pos: (49, 50), meeple_pos: 0 } ));
-  let status = calculate(&mvs);
+  let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
       assert_eq!(res.complete_events.len(), 0);
@@ -583,14 +689,14 @@ fn calculate_test_for_road_and_city_completion() {
   }
 
   mvs.push(Move::TMove( TileMove { ord: 4, game_id, player_id: player1_id, tile: Tile::CityCapWithCrossroad, rot: 3, pos: (50, 49) } ));
-  let status = calculate(&mvs);
+  let status = calculate(&mvs, false);
   match status {
     Ok(res) => { assert_eq!(res.meepleable_positions, vec![0, 1, 2, 3, 4, 5, 6]); },
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::MMove( MeepleMove { ord: 4, game_id, player_id: player1_id, meeple_id: 7, tile_pos: (50, 49), meeple_pos: 0 } ));
-  let status = calculate(&mvs);
+  mvs.push(Move::MMove( MeepleMove { ord: 5, game_id, player_id: player1_id, meeple_id: 7, tile_pos: (50, 49), meeple_pos: 0 } ));
+  let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
       assert_eq!(res.complete_events.len(), 0);
@@ -600,15 +706,15 @@ fn calculate_test_for_road_and_city_completion() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::TMove( TileMove { ord: 5, game_id, player_id: player0_id, tile: Tile::CityCapWithCrossroad, rot: 0, pos: (50, 51) } ));
-  let status = calculate(&mvs);
+  mvs.push(Move::TMove( TileMove { ord: 6, game_id, player_id: player0_id, tile: Tile::CityCapWithCrossroad, rot: 0, pos: (50, 51) } ));
+  let status = calculate(&mvs, false);
   match status {
     Ok(res) => { assert_eq!(res.meepleable_positions, vec![0, 1, 2, 3, 4, 5, 6]); },
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::MMove( MeepleMove { ord: 6, game_id, player_id: player0_id, meeple_id: 1, tile_pos: (50, 51), meeple_pos: 2 } ));
-  let status = calculate(&mvs);
+  mvs.push(Move::MMove( MeepleMove { ord: 7, game_id, player_id: player0_id, meeple_id: 1, tile_pos: (50, 51), meeple_pos: 2 } ));
+  let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
       assert_eq!(res.complete_events.len(), 1);
@@ -621,15 +727,15 @@ fn calculate_test_for_road_and_city_completion() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::TMove( TileMove { ord: 7, game_id, player_id: player1_id, tile: Tile::StartingTile, rot: 1, pos: (50, 48) } ));
-  let status = calculate(&mvs);
+  mvs.push(Move::TMove( TileMove { ord: 8, game_id, player_id: player1_id, tile: Tile::StartingTile, rot: 1, pos: (50, 48) } ));
+  let status = calculate(&mvs, false);
   match status {
     Ok(res) => { assert_eq!(res.meepleable_positions, vec![1, 2, 3]); },
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::MMove( MeepleMove { ord: 8, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (50, 48), meeple_pos: -1 } ));
-  let status = calculate(&mvs);
+  mvs.push(Move::MMove( MeepleMove { ord: 9, game_id, player_id: player1_id, meeple_id: 8, tile_pos: (50, 48), meeple_pos: 2 } ));
+  let status = calculate(&mvs,false);
   match status {
     Ok(res) => {
       assert_eq!(res.complete_events.len(), 1);
@@ -642,15 +748,15 @@ fn calculate_test_for_road_and_city_completion() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::TMove( TileMove { ord: 9, game_id, player_id: player0_id, tile: Tile::TriagnleWithRoadWithCOA, rot: 3, pos: (49, 51) } ));
-  let status = calculate(&mvs);
+  mvs.push(Move::TMove( TileMove { ord: 10, game_id, player_id: player0_id, tile: Tile::TriagnleWithRoadWithCOA, rot: 3, pos: (49, 51) } ));
+  let status = calculate(&mvs, false);
   match status {
     Ok(res) => { assert_eq!(res.meepleable_positions, vec![1, 2, 3]); },
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::MMove( MeepleMove { ord: 10, game_id, player_id: player0_id, meeple_id: -1, tile_pos: (49, 51), meeple_pos: -1 } ));
-  let status = calculate(&mvs);
+  mvs.push(Move::MMove( MeepleMove { ord: 11, game_id, player_id: player0_id, meeple_id: 1, tile_pos: (49, 51), meeple_pos: 1 } ));
+  let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
       assert_eq!(res.complete_events.len(), 1);
@@ -659,6 +765,22 @@ fn calculate_test_for_road_and_city_completion() {
       assert_eq!(res.complete_events[0].point, 10);
       assert_eq!(res.player0_point, 13);
       assert_eq!(res.player1_point, 4);
+    },
+    Err(e) => { panic!("Error: {}", e.msg); }
+  }
+
+  let status = calculate(&mvs, true);
+  match status {
+    Ok(res) => {
+      assert_eq!(res.complete_events.len(), 2);
+      assert_eq!(res.complete_events[0].feature, FieldFeature);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![1]);
+      assert_eq!(res.complete_events[0].point, 3);
+      assert_eq!(res.complete_events[1].feature, RoadFeature);
+      assert_eq!(res.complete_events[1].meeple_ids, vec![8]);
+      assert_eq!(res.complete_events[1].point, 1);
+      assert_eq!(res.player0_point, 16);
+      assert_eq!(res.player1_point, 5);
     },
     Err(e) => { panic!("Error: {}", e.msg); }
   }
@@ -675,14 +797,14 @@ fn calculate_test_for_monastery_completion() {
   ];
 
   mvs.push(Move::TMove( TileMove { ord: 2, game_id, player_id: player0_id, tile: Tile::Monastery, rot: 0, pos: (51, 50) } ));
-  let status = calculate(&mvs);
+  let status = calculate(&mvs, false);
   match status {
     Ok(res) => { assert_eq!(res.meepleable_positions, vec![0, 1]); },
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
   mvs.push(Move::MMove( MeepleMove { ord: 3, game_id, player_id: player0_id, meeple_id: 0, tile_pos: (51, 50), meeple_pos: 0 } ));
-  let status = calculate(&mvs);
+  let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
       assert_eq!(res.complete_events.len(), 0);
@@ -722,7 +844,7 @@ fn calculate_test_for_monastery_completion() {
   mvs.push(Move::TMove( TileMove { ord: 22, game_id, player_id: player1_id, tile: Tile::Monastery, rot: 0, pos: (51, 49) } ));
   mvs.push(Move::MMove( MeepleMove { ord: 23, game_id, player_id: player1_id, meeple_id: 7, tile_pos: (51, 49), meeple_pos: 0 } ));
 
-  let status = calculate(&mvs);
+  let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
       assert_eq!(res.complete_events.len(), 2);

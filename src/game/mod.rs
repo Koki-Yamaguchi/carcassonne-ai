@@ -63,7 +63,7 @@ pub fn create_tile_move(game_id: i32, player_id: i32, tile: tile::Tile, rot: i32
   let moves = database::list_moves(game_id);
   assert!(moves.len() != 0);
 
-  let res = calculate::calculate(&moves);
+  let res = calculate::calculate(&moves, false);
   let meepleable_positions = match res {
     Ok(s) => { s.meepleable_positions }
     Err(_) => { vec![] }
@@ -92,7 +92,7 @@ pub fn create_meeple_move(game_id: i32, player_id: i32, meeple_id: i32, tile_pos
 
   let mut complete_events = vec![];
 
-  let res = calculate::calculate(&moves);
+  let res = calculate::calculate(&moves, false);
   match res {
     Ok(s) => {
       for e in &s.complete_events {

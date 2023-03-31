@@ -3,6 +3,8 @@ pub struct MergeableFeature {
   rank: Vec<usize>,
   meeples: Vec<Vec<i32>>,
   open_sides: Vec<i32>,
+  facing_cities: Vec<Vec<usize>>, // for field
+  done: Vec<bool>,
 }
 
 impl MergeableFeature {
@@ -12,6 +14,8 @@ impl MergeableFeature {
           rank: vec![],
           meeples: vec![],
           open_sides: vec![],
+          facing_cities: vec![],
+          done: vec![],
         }
     }
     pub fn new_feature(&mut self, open_side: i32, with_coa: bool) {
@@ -23,6 +27,11 @@ impl MergeableFeature {
       self.rank.push(r);
       self.meeples.push(vec![]);
       self.open_sides.push(open_side);
+      self.facing_cities.push(vec![]);
+      self.done.push(false);
+    }
+    pub fn set_cities(&mut self, x: usize, city: usize) {
+      self.facing_cities[x].push(city);
     }
     fn root(&mut self, x: usize) -> usize {
         if x != self.par[x] {
@@ -48,9 +57,20 @@ impl MergeableFeature {
         self.rank[y] += self.rank[x];
         let mut v = vec![];
         for m in &self.meeples[x] {
-          v.push(*m)
+          v.push(*m);
         }
         self.meeples[y].append(&mut v);
+        // merge facing cities for filed
+        let mut v = vec![];
+        for c in &self.facing_cities[x] { v.push(*c); }
+        for c in &self.facing_cities[y] { v.push(*c); }
+        let mut root_v = vec![];
+        for e in v {
+          root_v.push(self.root(e));
+        }
+        root_v.sort();
+        root_v.dedup();
+        self.facing_cities[y] = root_v;
     }
     pub fn is_completed(&mut self, x: usize) -> bool {
       let x = self.root(x);
@@ -70,6 +90,14 @@ impl MergeableFeature {
       let x = self.root(x);
       self.meeples[x].clone()
     }
+    pub fn get_open_sides(&mut self, x: usize) -> i32 {
+      let x = self.root(x);
+      self.open_sides[x]
+    }
+    pub fn get_facing_cities(&mut self, x: usize) -> Vec<usize> {
+      let x = self.root(x);
+      self.facing_cities[x].clone()
+    }
     #[allow(unused)]
     pub fn size(&mut self, x: usize) -> usize {
         let x = self.root(x);
@@ -78,5 +106,13 @@ impl MergeableFeature {
     pub fn reduce_open_sides(&mut self, x: usize, count: i32) {
       let x = self.root(x);
       self.open_sides[x] -= count;
+    }
+    pub fn set_as_done(&mut self, x: usize) {
+      let x = self.root(x);
+      self.done[x] = true;
+    }
+    pub fn is_done(&mut self, x: usize) -> bool {
+      let x = self.root(x);
+      self.done[x]
     }
 }
