@@ -4,6 +4,7 @@ pub enum Tile {
   CityCapWithCrossroad,
   Monastery,
   TriagnleWithRoad,
+  TriagnleWithRoadWithCOA,
   Invalid,
 }
 
@@ -14,6 +15,7 @@ impl Tile {
       Tile::Monastery => 1,
       Tile::CityCapWithCrossroad => 2,
       Tile::TriagnleWithRoad => 3,
+      Tile::TriagnleWithRoadWithCOA => 4,
       Tile::Invalid => -1,
     }
   }
@@ -25,6 +27,7 @@ pub fn to_tile(id: i32) -> Tile {
     1 => Tile::Monastery,
     2 => Tile::CityCapWithCrossroad,
     3 => Tile::TriagnleWithRoad,
+    4 => Tile::TriagnleWithRoadWithCOA,
     _ => Tile::Invalid,
   }
 }

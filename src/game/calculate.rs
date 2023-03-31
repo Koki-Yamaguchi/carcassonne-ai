@@ -73,6 +73,7 @@ impl TileItem {
       Tile::Monastery => [Field, Field, Field, Field],
       Tile::CityCapWithCrossroad => [Road, City, Road, Road],
       Tile::TriagnleWithRoad => [Road, City, City, Road],
+      Tile::TriagnleWithRoadWithCOA => [Road, City, City, Road],
       Tile::Invalid => [Field, Field, Field, Field]
     }
   }
@@ -106,6 +107,7 @@ impl TileItem {
       Tile::Monastery => 1,
       Tile::CityCapWithCrossroad => 7,
       Tile::TriagnleWithRoad => 4,
+      Tile::TriagnleWithRoadWithCOA => 4,
       Tile::Invalid => 0,
     }
   }
@@ -182,6 +184,24 @@ impl TileItem {
           DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
         ], // bottom
       ],
+      Tile::TriagnleWithRoadWithCOA => vec![
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+        ], // right
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // top
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        ], // left
+        vec![
+          DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+          DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+          DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        ], // bottom
+      ],
       Tile::Invalid => vec![vec![]],
     }
   }
@@ -211,6 +231,12 @@ impl TileItem {
         DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
         DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
       ],
+      Tile::TriagnleWithRoadWithCOA => vec![
+        DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
+        DistinctFeature { id: self.feature_starting_id + 1, feature: FieldFeature },
+        DistinctFeature { id: self.feature_starting_id + 2, feature: RoadFeature },
+        DistinctFeature { id: self.feature_starting_id + 3, feature: FieldFeature },
+      ],
       Tile::Invalid => vec![],
     }
   }
@@ -219,28 +245,34 @@ impl TileItem {
 fn create_mergeable_features(mf: &mut MergeableFeature, t: Tile) {
   match t {
     Tile::StartingTile => {
-      mf.new_feature(1);
-      mf.new_feature(2);
-      mf.new_feature(2);
-      mf.new_feature(3);
+      mf.new_feature(1, false);
+      mf.new_feature(2, false);
+      mf.new_feature(2, false);
+      mf.new_feature(3, false);
     },
     Tile::Monastery => {
-      mf.new_feature(4);
+      mf.new_feature(4, false);
     },
     Tile::CityCapWithCrossroad => {
-      mf.new_feature(1);
-      mf.new_feature(2);
-      mf.new_feature(1);
-      mf.new_feature(1);
-      mf.new_feature(2);
-      mf.new_feature(1);
-      mf.new_feature(2);
+      mf.new_feature(1, false);
+      mf.new_feature(2, false);
+      mf.new_feature(1, false);
+      mf.new_feature(1, false);
+      mf.new_feature(2, false);
+      mf.new_feature(1, false);
+      mf.new_feature(2, false);
     },
     Tile::TriagnleWithRoad => {
-      mf.new_feature(2);
-      mf.new_feature(2);
-      mf.new_feature(2);
-      mf.new_feature(2);
+      mf.new_feature(2, false);
+      mf.new_feature(2, false);
+      mf.new_feature(2, false);
+      mf.new_feature(2, false);
+    },
+    Tile::TriagnleWithRoadWithCOA => {
+      mf.new_feature(2, true);
+      mf.new_feature(2, false);
+      mf.new_feature(2, false);
+      mf.new_feature(2, false);
     },
     Tile::Invalid => {}
   }
@@ -522,7 +554,7 @@ fn calculate_test_for_road_and_city() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::TMove( TileMove { ord: 9, game_id, player_id: player0_id, tile: Tile::TriagnleWithRoad, rot: 3, pos: (49, 51) } ));
+  mvs.push(Move::TMove( TileMove { ord: 9, game_id, player_id: player0_id, tile: Tile::TriagnleWithRoadWithCOA, rot: 3, pos: (49, 51) } ));
   let status = calculate(&mvs);
   match status {
     Ok(res) => { assert_eq!(res.meepleable_positions, vec![1, 2, 3]); },
@@ -536,8 +568,8 @@ fn calculate_test_for_road_and_city() {
       assert_eq!(res.complete_events.len(), 1);
       assert_eq!(res.complete_events[0].feature, CityFeature);
       assert_eq!(res.complete_events[0].meeple_ids, vec![0]);
-      assert_eq!(res.complete_events[0].point, 8);
-      assert_eq!(res.player0_point, 11);
+      assert_eq!(res.complete_events[0].point, 10);
+      assert_eq!(res.player0_point, 13);
       assert_eq!(res.player1_point, 4);
     },
     Err(e) => { panic!("Error: {}", e.msg); }

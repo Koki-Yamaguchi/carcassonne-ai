@@ -14,9 +14,13 @@ impl MergeableFeature {
           open_sides: vec![],
         }
     }
-    pub fn new_feature(&mut self, open_side: i32) {
+    pub fn new_feature(&mut self, open_side: i32, with_coa: bool) {
       self.par.push(self.par.len());
-      self.rank.push(1);
+      let mut r = 1;
+      if with_coa {
+        r += 1;
+      }
+      self.rank.push(r);
       self.meeples.push(vec![]);
       self.open_sides.push(open_side);
     }
