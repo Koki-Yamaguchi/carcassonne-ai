@@ -5,6 +5,8 @@ pub struct MergeableFeature {
   open_sides: Vec<i32>,
   facing_cities: Vec<Vec<usize>>, // for field
   done: Vec<bool>,
+  tile_ids: Vec<Vec<i32>>,
+  coa: Vec<i32>,
 }
 
 impl MergeableFeature {
@@ -16,19 +18,19 @@ impl MergeableFeature {
           open_sides: vec![],
           facing_cities: vec![],
           done: vec![],
+          tile_ids: vec![],
+          coa: vec![],
         }
     }
-    pub fn new_feature(&mut self, open_side: i32, with_coa: bool) {
+    pub fn new_feature(&mut self, tile_id: i32, open_side: i32, with_coa: bool) {
       self.par.push(self.par.len());
-      let mut r = 1;
-      if with_coa {
-        r += 1;
-      }
-      self.rank.push(r);
+      self.rank.push(1);
       self.meeples.push(vec![]);
       self.open_sides.push(open_side);
       self.facing_cities.push(vec![]);
       self.done.push(false);
+      self.tile_ids.push(vec![tile_id]);
+      self.coa.push(if with_coa { 1 } else { 0 });
     }
     pub fn set_cities(&mut self, x: usize, city: usize) {
       self.facing_cities[x].push(city);
@@ -55,12 +57,23 @@ impl MergeableFeature {
         self.open_sides[y] = self.open_sides[y] + self.open_sides[x] - 2;
         self.par[x] = y;
         self.rank[y] += self.rank[x];
+        self.coa[y] += self.coa[x];
+
+        // merge meeples
         let mut v = vec![];
         for m in &self.meeples[x] {
           v.push(*m);
         }
         self.meeples[y].append(&mut v);
-        // merge facing cities for filed
+
+        // merge tile_ids
+        let mut v = vec![];
+        for tid in &self.tile_ids[x] {
+          v.push(*tid)
+        }
+        self.tile_ids[y].append(&mut v);
+
+        // merge facing cities for field
         let mut v = vec![];
         for c in &self.facing_cities[x] { v.push(*c); }
         for c in &self.facing_cities[y] { v.push(*c); }
@@ -99,9 +112,12 @@ impl MergeableFeature {
       self.facing_cities[x].clone()
     }
     #[allow(unused)]
+    // return the number of unique tiles & the number of coa
     pub fn size(&mut self, x: usize) -> usize {
         let x = self.root(x);
-        self.rank[x]
+        self.tile_ids[x].sort();
+        self.tile_ids[x].dedup();
+        self.tile_ids[x].len() + self.coa[x] as usize
     }
     pub fn reduce_open_sides(&mut self, x: usize, count: i32) {
       let x = self.root(x);

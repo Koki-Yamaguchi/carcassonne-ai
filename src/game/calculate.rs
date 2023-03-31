@@ -25,6 +25,7 @@ pub struct Error {
 
 #[derive(Copy, Clone)]
 struct TileItem {
+  id: i32,
   tile: Tile,
   rot: i32,
   feature_starting_id: i32,
@@ -601,127 +602,127 @@ impl TileItem {
   }
 }
 
-fn create_mergeable_features(mf: &mut MergeableFeature, t: Tile) {
-  match t {
+fn create_mergeable_features(mf: &mut MergeableFeature, t: &TileItem) {
+  match t.tile {
     Tile::StartingTile => {
-      mf.new_feature(1, false);
-      mf.new_feature(2, false);
-      mf.new_feature(2, false);
-      mf.new_feature(3, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 3, false);
     },
     Tile::Monastery => {
-      mf.new_feature(9, false);
-      mf.new_feature(4, false);
+      mf.new_feature(t.id, 9, false);
+      mf.new_feature(t.id, 4, false);
     },
     Tile::MonasteryWithRoad => {
-      mf.new_feature(9, false);
-      mf.new_feature(5, false);
-      mf.new_feature(1, false);
+      mf.new_feature(t.id, 9, false);
+      mf.new_feature(t.id, 5, false);
+      mf.new_feature(t.id, 1, false);
     },
     Tile::CityCapWithCrossroad => {
-      mf.new_feature(1, false);
-      mf.new_feature(2, false);
-      mf.new_feature(1, false);
-      mf.new_feature(1, false);
-      mf.new_feature(2, false);
-      mf.new_feature(1, false);
-      mf.new_feature(2, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 2, false);
     },
     Tile::TriangleWithRoad => {
-      mf.new_feature(2, false);
-      mf.new_feature(2, false);
-      mf.new_feature(2, false);
-      mf.new_feature(2, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 2, false);
     },
     Tile::TriangleWithRoadWithCOA => {
-      mf.new_feature(2, true);
-      mf.new_feature(2, false);
-      mf.new_feature(2, false);
-      mf.new_feature(2, false);
+      mf.new_feature(t.id, 2, true);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 2, false);
     },
     Tile::Straight => {
-      mf.new_feature(3, false);
-      mf.new_feature(2, false);
-      mf.new_feature(3, false);
+      mf.new_feature(t.id, 3, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 3, false);
     }
     Tile::CityCap => {
-      mf.new_feature(1, false);
-      mf.new_feature(3, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 3, false);
     },
     Tile::Separator => {
-      mf.new_feature(1, false);
-      mf.new_feature(1, false);
-      mf.new_feature(2, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 2, false);
     },
     Tile::TripleRoad => {
-      mf.new_feature(3, false);
-      mf.new_feature(1, false);
-      mf.new_feature(1, false);
-      mf.new_feature(2, false);
-      mf.new_feature(1, false);
-      mf.new_feature(2, false);
+      mf.new_feature(t.id, 3, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 2, false);
     },
     Tile::Curve => {
-      mf.new_feature(4, false);
-      mf.new_feature(2, false);
-      mf.new_feature(2, false);
+      mf.new_feature(t.id, 4, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 2, false);
     }
     Tile::QuadrupleRoad => {
-      mf.new_feature(2, false);
-      mf.new_feature(1, false);
-      mf.new_feature(2, false);
-      mf.new_feature(1, false);
-      mf.new_feature(1, false);
-      mf.new_feature(2, false);
-      mf.new_feature(1, false);
-      mf.new_feature(2, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 2, false);
     },
     Tile::Connector => {
-      mf.new_feature(1, false);
-      mf.new_feature(2, false);
-      mf.new_feature(1, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 1, false);
     },
     Tile::ConnectorWithCOA => {
-      mf.new_feature(1, false);
-      mf.new_feature(2, true);
-      mf.new_feature(1, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 2, true);
+      mf.new_feature(t.id, 1, false);
     },
     Tile::Left => {
-      mf.new_feature(1, false);
-      mf.new_feature(3, false);
-      mf.new_feature(2, false);
-      mf.new_feature(2, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 3, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 2, false);
     }
     Tile::Right => {
-      mf.new_feature(1, false);
-      mf.new_feature(3, false);
-      mf.new_feature(2, false);
-      mf.new_feature(2, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 3, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 2, false);
     }
     Tile::TripleCity => {
-      mf.new_feature(3, false);
-      mf.new_feature(1, false);
+      mf.new_feature(t.id, 3, false);
+      mf.new_feature(t.id, 1, false);
     },
     Tile::TripleCityWithCOA => {
-      mf.new_feature(3, true);
-      mf.new_feature(1, false);
+      mf.new_feature(t.id, 3, true);
+      mf.new_feature(t.id, 1, false);
     },
     Tile::VerticalSeparator => {
-      mf.new_feature(1, false);
-      mf.new_feature(2, false);
-      mf.new_feature(1, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 2, false);
+      mf.new_feature(t.id, 1, false);
     },
     Tile::TripleCityWithRoad => {
-      mf.new_feature(3, false);
-      mf.new_feature(1, false);
-      mf.new_feature(1, false);
-      mf.new_feature(1, false);
+      mf.new_feature(t.id, 3, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 1, false);
     },
     Tile::TripleCityWithRoadWithCOA => {
-      mf.new_feature(3, true);
-      mf.new_feature(1, false);
-      mf.new_feature(1, false);
-      mf.new_feature(1, false);
+      mf.new_feature(t.id, 3, true);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 1, false);
+      mf.new_feature(t.id, 1, false);
     },
     Tile::Invalid => {}
   }
@@ -813,19 +814,23 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
   let mut player1_point = 0;
 
   let mut current_feature_id = 0;
+  let mut current_tile_id = 0;
+
   for mv in moves {
     match mv {
       Move::TMove(m) => {
         let current_tile = TileItem {
+          id: current_tile_id,
           tile: m.tile,
           rot: m.rot,
           feature_starting_id: current_feature_id,
         };
 
-        create_mergeable_features(&mut mergeable_features, m.tile);
+        create_mergeable_features(&mut mergeable_features, &current_tile);
         set_cities_to_fields(&mut mergeable_features, &current_tile);
 
         current_feature_id += current_tile.features().len() as i32;
+        current_tile_id += 1;
 
         let y = m.pos.0 as usize;
         let x = m.pos.1 as usize;
@@ -1578,8 +1583,7 @@ fn calculate_test() {
   add_move(&mut mvs, Tile::Right, 0, (44, 55), 3, 0);
   add_move(&mut mvs, Tile::TriangleWithRoad, 1, (54, 52), -1, -1);
   add_move(&mut mvs, Tile::Straight, 0, (50, 46), -1, -1);
-
-  /* add_move(&mut mvs, Tile::TriangleWithRoad, 3, (51, 47), -1, -1);
+  add_move(&mut mvs, Tile::TriangleWithRoad, 3, (51, 47), -1, -1);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1593,5 +1597,4 @@ fn calculate_test() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  */
 }
