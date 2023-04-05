@@ -17,6 +17,7 @@ pub struct Status {
   pub complete_events: Vec<CompleteEvent>,
   pub player0_point: i32,
   pub player1_point: i32,
+  pub board: Vec<Vec<Square>>,
 }
 
 #[allow(dead_code)]
@@ -25,21 +26,21 @@ pub struct Error {
 }
 
 #[derive(Copy, Clone)]
-struct TileItem {
-  id: i32,
-  tile: Tile,
-  rot: i32,
-  feature_starting_id: i32,
+pub struct TileItem {
+  pub id: i32,
+  pub tile: Tile,
+  pub rot: i32,
+  pub feature_starting_id: i32,
 }
 
 #[derive(Clone)]
-enum Square {
+pub enum Square {
   Tile(TileItem),
   Empty
 }
 
 #[derive(PartialEq, Copy, Clone)]
-enum Side {
+pub enum Side {
   Field,
   Road,
   City,
@@ -101,16 +102,19 @@ impl TileItem {
       Tile::Invalid => [Field, Field, Field, Field],
     }
   }
-  fn right(self) -> Side {
+  pub fn rotate(&mut self) {
+    self.rot += 1;
+  }
+  pub fn right(self) -> Side {
     self.sides()[((self.rot + 0) % 4) as usize]
   }
-  fn top(self) -> Side {
+  pub fn top(self) -> Side {
     self.sides()[((self.rot + 1) % 4) as usize]
   }
-  fn left(self) -> Side {
+  pub fn left(self) -> Side {
     self.sides()[((self.rot + 2) % 4) as usize]
   }
-  fn bottom(self) -> Side {
+  pub fn bottom(self) -> Side {
     self.sides()[((self.rot + 3) % 4) as usize]
   }
   fn right_features(self) -> Vec<DistinctFeature> {
@@ -1144,6 +1148,7 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
       complete_events,
       player0_point,
       player1_point,
+      board,
     });
   }
 
@@ -1225,6 +1230,7 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
     complete_events,
     player0_point,
     player1_point,
+    board,
   })
 }
 

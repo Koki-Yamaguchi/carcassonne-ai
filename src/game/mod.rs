@@ -71,11 +71,7 @@ pub fn create_tile_move(game_id: i32, player_id: i32, tile: tile::Tile, rot: i32
   let mut moves = database::list_moves(game_id);
   assert!(moves.len() != 0);
 
-  let ord = match moves.last().unwrap() {
-    MMove(m) => { m.ord + 1 },
-    TMove(m) => { m.ord + 1 },
-    InvalidMove => { 0 }
-  };
+  let ord = moves.last().unwrap().ord() + 1;
 
   let mv = TMove( TileMove { ord, game_id, player_id, tile, rot, pos } );
   moves.push(mv.clone());
@@ -135,7 +131,7 @@ pub fn create_meeple_move(game_id: i32, player_id: i32, meeple_id: i32, tile_pos
     }
   }
   let remaining_tiles = tile::remaining_tiles(tiles.clone());
-  let next_tile = remaining_tiles[rng.gen_range(0..tiles.len())];
+  let next_tile = remaining_tiles[rng.gen_range(0..remaining_tiles.len())];
   let _ = database::update_game(
     game_id,
     next_tile.to_id(),

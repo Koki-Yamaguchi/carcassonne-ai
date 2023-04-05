@@ -1,4 +1,5 @@
 use super::tile::Tile;
+use self::Move::{TMove, MMove, InvalidMove};
 
 #[derive(Debug, Clone)]
 pub struct TileMove {
@@ -25,4 +26,14 @@ pub enum Move {
   TMove(TileMove),
   MMove(MeepleMove),
   InvalidMove,
+}
+
+impl Move {
+  pub fn ord(&self) -> i32 {
+    match self {
+      MMove(m) => { m.ord },
+      TMove(m) => { m.ord },
+      InvalidMove => { 0 }
+    }
+  }
 }
