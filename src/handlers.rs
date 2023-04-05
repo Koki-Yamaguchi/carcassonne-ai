@@ -33,9 +33,8 @@ pub struct CreateMeepleMove {
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
-pub struct CreateSkipMove {
+pub struct WaitAIMove {
   pub game_id: i32,
-  pub player_id: i32,
 }
 
 #[derive(Deserialize)]
@@ -59,8 +58,8 @@ pub fn get_games() -> &'static str {
 }
 
 #[get("/games/<game_id>")]
-pub fn get_game(game_id: &str) -> String {
-  format!("Game (id: {})", game_id)
+pub fn get_game(game_id: i32) -> Json<game::Game> {
+  Json(game::get_game(game_id))
 }
 
 #[post("/games/create", format = "application/json", data = "<params>")]
@@ -94,6 +93,12 @@ pub fn create_meeple_move(params: Json<CreateMeepleMove>) -> Json<Vec<game::Comp
     (params.tile_pos_y, params.tile_pos_x),
     params.pos,
   );
+  Json(g)
+}
+
+#[post("/wait-ai-move", format = "application/json", data = "<params>")]
+pub fn wait_ai_move(params: Json<WaitAIMove>) -> Json<Vec<game::CompleteEvent>> {
+  let g = game::wait_ai_move(params.game_id);
   Json(g)
 }
 

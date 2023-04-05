@@ -1,6 +1,6 @@
 use super::tile::Tile;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TileMove {
   pub ord: i32,
   pub game_id: i32,
@@ -10,7 +10,7 @@ pub struct TileMove {
   pub pos: (i32, i32),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MeepleMove {
   pub ord: i32,
   pub game_id: i32,
@@ -20,7 +20,7 @@ pub struct MeepleMove {
   pub meeple_pos: i32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Move {
   TMove(TileMove),
   MMove(MeepleMove),

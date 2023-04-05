@@ -65,6 +65,20 @@ pub fn create_player(conn: &mut PgConnection, name: String) -> player::Player {
   return r;
 }
 
+pub fn get_game(gmid: i32) -> Option<game::Game> {
+  let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+  use self::schema::game::dsl::{game as g, id};
+  let results = g
+    .filter(id.eq(gmid))
+    .limit(1)
+    .load::<game::Game>(conn)
+    .expect("Error loading game");
+  if results.len() > 0 {
+    return Some(results[0].clone());
+  }
+  None
+}
+
 pub fn create_game(
   note: String,
   player0_id: i32,
@@ -85,6 +99,16 @@ pub fn create_game(
     .get_result(conn)
     .expect("Error saving new game");
   return r;
+}
+
+pub fn update_game(gmid: i32, next_tid: i32) -> game::Game {
+  use self::schema::game::dsl::{game, next_tile_id};
+  let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+  let r = diesel::update(game.find(gmid))
+    .set(next_tile_id.eq(next_tid))
+    .get_result(conn)
+    .unwrap();
+  r
 }
 
 pub fn list_moves(gmid: i32) -> Vec<mov::Move> {
