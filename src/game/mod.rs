@@ -27,6 +27,7 @@ pub struct Game {
   pub created_at: chrono::NaiveDateTime,
   pub ended_at: Option<chrono::NaiveDateTime>,
   pub next_tile_id: Option<i32>,
+  pub next_player_id: Option<i32>,
 }
 
 #[derive(Serialize, Queryable, Clone)]
@@ -42,6 +43,13 @@ pub struct CompleteEvent {
   pub feature: String,
   pub point: i32,
 }
+#[derive(Serialize, Queryable, Clone)]
+#[serde(crate = "rocket::serde")]
+pub struct MeepleMoveResult {
+  pub complete_events: Vec<CompleteEvent>,
+  pub next_tile_id: i32,
+  pub next_player_id: i32,
+}
 
 pub fn create_game(note: String, player0_id: i32, player1_id: i32) -> Game {
   let mut rng = rand::thread_rng();
@@ -56,6 +64,7 @@ pub fn create_game(note: String, player0_id: i32, player1_id: i32) -> Game {
     player0_id,
     player1_id,
     Some(next_tile.to_id()),
+    Some(first_player_id),
   );
 
   let mv0 = TMove( TileMove { ord: 0, game_id: g.id, player_id: second_player_id, tile: StartingTile, rot: 0, pos: (50, 50) } );
@@ -89,7 +98,7 @@ pub fn create_tile_move(game_id: i32, player_id: i32, tile: tile::Tile, rot: i32
   }
 }
 
-pub fn create_meeple_move(game_id: i32, player_id: i32, meeple_id: i32, tile_pos: (i32, i32), meeple_pos: i32) -> Vec<CompleteEvent> {
+pub fn create_meeple_move(game_id: i32, player_id: i32, meeple_id: i32, tile_pos: (i32, i32), meeple_pos: i32) -> MeepleMoveResult {
   let mut rng = rand::thread_rng();
   let mut moves = database::list_moves(game_id);
   assert!(moves.len() != 0);
@@ -132,33 +141,43 @@ pub fn create_meeple_move(game_id: i32, player_id: i32, meeple_id: i32, tile_pos
   }
   let remaining_tiles = tile::remaining_tiles(tiles.clone());
   let next_tile = remaining_tiles[rng.gen_range(0..remaining_tiles.len())];
+
+  let gm = database::get_game(game_id).expect("game not found");
+  let next_player_id = if player_id == gm.player0_id { gm.player1_id } else { gm.player0_id };
+
   let _ = database::update_game(
     game_id,
     next_tile.to_id(),
+    next_player_id,
   );
 
-  complete_events
+  MeepleMoveResult {
+    complete_events,
+    next_tile_id: next_tile.to_id(),
+    next_player_id,
+  }
 }
 
-pub fn wait_ai_move(game_id: i32) -> Vec<CompleteEvent> {
+pub fn wait_ai_move(game_id: i32) -> MeepleMoveResult {
   let game = database::get_game(game_id).expect("game not found");
 
   let moves = database::list_moves(game.id);
   assert!(moves.len() != 0);
 
-  let next_tile = tile::to_tile(game.next_tile_id.unwrap());
+  let placing_tile = tile::to_tile(game.next_tile_id.unwrap());
   let (tile_move, meeple_move): (TileMove, MeepleMove) = calculate_next_move::calculate_next_move(
     &moves,
     game.id,
     1,
-    next_tile,
+    placing_tile,
   );
 
-  let r = create_tile_move(game.id, 1, next_tile, tile_move.rot, tile_move.pos);
+  let r = create_tile_move(game.id, 1, placing_tile, tile_move.rot, tile_move.pos);
   assert!(meeple_move.meeple_id == -1 || r.meepleable_positions.contains(&meeple_move.meeple_pos));
-  let complete_event = create_meeple_move(game.id, 1, meeple_move.meeple_id, meeple_move.tile_pos, meeple_move.meeple_pos);
 
-  complete_event
+  let meeple_move_result = create_meeple_move(game.id, 1, meeple_move.meeple_id, meeple_move.tile_pos, meeple_move.meeple_pos);
+
+  meeple_move_result
 }
 
 pub fn get_game(game_id: i32) -> Game {

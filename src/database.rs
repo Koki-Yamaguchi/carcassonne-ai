@@ -24,6 +24,7 @@ struct NewGame {
   player0_point: i32,
   player1_point: i32,
   next_tile_id: Option<i32>,
+  next_player_id: Option<i32>,
 }
 
 #[derive(Insertable)]
@@ -84,14 +85,16 @@ pub fn create_game(
   player0_id: i32,
   player1_id: i32,
   next_tile_id: Option<i32>,
+  next_player_id: Option<i32>,
 ) -> game::Game {
   let new_game = NewGame{
-    note: note,
-    player0_id: player0_id,
-    player1_id: player1_id,
+    note,
+    player0_id,
+    player1_id,
     player0_point: 0,
     player1_point: 0,
-    next_tile_id: next_tile_id,
+    next_tile_id,
+    next_player_id,
   };
   let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
   let r = diesel::insert_into(schema::game::table)
@@ -101,11 +104,14 @@ pub fn create_game(
   return r;
 }
 
-pub fn update_game(gmid: i32, next_tid: i32) -> game::Game {
-  use self::schema::game::dsl::{game, next_tile_id};
+pub fn update_game(gmid: i32, next_tid: i32, next_pid: i32) -> game::Game {
+  use self::schema::game::dsl::{game, next_tile_id, next_player_id};
   let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
   let r = diesel::update(game.find(gmid))
-    .set(next_tile_id.eq(next_tid))
+    .set((
+      next_tile_id.eq(next_tid),
+      next_player_id.eq(next_pid),
+    ))
     .get_result(conn)
     .unwrap();
   r
@@ -186,7 +192,6 @@ fn to_move(qm: QueryMove) -> mov::Move {
 fn establish_connection() -> PgConnection {
     dotenv().ok();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    println!("database_url = {}", &database_url);
     PgConnection::establish(&database_url)
         .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }

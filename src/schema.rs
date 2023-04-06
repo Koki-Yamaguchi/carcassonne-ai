@@ -11,6 +11,7 @@ diesel::table! {
         created_at -> Timestamp,
         ended_at -> Nullable<Timestamp>,
         next_tile_id -> Nullable<Int4>,
+        next_player_id -> Nullable<Int4>,
     }
 }
 

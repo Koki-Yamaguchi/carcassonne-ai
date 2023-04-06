@@ -6,6 +6,7 @@ use dotenvy::dotenv;
 
 use crate::database;
 use crate::game;
+use crate::game::MeepleMoveResult;
 use crate::game::tile;
 use crate::player;
 
@@ -85,7 +86,7 @@ pub fn create_tile_move(params: Json<CreateTileMove>) -> Json<game::MeepleablePo
 }
 
 #[post("/meeple-moves/create", format = "application/json", data = "<params>")]
-pub fn create_meeple_move(params: Json<CreateMeepleMove>) -> Json<Vec<game::CompleteEvent>> {
+pub fn create_meeple_move(params: Json<CreateMeepleMove>) -> Json<MeepleMoveResult> {
   let g = game::create_meeple_move(
     params.game_id,
     params.player_id,
@@ -97,7 +98,7 @@ pub fn create_meeple_move(params: Json<CreateMeepleMove>) -> Json<Vec<game::Comp
 }
 
 #[post("/wait-ai-move", format = "application/json", data = "<params>")]
-pub fn wait_ai_move(params: Json<WaitAIMove>) -> Json<Vec<game::CompleteEvent>> {
+pub fn wait_ai_move(params: Json<WaitAIMove>) -> Json<MeepleMoveResult> {
   let g = game::wait_ai_move(params.game_id);
   Json(g)
 }
