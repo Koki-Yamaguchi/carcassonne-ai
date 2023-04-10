@@ -1,15 +1,16 @@
-use super::calculate::{calculate, TileItem, Square::*, Side::*};
+use super::calculate::TileItem;
 use super::tile::Tile;
 use super::mov::{Move, TileMove, MeepleMove };
 
-pub fn calculate_next_move(moves: &Vec<Move>, game_id: i32, player_id: i32, next_tile: Tile) -> (TileMove, MeepleMove) {
-  let mut tile = TileItem {
+pub fn calculate_next_move(_moves: &Vec<Move>, game_id: i32, player_id: i32, next_tile: Tile) -> (TileMove, MeepleMove) {
+  let _tile = TileItem {
     id: next_tile.to_id(),
     tile: next_tile,
     rot: 0,
     feature_starting_id: -1,
   };
 
+  /*
   let tile_move_ord = moves.clone().last().unwrap().ord() + 1;
   let meeple_move_ord = tile_move_ord + 1;
 
@@ -63,6 +64,7 @@ pub fn calculate_next_move(moves: &Vec<Move>, game_id: i32, player_id: i32, next
     tile.rotate();
   }
 
+  */
   (
     TileMove { ord: 0, game_id, player_id: player_id, tile: next_tile, rot: 0, pos: (-1, -1) },
     MeepleMove { ord: 1, game_id, player_id: player_id, meeple_id: -1, tile_pos: (-1, -1), meeple_pos: -1 },

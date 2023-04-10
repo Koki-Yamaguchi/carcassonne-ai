@@ -1,11 +1,16 @@
+#[allow(unused_imports)]
+use std::cmp::Ordering;
+#[allow(unused_imports)]
+use std::cmp::Ordering::*;
+use std::collections::HashMap;
+
 use super::mov::{Move, TileMove, MeepleMove };
 use super::tile::{Tile};
 use super::mergeable_feature::MergeableFeature;
 use self::Side::*;
-use self::Square::*;
 use self::Feature::*;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, PartialOrd)]
 pub struct CompleteEvent {
   pub feature: Feature,
   pub meeple_ids: Vec<i32>,
@@ -17,7 +22,7 @@ pub struct Status {
   pub complete_events: Vec<CompleteEvent>,
   pub player0_point: i32,
   pub player1_point: i32,
-  pub board: Vec<Vec<Square>>,
+  pub board: HashMap<(i32, i32), TileItem>,
 }
 
 #[allow(dead_code)]
@@ -33,26 +38,19 @@ pub struct TileItem {
   pub feature_starting_id: i32,
 }
 
-#[derive(Clone)]
-pub enum Square {
-  Tile(TileItem),
-  Empty
-}
-
 #[derive(PartialEq, Copy, Clone)]
 pub enum Side {
   Field,
   Road,
   City,
-  None,
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Eq, PartialEq, PartialOrd, Clone, Debug)]
 pub enum Feature {
-  FieldFeature,
   RoadFeature,
   CityFeature,
   MonasteryFeature,
+  FieldFeature,
 }
 
 impl Feature {
@@ -102,6 +100,7 @@ impl TileItem {
       Tile::Invalid => [Field, Field, Field, Field],
     }
   }
+  #[allow(dead_code)]
   pub fn rotate(&mut self) {
     self.rot += 1;
   }
@@ -881,11 +880,7 @@ fn merge_features(mf: &mut MergeableFeature, feat0: Vec<DistinctFeature>, feat1:
 }
 
 pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Error> {
-  let board_size = 100;
-
   let mut mergeable_features = MergeableFeature::new();
-
-  let mut board = vec![vec![Empty; board_size]; board_size];
 
   let mut meepleable_positions = vec![];
   let mut complete_events = vec![];
@@ -894,6 +889,8 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
 
   let mut current_feature_id = 0;
   let mut current_tile_id = 0;
+
+  let mut board = HashMap::<(i32, i32), TileItem>::new();
 
   for mv in moves {
     match mv {
@@ -911,74 +908,95 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
         current_feature_id += current_tile.features().len() as i32;
         current_tile_id += 1;
 
-        let y = m.pos.0 as usize;
-        let x = m.pos.1 as usize;
-        match board[y][x] {
-          Empty => {}
-          _ => return Err(Error{ msg: "invalid moves".to_string() })
+        let y = m.pos.0;
+        let x = m.pos.1;
+
+        // check if the placing position is empty
+        if board.contains_key(&(y, x)) {
+          return Err(Error{ msg: "the place at which a tile is placed is not empty ".to_string() });
         }
-        match (y, x, &board[y - 1][x], &board[y + 1][x], &board[y][x - 1], &board[y][x + 1]) {
-          (50, 50, _, _, _, _) => {} /* initial tile */
-          (_, _, &Empty, &Empty, &Empty, &Empty) => {
-            return Err(Error{ msg: "there must be at least one adjacent tile".to_string() })
+
+        // check if there is at least one adjacent tile
+        if y != 0 || x != 0 {
+          let top_exists = board.contains_key(&(y - 1, x));
+          let bottom_exists = board.contains_key(&(y + 1, x));
+          let left_exists = board.contains_key(&(y, x - 1));
+          let right_exists = board.contains_key(&(y, x + 1));
+          if !top_exists && !bottom_exists && !left_exists && !right_exists {
+            return Err(Error{ msg: "at least one adjacent tile must exist".to_string() });
           }
-          (_, _, _, _, _, _) => {}
         }
-        let top_must_be = match board[y - 1][x] { Tile(t) => t.bottom(), Empty => None };
-        let bottom_must_be = match board[y + 1][x] { Tile(t) => t.top(), Empty => None };
-        let left_must_be = match board[y][x - 1] { Tile(t) => t.right(), Empty => None };
-        let right_must_be = match board[y][x + 1] { Tile(t) => t.left(), Empty => None };
-        if top_must_be != None && top_must_be != current_tile.top() {
-          return Err(Error{ msg: "top side is not correct".to_string() })
+
+        // check if the sides are correct
+        match board.get(&(y - 1, x)) {
+          Some(t) => {
+            if t.bottom() != current_tile.top() {
+              return Err(Error{ msg: "top side is not correct".to_string() })
+            }
+          }
+          None => {},
         }
-        if bottom_must_be != None && bottom_must_be != current_tile.bottom() {
-          return Err(Error{ msg: "bottom side is not correct".to_string() })
+        match board.get(&(y + 1, x)) {
+          Some(t) => {
+            if t.top() != current_tile.bottom() {
+              return Err(Error{ msg: "bottom side is not correct".to_string() })
+            }
+          }
+          None => {},
         }
-        if left_must_be != None && left_must_be != current_tile.left() {
-          return Err(Error{ msg: "left side is not correct".to_string() })
+        match board.get(&(y, x - 1)) {
+          Some(t) => {
+            if t.right() != current_tile.left() {
+              return Err(Error{ msg: "left side is not correct".to_string() })
+            }
+          }
+          None => {},
         }
-        if right_must_be != None && right_must_be != current_tile.right() {
-          return Err(Error{ msg: "right side is not correct".to_string() })
+        match board.get(&(y, x + 1)) {
+          Some(t) => {
+            if t.left() != current_tile.right() {
+              return Err(Error{ msg: "right side is not correct".to_string() })
+            }
+          }
+          None => {},
         }
 
         // place tile
-        board[y][x] = Tile(current_tile);
+        board.insert((y, x), current_tile);
 
-        match board[y - 1][x] {
-          Tile(t) => {
+        // merge features
+        match board.get(&(y - 1, x)) {
+          Some(t) => {
             assert_eq!(t.bottom_features().len(), current_tile.top_features().len());
             merge_features(&mut mergeable_features, t.bottom_features(), current_tile.top_features());
-          }
-          Empty => {}
+          },
+          None => {},
         }
-        match board[y + 1][x] {
-          Tile(t) => {
+        match board.get(&(y + 1, x)) {
+          Some(t) => {
             assert_eq!(t.top_features().len(), current_tile.bottom_features().len());
             merge_features(&mut mergeable_features, t.top_features(), current_tile.bottom_features());
-          }
-          Empty => {}
+          },
+          None => {},
         }
-        match board[y][x - 1] {
-          Tile(t) => {
+        match board.get(&(y, x - 1)) {
+          Some(t) => {
             assert_eq!(t.right_features().len(), current_tile.left_features().len());
             merge_features(&mut mergeable_features, t.right_features(), current_tile.left_features());
-          }
-          Empty => {}
+          },
+          None => {},
         }
-        match board[y][x + 1] {
-          Tile(t) => {
+        match board.get(&(y, x + 1)) {
+          Some(t) => {
             assert_eq!(t.left_features().len(), current_tile.right_features().len());
             merge_features(&mut mergeable_features, t.left_features(), current_tile.right_features());
-          }
-          Empty => {}
+          },
+          None => {},
         }
 
         // update meepleable positions
-        match board[y][x] {
-          Empty => {
-            return Err(Error{ msg: "tile on (y, x) must exist".to_string() })
-          }
-          Tile(t) => {
+        match board.get(&(y, x)) {
+          Some(t) => {
             meepleable_positions.clear();
             for f in &t.features() {
               if mergeable_features.get_meeples(f.id as usize).len() == 0 {
@@ -986,6 +1004,9 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                 meepleable_positions.push(f.id - t.feature_starting_id);
               }
             }
+          }
+          None => {
+            return Err(Error{ msg: "tile on (y, x) must exist".to_string() })
           }
         }
 
@@ -995,8 +1016,8 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
             let mut filled_count = 0;
             for dy in -1..2 {
               for dx in -1..2 {
-                filled_count += match board[(y as i32 + dy) as usize][(x as i32 + dx) as usize] {
-                  Empty => { 0 }
+                filled_count += match board.get(&(y + dy, x + dx)) {
+                  None => { 0 }
                   _ => { 1 }
                 }
               }
@@ -1016,10 +1037,10 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
             if dy == 0 && dx == 0 {
               continue;
             }
-            let ny = (y as i32 + dy) as usize;
-            let nx = (x as i32 + dx) as usize;
-            match board[ny][nx] {
-              Tile(t) => {
+            let ny = y + dy;
+            let nx = x + dx;
+            match board.get(&(ny, nx)) {
+              Some(t) => {
                 match t.tile {
                   Tile::Monastery | Tile::MonasteryWithRoad => {
                     mergeable_features.reduce_open_sides(t.feature_starting_id as usize, 1);
@@ -1027,34 +1048,31 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                   _ => {}
                 }
               }
-              Empty => { }
+              None => { }
             }
           }
         }
       }
       Move::MMove(m) => {
         complete_events.clear();
-        let y = m.tile_pos.0 as usize;
-        let x = m.tile_pos.1 as usize;
+        let y = m.tile_pos.0;
+        let x = m.tile_pos.1;
         if m.meeple_id != -1 {
-          match board[y][x] {
-            Empty => {
-              return Err(Error{ msg: "tile on (y, x) must exist".to_string() })
-            }
-            Tile(t) => {
+          match board.get(&(y, x)) {
+            Some(t) => {
               let feature_id = t.feature_starting_id + m.meeple_pos;
               if mergeable_features.get_meeples(feature_id as usize).len() != 0 {
                 return Err(Error{ msg: "meepling on this feature is not allowed".to_string() })
               }
               mergeable_features.place_meeple(feature_id as usize, m.meeple_id);
             }
+            None => {
+              return Err(Error{ msg: "tile on (y, x) must exist".to_string() })
+            }
           }
         }
-        match board[y][x] {
-          Empty => {
-            return Err(Error{ msg: "tile on (y, x) must exist".to_string() })
-          }
-          Tile(t) => {
+        match board.get(&(y, x)) {
+          Some(t) => {
             for f in &t.features() {
               if mergeable_features.is_completed(f.id as usize) {
                 let sz = mergeable_features.size(f.id as usize);
@@ -1099,6 +1117,9 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
               }
             }
           }
+          None => {
+            return Err(Error{ msg: "tile on (y, x) must exist".to_string() })
+          }
         }
 
         // resolve meeples on adjacent monasteries
@@ -1107,10 +1128,10 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
             if dy == 0 && dx == 0 {
               continue;
             }
-            let ny = (y as i32 + dy) as usize;
-            let nx = (x as i32 + dx) as usize;
-            match board[ny][nx] {
-              Tile(t) => {
+            let ny = y + dy;
+            let nx = x + dx;
+            match board.get(&(ny, nx)) {
+              Some(t) => {
                 match t.tile {
                   Tile::Monastery | Tile::MonasteryWithRoad => {
                     if mergeable_features.is_completed(t.feature_starting_id as usize) {
@@ -1133,7 +1154,7 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                   _ => {}
                 }
               }
-              Empty => { }
+              None => { }
             }
           }
         }
@@ -1154,74 +1175,67 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
 
   let mut complete_events = vec![];
 
-  for y in 0..board_size {
-    for x in 0..board_size {
-      match board[y][x] {
-        Tile(t) => {
-          let fs = t.features();
-          for f in &fs {
-            let meeple_ids = mergeable_features.get_meeples(f.id as usize);
-            if meeple_ids.len() == 0 {
-              continue;
-            }
-
-            if mergeable_features.is_completed(f.id as usize) {
-              continue;
-            }
-            if mergeable_features.is_done(f.id as usize) {
-              continue;
-            }
-
-            let pts = match f.feature {
-              RoadFeature => {
-                let sz = mergeable_features.size(f.id as usize);
-                sz as i32
-              },
-              CityFeature => {
-                let sz = mergeable_features.size(f.id as usize);
-                sz as i32
-              },
-              MonasteryFeature => {
-                let open_sides = mergeable_features.get_open_sides(f.id as usize);
-                (9 - open_sides) as i32
-              },
-              FieldFeature => {
-                let mut p = 0;
-                let cities = mergeable_features.get_facing_cities(f.id as usize);
-                for city in &cities {
-                  if mergeable_features.is_completed(*city) {
-                    p += 3;
-                  }
-                }
-                p
-              },
-            };
-            let mut player0_meeples = 0;
-            let mut player1_meeples = 0;
-            for meeple_id in &meeple_ids {
-              if *meeple_id < 7 {
-                player0_meeples += 1;
-              } else {
-                player1_meeples += 1;
-              }
-            }
-            if player0_meeples >= player1_meeples {
-              player0_point += pts;
-            }
-            if player1_meeples >= player0_meeples {
-              player1_point += pts;
-            }
-            complete_events.push(CompleteEvent {
-              feature: f.feature.clone(),
-              meeple_ids,
-              point: pts,
-            });
-
-            mergeable_features.set_as_done(f.id as usize);
-          }
-        }
-        Empty => {}
+  for t in board.values() {
+    let fs = t.features();
+    for f in &fs {
+      let meeple_ids = mergeable_features.get_meeples(f.id as usize);
+      if meeple_ids.len() == 0 {
+        continue;
       }
+
+      if mergeable_features.is_completed(f.id as usize) {
+        continue;
+      }
+      if mergeable_features.is_done(f.id as usize) {
+        continue;
+      }
+
+      let pts = match f.feature {
+        RoadFeature => {
+          let sz = mergeable_features.size(f.id as usize);
+          sz as i32
+        },
+        CityFeature => {
+          let sz = mergeable_features.size(f.id as usize);
+          sz as i32
+        },
+        MonasteryFeature => {
+          let open_sides = mergeable_features.get_open_sides(f.id as usize);
+          (9 - open_sides) as i32
+        },
+        FieldFeature => {
+          let mut p = 0;
+          let cities = mergeable_features.get_facing_cities(f.id as usize);
+          for city in &cities {
+            if mergeable_features.is_completed(*city) {
+              p += 3;
+            }
+          }
+          p
+        },
+      };
+      let mut player0_meeples = 0;
+      let mut player1_meeples = 0;
+      for meeple_id in &meeple_ids {
+        if *meeple_id < 7 {
+          player0_meeples += 1;
+        } else {
+          player1_meeples += 1;
+        }
+      }
+      if player0_meeples >= player1_meeples {
+        player0_point += pts;
+      }
+      if player1_meeples >= player0_meeples {
+        player1_point += pts;
+      }
+      complete_events.push(CompleteEvent {
+        feature: f.feature.clone(),
+        meeple_ids,
+        point: pts,
+      });
+
+      mergeable_features.set_as_done(f.id as usize);
     }
   }
 
@@ -1240,18 +1254,18 @@ fn calculate_test_for_road_and_city_completion() {
   let player0_id = 0;
   let player1_id = 1;
   let mut mvs = vec![
-    Move::TMove( TileMove { ord: 0, game_id, player_id: player1_id, tile: Tile::StartingTile, rot: 0, pos: (50, 50) } ),
-    Move::MMove( MeepleMove { ord: 1, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (50, 50), meeple_pos: -1 } ),
+    Move::TMove( TileMove { ord: 0, game_id, player_id: player1_id, tile: Tile::StartingTile, rot: 0, pos: (0, 0) } ),
+    Move::MMove( MeepleMove { ord: 1, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (0, 0), meeple_pos: -1 } ),
   ];
 
-  mvs.push(Move::TMove( TileMove { ord: 2, game_id, player_id: player0_id, tile: Tile::TriangleWithRoad, rot: 2, pos: (49, 50) } ));
+  mvs.push(Move::TMove( TileMove { ord: 2, game_id, player_id: player0_id, tile: Tile::TriangleWithRoad, rot: 2, pos: (-1, 0) } ));
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => { assert_eq!(res.meepleable_positions, vec![0, 1, 2, 3]); },
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::MMove( MeepleMove { ord: 3, game_id, player_id: player0_id, meeple_id: 0, tile_pos: (49, 50), meeple_pos: 0 } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 3, game_id, player_id: player0_id, meeple_id: 0, tile_pos: (-1, 0), meeple_pos: 0 } ));
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -1262,14 +1276,14 @@ fn calculate_test_for_road_and_city_completion() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::TMove( TileMove { ord: 4, game_id, player_id: player1_id, tile: Tile::CityCapWithCrossroad, rot: 3, pos: (50, 49) } ));
+  mvs.push(Move::TMove( TileMove { ord: 4, game_id, player_id: player1_id, tile: Tile::CityCapWithCrossroad, rot: 3, pos: (0, -1) } ));
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => { assert_eq!(res.meepleable_positions, vec![0, 1, 2, 3, 4, 5, 6]); },
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::MMove( MeepleMove { ord: 5, game_id, player_id: player1_id, meeple_id: 7, tile_pos: (50, 49), meeple_pos: 0 } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 5, game_id, player_id: player1_id, meeple_id: 7, tile_pos: (0, -1), meeple_pos: 0 } ));
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -1280,14 +1294,14 @@ fn calculate_test_for_road_and_city_completion() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::TMove( TileMove { ord: 6, game_id, player_id: player0_id, tile: Tile::CityCapWithCrossroad, rot: 0, pos: (50, 51) } ));
+  mvs.push(Move::TMove( TileMove { ord: 6, game_id, player_id: player0_id, tile: Tile::CityCapWithCrossroad, rot: 0, pos: (0, 1) } ));
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => { assert_eq!(res.meepleable_positions, vec![0, 1, 2, 3, 4, 5, 6]); },
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::MMove( MeepleMove { ord: 7, game_id, player_id: player0_id, meeple_id: 1, tile_pos: (50, 51), meeple_pos: 2 } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 7, game_id, player_id: player0_id, meeple_id: 1, tile_pos: (0, 1), meeple_pos: 2 } ));
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -1301,14 +1315,14 @@ fn calculate_test_for_road_and_city_completion() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::TMove( TileMove { ord: 8, game_id, player_id: player1_id, tile: Tile::StartingTile, rot: 1, pos: (50, 48) } ));
+  mvs.push(Move::TMove( TileMove { ord: 8, game_id, player_id: player1_id, tile: Tile::StartingTile, rot: 1, pos: (0, -2) } ));
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => { assert_eq!(res.meepleable_positions, vec![1, 2, 3]); },
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::MMove( MeepleMove { ord: 9, game_id, player_id: player1_id, meeple_id: 8, tile_pos: (50, 48), meeple_pos: 2 } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 9, game_id, player_id: player1_id, meeple_id: 8, tile_pos: (0, -2), meeple_pos: 2 } ));
   let status = calculate(&mvs,false);
   match status {
     Ok(res) => {
@@ -1322,14 +1336,14 @@ fn calculate_test_for_road_and_city_completion() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::TMove( TileMove { ord: 10, game_id, player_id: player0_id, tile: Tile::TriangleWithRoadWithCOA, rot: 3, pos: (49, 51) } ));
+  mvs.push(Move::TMove( TileMove { ord: 10, game_id, player_id: player0_id, tile: Tile::TriangleWithRoadWithCOA, rot: 3, pos: (-1, 1) } ));
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => { assert_eq!(res.meepleable_positions, vec![1, 2, 3]); },
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::MMove( MeepleMove { ord: 11, game_id, player_id: player0_id, meeple_id: 1, tile_pos: (49, 51), meeple_pos: 1 } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 11, game_id, player_id: player0_id, meeple_id: 1, tile_pos: (-1, 1), meeple_pos: 1 } ));
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -1346,13 +1360,38 @@ fn calculate_test_for_road_and_city_completion() {
   let status = calculate(&mvs, true);
   match status {
     Ok(res) => {
-      assert_eq!(res.complete_events.len(), 2);
-      assert_eq!(res.complete_events[0].feature, FieldFeature);
-      assert_eq!(res.complete_events[0].meeple_ids, vec![1]);
-      assert_eq!(res.complete_events[0].point, 3);
-      assert_eq!(res.complete_events[1].feature, RoadFeature);
-      assert_eq!(res.complete_events[1].meeple_ids, vec![8]);
-      assert_eq!(res.complete_events[1].point, 1);
+      let mut events = vec![];
+      for e in res.complete_events {
+        events.push(e);
+      }
+      events.sort_by(|a, b| {
+        if a.feature != b.feature {
+          if a.feature < b.feature {
+            return Less;
+          } else {
+            return Greater;
+          }
+        } else if a.point != b.point {
+          if a.point < b.point {
+            return Less;
+          } else {
+            return Greater;
+          }
+        } else if a.meeple_ids[0] < b.meeple_ids[0] {
+          return Less;
+        } else if a.meeple_ids[0] > b.meeple_ids[0] {
+          return Greater;
+        } else {
+          Equal
+        }
+      });
+      assert_eq!(events.len(), 2);
+      assert_eq!(events[0].feature, RoadFeature);
+      assert_eq!(events[0].meeple_ids, vec![8]);
+      assert_eq!(events[0].point, 1);
+      assert_eq!(events[1].feature, FieldFeature);
+      assert_eq!(events[1].meeple_ids, vec![1]);
+      assert_eq!(events[1].point, 3);
       assert_eq!(res.player0_point, 16);
       assert_eq!(res.player1_point, 5);
     },
@@ -1366,18 +1405,18 @@ fn calculate_test_for_monastery_completion() {
   let player0_id = 0;
   let player1_id = 1;
   let mut mvs = vec![
-    Move::TMove( TileMove { ord: 0, game_id, player_id: player1_id, tile: Tile::StartingTile, rot: 0, pos: (50, 50) } ),
-    Move::MMove( MeepleMove { ord: 1, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (50, 50), meeple_pos: -1 } ),
+    Move::TMove( TileMove { ord: 0, game_id, player_id: player1_id, tile: Tile::StartingTile, rot: 0, pos: (0, 0) } ),
+    Move::MMove( MeepleMove { ord: 1, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (0, 0), meeple_pos: -1 } ),
   ];
 
-  mvs.push(Move::TMove( TileMove { ord: 2, game_id, player_id: player0_id, tile: Tile::Monastery, rot: 0, pos: (51, 50) } ));
+  mvs.push(Move::TMove( TileMove { ord: 2, game_id, player_id: player0_id, tile: Tile::Monastery, rot: 0, pos: (1, 0) } ));
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => { assert_eq!(res.meepleable_positions, vec![0, 1]); },
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::MMove( MeepleMove { ord: 3, game_id, player_id: player0_id, meeple_id: 0, tile_pos: (51, 50), meeple_pos: 0 } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 3, game_id, player_id: player0_id, meeple_id: 0, tile_pos: (1, 0), meeple_pos: 0 } ));
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -1388,46 +1427,71 @@ fn calculate_test_for_monastery_completion() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  mvs.push(Move::TMove( TileMove { ord: 4, game_id, player_id: player1_id, tile: Tile::Monastery, rot: 0, pos: (52, 50) } ));
-  mvs.push(Move::MMove( MeepleMove { ord: 5, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (52, 50), meeple_pos: -1 } ));
+  mvs.push(Move::TMove( TileMove { ord: 4, game_id, player_id: player1_id, tile: Tile::Monastery, rot: 0, pos: (2, 0) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 5, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (2, 0), meeple_pos: -1 } ));
 
-  mvs.push(Move::TMove( TileMove { ord: 6, game_id, player_id: player0_id, tile: Tile::Monastery, rot: 0, pos: (52, 49) } ));
-  mvs.push(Move::MMove( MeepleMove { ord: 7, game_id, player_id: player0_id, meeple_id: -1, tile_pos: (52, 49), meeple_pos: -1 } ));
+  mvs.push(Move::TMove( TileMove { ord: 6, game_id, player_id: player0_id, tile: Tile::Monastery, rot: 0, pos: (2, -1) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 7, game_id, player_id: player0_id, meeple_id: -1, tile_pos: (2, -1), meeple_pos: -1 } ));
 
-  mvs.push(Move::TMove( TileMove { ord: 8, game_id, player_id: player1_id, tile: Tile::Monastery, rot: 0, pos: (52, 48) } ));
-  mvs.push(Move::MMove( MeepleMove { ord: 9, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (52, 48), meeple_pos: -1 } ));
+  mvs.push(Move::TMove( TileMove { ord: 8, game_id, player_id: player1_id, tile: Tile::Monastery, rot: 0, pos: (2, -2) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 9, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (2, -2), meeple_pos: -1 } ));
 
-  mvs.push(Move::TMove( TileMove { ord: 10, game_id, player_id: player0_id, tile: Tile::Monastery, rot: 0, pos: (51, 48) } ));
-  mvs.push(Move::MMove( MeepleMove { ord: 11, game_id, player_id: player0_id, meeple_id: -1, tile_pos: (51, 48), meeple_pos: -1 } ));
+  mvs.push(Move::TMove( TileMove { ord: 10, game_id, player_id: player0_id, tile: Tile::Monastery, rot: 0, pos: (1, -2) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 11, game_id, player_id: player0_id, meeple_id: -1, tile_pos: (1, -2), meeple_pos: -1 } ));
 
-  mvs.push(Move::TMove( TileMove { ord: 12, game_id, player_id: player0_id, tile: Tile::Monastery, rot: 0, pos: (52, 51) } ));
-  mvs.push(Move::MMove( MeepleMove { ord: 13, game_id, player_id: player0_id, meeple_id: -1, tile_pos: (52, 51), meeple_pos: -1 } ));
+  mvs.push(Move::TMove( TileMove { ord: 12, game_id, player_id: player0_id, tile: Tile::Monastery, rot: 0, pos: (2, 1) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 13, game_id, player_id: player0_id, meeple_id: -1, tile_pos: (2, 1), meeple_pos: -1 } ));
 
-  mvs.push(Move::TMove( TileMove { ord: 14, game_id, player_id: player1_id, tile: Tile::Monastery, rot: 0, pos: (51, 51) } ));
-  mvs.push(Move::MMove( MeepleMove { ord: 15, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (51, 51), meeple_pos: -1 } ));
+  mvs.push(Move::TMove( TileMove { ord: 14, game_id, player_id: player1_id, tile: Tile::Monastery, rot: 0, pos: (1, 1) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 15, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (1, 1), meeple_pos: -1 } ));
 
-  mvs.push(Move::TMove( TileMove { ord: 16, game_id, player_id: player0_id, tile: Tile::StartingTile, rot: 0, pos: (50, 51) } ));
-  mvs.push(Move::MMove( MeepleMove { ord: 17, game_id, player_id: player0_id, meeple_id: -1, tile_pos: (50, 51), meeple_pos: -1 } ));
+  mvs.push(Move::TMove( TileMove { ord: 16, game_id, player_id: player0_id, tile: Tile::StartingTile, rot: 0, pos: (0, 1) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 17, game_id, player_id: player0_id, meeple_id: -1, tile_pos: (0, 1), meeple_pos: -1 } ));
 
-  mvs.push(Move::TMove( TileMove { ord: 18, game_id, player_id: player1_id, tile: Tile::StartingTile, rot: 0, pos: (50, 49) } ));
-  mvs.push(Move::MMove( MeepleMove { ord: 19, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (50, 49), meeple_pos: -1 } ));
+  mvs.push(Move::TMove( TileMove { ord: 18, game_id, player_id: player1_id, tile: Tile::StartingTile, rot: 0, pos: (0, -1) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 19, game_id, player_id: player1_id, meeple_id: -1, tile_pos: (0, -1), meeple_pos: -1 } ));
 
-  mvs.push(Move::TMove( TileMove { ord: 20, game_id, player_id: player0_id, tile: Tile::StartingTile, rot: 0, pos: (50, 48) } ));
-  mvs.push(Move::MMove( MeepleMove { ord: 21, game_id, player_id: player0_id, meeple_id: -1, tile_pos: (50, 48), meeple_pos: -1 } ));
+  mvs.push(Move::TMove( TileMove { ord: 20, game_id, player_id: player0_id, tile: Tile::StartingTile, rot: 0, pos: (0, -2) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 21, game_id, player_id: player0_id, meeple_id: -1, tile_pos: (0, -2), meeple_pos: -1 } ));
 
-  mvs.push(Move::TMove( TileMove { ord: 22, game_id, player_id: player1_id, tile: Tile::Monastery, rot: 0, pos: (51, 49) } ));
-  mvs.push(Move::MMove( MeepleMove { ord: 23, game_id, player_id: player1_id, meeple_id: 7, tile_pos: (51, 49), meeple_pos: 0 } ));
+  mvs.push(Move::TMove( TileMove { ord: 22, game_id, player_id: player1_id, tile: Tile::Monastery, rot: 0, pos: (1, -1) } ));
+  mvs.push(Move::MMove( MeepleMove { ord: 23, game_id, player_id: player1_id, meeple_id: 7, tile_pos: (1, -1), meeple_pos: 0 } ));
 
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
-      assert_eq!(res.complete_events.len(), 2);
-      assert_eq!(res.complete_events[0].feature, MonasteryFeature);
-      assert_eq!(res.complete_events[0].meeple_ids, vec![7]);
-      assert_eq!(res.complete_events[0].point, 9);
-      assert_eq!(res.complete_events[1].feature, MonasteryFeature);
-      assert_eq!(res.complete_events[1].meeple_ids, vec![0]);
-      assert_eq!(res.complete_events[1].point, 9);
+      let mut events = vec![];
+      for e in res.complete_events {
+        events.push(e);
+      }
+      events.sort_by(|a, b| {
+        if a.feature != b.feature {
+          if a.feature < b.feature {
+            return Less;
+          } else {
+            return Greater;
+          }
+        } else if a.point != b.point {
+          if a.point < b.point {
+            return Less;
+          } else {
+            return Greater;
+          }
+        } else if a.meeple_ids[0] < b.meeple_ids[0] {
+          return Less;
+        } else if a.meeple_ids[0] > b.meeple_ids[0] {
+          return Greater;
+        } else {
+          Equal
+        }
+      });
+      assert_eq!(events.len(), 2);
+      assert_eq!(events[0].feature, MonasteryFeature);
+      assert_eq!(events[0].meeple_ids, vec![0]);
+      assert_eq!(events[0].point, 9);
+      assert_eq!(events[1].feature, MonasteryFeature);
+      assert_eq!(events[1].meeple_ids, vec![7]);
+      assert_eq!(events[1].point, 9);
       assert_eq!(res.player0_point, 9);
       assert_eq!(res.player1_point, 9);
     },
@@ -1446,9 +1510,9 @@ fn calculate_test0() {
   /* actual game here: https://boardgamearena.com/table?table=361472535 */
   let mut mvs = vec![];
 
-  add_move(&mut mvs, Tile::StartingTile, 0, (50, 50), -1, -1);
-  add_move(&mut mvs, Tile::Straight, 1, (50, 51), 0, 1);
-  add_move(&mut mvs, Tile::CityCap, 2, (49, 50), 7, 0);
+  add_move(&mut mvs, Tile::StartingTile, 0, (0, 0), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 1, (0, 1), 0, 1);
+  add_move(&mut mvs, Tile::CityCap, 2, (-1, 0), 7, 0);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1463,10 +1527,10 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::Separator, 2, (51, 50), 1, 0);
-  add_move(&mut mvs, Tile::StartingTile, 3, (51, 49), 7, 0);
-  add_move(&mut mvs, Tile::TripleRoad, 0, (50, 49), 2, 4);
-  add_move(&mut mvs, Tile::CityCap, 3, (51, 51), 8, 0);
+  add_move(&mut mvs, Tile::Separator, 2, (1, 0), 1, 0);
+  add_move(&mut mvs, Tile::StartingTile, 3, (1, -1), 7, 0);
+  add_move(&mut mvs, Tile::TripleRoad, 0, (0, -1), 2, 4);
+  add_move(&mut mvs, Tile::CityCap, 3, (1, 1), 8, 0);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1481,9 +1545,9 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::Curve, 1, (50, 52), -1, -1);
-  add_move(&mut mvs, Tile::TripleRoad, 0, (52, 51), 8, 1);
-  add_move(&mut mvs, Tile::QuadrupleRoad, 0, (50, 48), 3, 4);
+  add_move(&mut mvs, Tile::Curve, 1, (0, 2), -1, -1);
+  add_move(&mut mvs, Tile::TripleRoad, 0, (2, 1), 8, 1);
+  add_move(&mut mvs, Tile::QuadrupleRoad, 0, (0, -2), 3, 4);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1498,7 +1562,7 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::TripleRoad, 2, (53, 51), 9, 4);
+  add_move(&mut mvs, Tile::TripleRoad, 2, (3, 1), 9, 4);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1513,7 +1577,7 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::CityCapWithCrossroad, 0, (49, 52), 3, 0);
+  add_move(&mut mvs, Tile::CityCapWithCrossroad, 0, (-1, 2), 3, 0);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1528,11 +1592,11 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::Straight, 1, (49, 53), 9, 1);
-  add_move(&mut mvs, Tile::Curve, 0, (52, 52), 10, 1);
-  add_move(&mut mvs, Tile::ConnectorWithCOA, 1, (48, 52), -1, -1);
-  add_move(&mut mvs, Tile::Straight, 0, (52, 49), -1, -1);
-  add_move(&mut mvs, Tile::Left, 1, (51, 48), 11, 2);
+  add_move(&mut mvs, Tile::Straight, 1, (-1, 3), 9, 1);
+  add_move(&mut mvs, Tile::Curve, 0, (2, 2), 10, 1);
+  add_move(&mut mvs, Tile::ConnectorWithCOA, 1, (-2, 2), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 0, (2, -1), -1, -1);
+  add_move(&mut mvs, Tile::Left, 1, (1, -2), 11, 2);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1547,7 +1611,7 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::CityCap, 2, (47, 52), -1, -1);
+  add_move(&mut mvs, Tile::CityCap, 2, (-3, 2), -1, -1);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1562,9 +1626,9 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::CityCap, 0, (46, 52), 7, 0);
-  add_move(&mut mvs, Tile::TripleCity, 2, (45, 52), -1, -1);
-  add_move(&mut mvs, Tile::TriangleWithRoad, 2, (53, 52), 12, 0);
+  add_move(&mut mvs, Tile::CityCap, 0, (-4, 2), 7, 0);
+  add_move(&mut mvs, Tile::TripleCity, 2, (-5, 2), -1, -1);
+  add_move(&mut mvs, Tile::TriangleWithRoad, 2, (3, 2), 12, 0);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1579,9 +1643,9 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::TripleCity, 1, (46, 53), -1, -1);
-  add_move(&mut mvs, Tile::Curve, 3, (50, 47), -1, -1);
-  add_move(&mut mvs, Tile::CityCapWithCrossroad, 2, (53, 49), 0, 0);
+  add_move(&mut mvs, Tile::TripleCity, 1, (-4, 3), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 3, (0, -3), -1, -1);
+  add_move(&mut mvs, Tile::CityCapWithCrossroad, 2, (3, -1), 0, 0);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1596,8 +1660,8 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::TripleCity, 2, (45, 53), -1, -1);
-  add_move(&mut mvs, Tile::StartingTile, 0, (54, 49), -1, -1);
+  add_move(&mut mvs, Tile::TripleCity, 2, (-5, 3), -1, -1);
+  add_move(&mut mvs, Tile::StartingTile, 0, (4, -1), -1, -1);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1612,8 +1676,8 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::VerticalSeparator, 1, (45, 51), 10, 2);
-  add_move(&mut mvs, Tile::Right, 0, (52, 50), 0, 1);
+  add_move(&mut mvs, Tile::VerticalSeparator, 1, (-5, 1), 10, 2);
+  add_move(&mut mvs, Tile::Right, 0, (2, 0), 0, 1);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1628,9 +1692,9 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::TripleCityWithCOA, 3, (46, 54), -1, -1);
-  add_move(&mut mvs, Tile::VerticalSeparator, 0, (46, 55), 1, 2);
-  add_move(&mut mvs, Tile::Left, 2, (45, 55), 13, 0);
+  add_move(&mut mvs, Tile::TripleCityWithCOA, 3, (-4, 4), -1, -1);
+  add_move(&mut mvs, Tile::VerticalSeparator, 0, (-4, 5), 1, 2);
+  add_move(&mut mvs, Tile::Left, 2, (-5, 5), 13, 0);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1645,10 +1709,10 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::TripleCityWithRoad, 3, (47, 55), -1, -1);
-  add_move(&mut mvs, Tile::Monastery, 0, (51, 52), 13, 0);
-  add_move(&mut mvs, Tile::MonasteryWithRoad, 3, (49, 51), 2, 0);
-  add_move(&mut mvs, Tile::TripleRoad, 2, (53, 50), -1, -1);
+  add_move(&mut mvs, Tile::TripleCityWithRoad, 3, (-3, 5), -1, -1);
+  add_move(&mut mvs, Tile::Monastery, 0, (1, 2), 13, 0);
+  add_move(&mut mvs, Tile::MonasteryWithRoad, 3, (-1, 1), 2, 0);
+  add_move(&mut mvs, Tile::TripleRoad, 2, (3, 0), -1, -1);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1663,10 +1727,10 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::Right, 0, (44, 55), 3, 0);
-  add_move(&mut mvs, Tile::TriangleWithRoad, 1, (54, 52), -1, -1);
-  add_move(&mut mvs, Tile::Straight, 0, (50, 46), -1, -1);
-  add_move(&mut mvs, Tile::TriangleWithRoad, 3, (51, 47), -1, -1);
+  add_move(&mut mvs, Tile::Right, 0, (-6, 5), 3, 0);
+  add_move(&mut mvs, Tile::TriangleWithRoad, 1, (4, 2), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 0, (0, -4), -1, -1);
+  add_move(&mut mvs, Tile::TriangleWithRoad, 3, (1, -3), -1, -1);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1681,13 +1745,13 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::Monastery, 0, (48, 51), 4, 0);
-  add_move(&mut mvs, Tile::TriangleWithCOA, 3, (53, 53), 8, 1);
-  add_move(&mut mvs, Tile::TripleCityWithRoadWithCOA, 1, (47, 54), -1, -1);
-  add_move(&mut mvs, Tile::Curve, 2, (52, 53), -1, -1);
-  add_move(&mut mvs, Tile::Straight, 1, (54, 48), 5, 0);
-  add_move(&mut mvs, Tile::Straight, 0, (51, 53), -1, -1);
-  add_move(&mut mvs, Tile::MonasteryWithRoad, 2, (48, 50), 6, 0);
+  add_move(&mut mvs, Tile::Monastery, 0, (-2, 1), 4, 0);
+  add_move(&mut mvs, Tile::TriangleWithCOA, 3, (3, 3), 8, 1);
+  add_move(&mut mvs, Tile::TripleCityWithRoadWithCOA, 1, (-3, 4), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 2, (2, 3), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 1, (4, -2), 5, 0);
+  add_move(&mut mvs, Tile::Straight, 0, (1, 3), -1, -1);
+  add_move(&mut mvs, Tile::MonasteryWithRoad, 2, (-2, 0), 6, 0);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1702,9 +1766,9 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::Connector, 0, (45, 50), -1, -1);
-  add_move(&mut mvs, Tile::Straight, 1, (53, 48), -1, -1);
-  add_move(&mut mvs, Tile::Curve, 3, (50, 53), -1, -1);
+  add_move(&mut mvs, Tile::Connector, 0, (-5, 0), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 1, (3, -2), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 3, (0, 3), -1, -1);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1719,12 +1783,12 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::TriangleWithRoadWithCOA, 1, (48, 54), -1, -1);
-  add_move(&mut mvs, Tile::Straight, 0, (51, 54), 11, 2);
-  add_move(&mut mvs, Tile::Curve, 1, (47, 51), -1, -1);
-  add_move(&mut mvs, Tile::Right, 2, (52, 54), 13, 2);
-  add_move(&mut mvs, Tile::StartingTile, 3, (55, 52), -1, -1);
-  add_move(&mut mvs, Tile::Curve, 0, (50, 54), -1, -1);
+  add_move(&mut mvs, Tile::TriangleWithRoadWithCOA, 1, (-2, 4), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 0, (1, 4), 11, 2);
+  add_move(&mut mvs, Tile::Curve, 1, (-3, 1), -1, -1);
+  add_move(&mut mvs, Tile::Right, 2, (2, 4), 13, 2);
+  add_move(&mut mvs, Tile::StartingTile, 3, (5, 2), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 0, (0, 4), -1, -1);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1739,9 +1803,9 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::Monastery, 0, (55, 53), 2, 1);
-  add_move(&mut mvs, Tile::TriangleWithRoad, 1, (55, 51), -1, -1);
-  add_move(&mut mvs, Tile::Left, 2, (43, 55), -1, -1);
+  add_move(&mut mvs, Tile::Monastery, 0, (5, 3), 2, 1);
+  add_move(&mut mvs, Tile::TriangleWithRoad, 1, (5, 1), -1, -1);
+  add_move(&mut mvs, Tile::Left, 2, (-7, 5), -1, -1);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1756,9 +1820,9 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::Monastery, 0, (52, 48), 13, 0);
-  add_move(&mut mvs, Tile::TriangleWithCOA, 1, (53, 54), -1, -1);
-  add_move(&mut mvs, Tile::CityCap, 1, (45, 49), -1, -1);
+  add_move(&mut mvs, Tile::Monastery, 0, (2, -2), 13, 0);
+  add_move(&mut mvs, Tile::TriangleWithCOA, 1, (3, 4), -1, -1);
+  add_move(&mut mvs, Tile::CityCap, 1, (-5, -1), -1, -1);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1773,9 +1837,9 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::QuadrupleCityWithCOA, 0, (48, 55), -1, -1);
-  add_move(&mut mvs, Tile::ConnectorWithCOA, 0, (53, 55), 13, 1);
-  add_move(&mut mvs, Tile::CityCapWithCrossroad, 3, (47, 50), 3, 2);
+  add_move(&mut mvs, Tile::QuadrupleCityWithCOA, 0, (-2, 5), -1, -1);
+  add_move(&mut mvs, Tile::ConnectorWithCOA, 0, (3, 5), 13, 1);
+  add_move(&mut mvs, Tile::CityCapWithCrossroad, 3, (-3, 0), 3, 2);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1793,7 +1857,7 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::VerticalSeparator, 1, (53, 56), -1, -1);
+  add_move(&mut mvs, Tile::VerticalSeparator, 1, (3, 6), -1, -1);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1808,11 +1872,11 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::Curve, 0, (46, 51), 3, 0);
-  add_move(&mut mvs, Tile::Triangle, 2, (54, 55), 13, 1);
-  add_move(&mut mvs, Tile::Triangle, 2, (55, 54), -1, -1);
-  add_move(&mut mvs, Tile::Curve, 1, (49, 54), -1, -1);
-  add_move(&mut mvs, Tile::Separator, 2, (47, 49), 4, 1);
+  add_move(&mut mvs, Tile::Curve, 0, (-4, 1), 3, 0);
+  add_move(&mut mvs, Tile::Triangle, 2, (4, 5), 13, 1);
+  add_move(&mut mvs, Tile::Triangle, 2, (5, 4), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 1, (-1, 4), -1, -1);
+  add_move(&mut mvs, Tile::Separator, 2, (-3, -1), 4, 1);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1827,7 +1891,7 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::Triangle, 0, (54, 53), -1, -1);
+  add_move(&mut mvs, Tile::Triangle, 0, (4, 3), -1, -1);
 
   let status = calculate(&mvs, false);
   match status {
@@ -1842,7 +1906,7 @@ fn calculate_test0() {
     Err(e) => { panic!("Error: {}", e.msg); }
   }
 
-  add_move(&mut mvs, Tile::TripleCityWithRoadWithCOA, 1, (44, 56), 4, 1);
+  add_move(&mut mvs, Tile::TripleCityWithRoadWithCOA, 1, (-6, 6), 4, 1);
 
   let status = calculate(&mvs, true);
   match status {
@@ -1858,11 +1922,11 @@ fn calculate_test0() {
 fn calculate_test1() {
   /* actual game here: https://boardgamearena.com/table?table=361578832 */
   let mut mvs = vec![];
-  add_move(&mut mvs, Tile::StartingTile, 0, (50, 50), -1, -1);
-  add_move(&mut mvs, Tile::Curve, 1, (50, 51), 0, 1);
-  add_move(&mut mvs, Tile::TriangleWithRoad, 3, (49, 50), 7, 0);
-  add_move(&mut mvs, Tile::TripleRoad, 1, (49, 51), 1, 4);
-  add_move(&mut mvs, Tile::TripleCityWithRoad, 0, (48, 51), 8, 2);
+  add_move(&mut mvs, Tile::StartingTile, 0, (0, 0), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 1, (0, 1), 0, 1);
+  add_move(&mut mvs, Tile::TriangleWithRoad, 3, (-1, 0), 7, 0);
+  add_move(&mut mvs, Tile::TripleRoad, 1, (-1, 1), 1, 4);
+  add_move(&mut mvs, Tile::TripleCityWithRoad, 0, (-2, 1), 8, 2);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -1873,12 +1937,12 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::Triangle, 0, (48, 52), 2, 0);
-  add_move(&mut mvs, Tile::TripleCityWithCOA, 0, (49, 49), -1, -1);
-  add_move(&mut mvs, Tile::CityCap, 1, (50, 52), 3, 0);
-  add_move(&mut mvs, Tile::TripleRoad, 3, (48, 53), 8, 2);
-  add_move(&mut mvs, Tile::ConnectorWithCOA, 0, (50, 53), -1, -1);
-  add_move(&mut mvs, Tile::TripleCityWithRoadWithCOA, 0, (47, 53), 9, 0);
+  add_move(&mut mvs, Tile::Triangle, 0, (-2, 2), 2, 0);
+  add_move(&mut mvs, Tile::TripleCityWithCOA, 0, (-1, -1), -1, -1);
+  add_move(&mut mvs, Tile::CityCap, 1, (0, 2), 3, 0);
+  add_move(&mut mvs, Tile::TripleRoad, 3, (-2, 3), 8, 2);
+  add_move(&mut mvs, Tile::ConnectorWithCOA, 0, (0, 3), -1, -1);
+  add_move(&mut mvs, Tile::TripleCityWithRoadWithCOA, 0, (-3, 3), 9, 0);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -1889,8 +1953,8 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::Curve, 3, (50, 49), -1, -1);
-  add_move(&mut mvs, Tile::CityCapWithCrossroad, 0, (48, 54), 8, 2);
+  add_move(&mut mvs, Tile::Curve, 3, (0, -1), -1, -1);
+  add_move(&mut mvs, Tile::CityCapWithCrossroad, 0, (-2, 4), 8, 2);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -1901,7 +1965,7 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::Right, 3, (50, 54), -1, -1);
+  add_move(&mut mvs, Tile::Right, 3, (0, 4), -1, -1);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -1912,12 +1976,12 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::TripleRoad, 0, (51, 50), 8, 1);
-  add_move(&mut mvs, Tile::Connector, 1, (50, 48), 3, 1);
-  add_move(&mut mvs, Tile::QuadrupleCityWithCOA, 0, (48, 49), -1, -1);
-  add_move(&mut mvs, Tile::Triangle, 2, (49, 48), -1, -1);
-  add_move(&mut mvs, Tile::TripleCity, 2, (47, 49), -1, -1);
-  add_move(&mut mvs, Tile::TripleCityWithRoadWithCOA, 0, (48, 50), -1, -1);
+  add_move(&mut mvs, Tile::TripleRoad, 0, (1, 0), 8, 1);
+  add_move(&mut mvs, Tile::Connector, 1, (0, -2), 3, 1);
+  add_move(&mut mvs, Tile::QuadrupleCityWithCOA, 0, (-2, -1), -1, -1);
+  add_move(&mut mvs, Tile::Triangle, 2, (-1, -2), -1, -1);
+  add_move(&mut mvs, Tile::TripleCity, 2, (-3, -1), -1, -1);
+  add_move(&mut mvs, Tile::TripleCityWithRoadWithCOA, 0, (-2, 0), -1, -1);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -1928,11 +1992,11 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::Straight, 0, (49, 54), 10, 1);
-  add_move(&mut mvs, Tile::VerticalSeparator, 0, (51, 48), 1, 2);
-  add_move(&mut mvs, Tile::TriangleWithCOA, 2, (47, 52), -1, -1);
-  add_move(&mut mvs, Tile::TriangleWithCOA, 1, (46, 52), 4, 0);
-  add_move(&mut mvs, Tile::Curve, 2, (51, 49), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 0, (-1, 4), 10, 1);
+  add_move(&mut mvs, Tile::VerticalSeparator, 0, (1, -2), 1, 2);
+  add_move(&mut mvs, Tile::TriangleWithCOA, 2, (-3, 2), -1, -1);
+  add_move(&mut mvs, Tile::TriangleWithCOA, 1, (-4, 2), 4, 0);
+  add_move(&mut mvs, Tile::Curve, 2, (1, -1), -1, -1);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -1943,7 +2007,7 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::StartingTile, 0, (52, 48), -1, -1);
+  add_move(&mut mvs, Tile::StartingTile, 0, (2, -2), -1, -1);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -1954,8 +2018,8 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::Monastery, 0, (49, 52), 8, 0);
-  add_move(&mut mvs, Tile::MonasteryWithRoad, 2, (49, 53), 0, 0);
+  add_move(&mut mvs, Tile::Monastery, 0, (-1, 2), 8, 0);
+  add_move(&mut mvs, Tile::MonasteryWithRoad, 2, (-1, 3), 0, 0);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -1968,17 +2032,17 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::TripleCity, 3, (47, 54), -1, -1);
-  add_move(&mut mvs, Tile::Straight, 0, (47, 55), -1, -1);
-  add_move(&mut mvs, Tile::Straight, 0, (46, 51), -1, -1);
-  add_move(&mut mvs, Tile::Curve, 0, (46, 55), -1, -1);
-  add_move(&mut mvs, Tile::Left, 2, (46, 54), -1, -1);
-  add_move(&mut mvs, Tile::CityCap, 2, (53, 48), 0, 0);
-  add_move(&mut mvs, Tile::Curve, 3, (45, 54), 8, 1);
-  add_move(&mut mvs, Tile::Triangle, 3, (46, 53), -1, -1);
-  add_move(&mut mvs, Tile::TriangleWithRoadWithCOA, 1, (45, 51), 11, 0);
-  add_move(&mut mvs, Tile::MonasteryWithRoad, 2, (45, 53), 5, 0);
-  add_move(&mut mvs, Tile::TripleRoad, 1, (50, 55), -1, -1);
+  add_move(&mut mvs, Tile::TripleCity, 3, (-3, 4), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 0, (-3, 5), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 0, (-4, 1), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 0, (-4, 5), -1, -1);
+  add_move(&mut mvs, Tile::Left, 2, (-4, 4), -1, -1);
+  add_move(&mut mvs, Tile::CityCap, 2, (3, -2), 0, 0);
+  add_move(&mut mvs, Tile::Curve, 3, (-5, 4), 8, 1);
+  add_move(&mut mvs, Tile::Triangle, 3, (-4, 3), -1, -1);
+  add_move(&mut mvs, Tile::TriangleWithRoadWithCOA, 1, (-5, 1), 11, 0);
+  add_move(&mut mvs, Tile::MonasteryWithRoad, 2, (-5, 3), 5, 0);
+  add_move(&mut mvs, Tile::TripleRoad, 1, (0, 5), -1, -1);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -1989,7 +2053,7 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::Separator, 1, (54, 48), 1, 0);
+  add_move(&mut mvs, Tile::Separator, 1, (4, -2), 1, 0);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -2000,8 +2064,8 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::Right, 3, (52, 47), 12, 0);
-  add_move(&mut mvs, Tile::Left, 3, (54, 49), -1, -1);
+  add_move(&mut mvs, Tile::Right, 3, (2, -3), 12, 0);
+  add_move(&mut mvs, Tile::Left, 3, (4, -1), -1, -1);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -2012,13 +2076,13 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::Straight, 1, (45, 55), -1, -1);
-  add_move(&mut mvs, Tile::Monastery, 0, (53, 47), 0, 0);
-  add_move(&mut mvs, Tile::TriangleWithRoadWithCOA, 2, (48, 55), -1, -1);
-  add_move(&mut mvs, Tile::TriangleWithRoad, 0, (44, 53), 1, 0);
-  add_move(&mut mvs, Tile::Straight, 1, (45, 56), -1, -1);
-  add_move(&mut mvs, Tile::Curve, 1, (44, 54), -1, -1);
-  add_move(&mut mvs, Tile::QuadrupleRoad, 1, (45, 57), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 1, (-5, 5), -1, -1);
+  add_move(&mut mvs, Tile::Monastery, 0, (3, -3), 0, 0);
+  add_move(&mut mvs, Tile::TriangleWithRoadWithCOA, 2, (-2, 5), -1, -1);
+  add_move(&mut mvs, Tile::TriangleWithRoad, 0, (-6, 3), 1, 0);
+  add_move(&mut mvs, Tile::Straight, 1, (-5, 6), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 1, (-6, 4), -1, -1);
+  add_move(&mut mvs, Tile::QuadrupleRoad, 1, (-5, 7), -1, -1);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -2029,11 +2093,11 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::CityCap, 1, (44, 52), -1, -1);
-  add_move(&mut mvs, Tile::Straight, 0, (43, 54), 8, 1);
-  add_move(&mut mvs, Tile::CityCapWithCrossroad, 2, (51, 55), 6, 0);
-  add_move(&mut mvs, Tile::Curve, 2, (43, 52), -1, -1);
-  add_move(&mut mvs, Tile::CityCap, 0, (52, 55), -1, -1);
+  add_move(&mut mvs, Tile::CityCap, 1, (-6, 2), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 0, (-7, 4), 8, 1);
+  add_move(&mut mvs, Tile::CityCapWithCrossroad, 2, (1, 5), 6, 0);
+  add_move(&mut mvs, Tile::Curve, 2, (-7, 2), -1, -1);
+  add_move(&mut mvs, Tile::CityCap, 0, (2, 5), -1, -1);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -2044,12 +2108,12 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::TriangleWithRoad, 0, (42, 54), -1, -1);
-  add_move(&mut mvs, Tile::CityCapWithCrossroad, 0, (42, 52), 6, 0);
-  add_move(&mut mvs, Tile::VerticalSeparator, 2, (46, 50), 10, 0);
-  add_move(&mut mvs, Tile::Curve, 0, (43, 51), -1, -1);
-  add_move(&mut mvs, Tile::ConnectorWithCOA, 0, (52, 46), -1, -1);
-  add_move(&mut mvs, Tile::StartingTile, 2, (41, 52), -1, -1);
+  add_move(&mut mvs, Tile::TriangleWithRoad, 0, (-8, 4), -1, -1);
+  add_move(&mut mvs, Tile::CityCapWithCrossroad, 0, (-8, 2), 6, 0);
+  add_move(&mut mvs, Tile::VerticalSeparator, 2, (-4, 0), 10, 0);
+  add_move(&mut mvs, Tile::Curve, 0, (-7, 1), -1, -1);
+  add_move(&mut mvs, Tile::ConnectorWithCOA, 0, (2, -4), -1, -1);
+  add_move(&mut mvs, Tile::StartingTile, 2, (-9, 2), -1, -1);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -2060,11 +2124,11 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::Monastery, 0, (44, 55), -1, -1);
-  add_move(&mut mvs, Tile::Curve, 0, (54, 47), -1, -1);
-  add_move(&mut mvs, Tile::Straight, 1, (42, 55), -1, -1);
-  add_move(&mut mvs, Tile::VerticalSeparator, 1, (47, 48), 6, 2);
-  add_move(&mut mvs, Tile::StartingTile, 1, (52, 45), -1, -1);
+  add_move(&mut mvs, Tile::Monastery, 0, (-6, 5), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 0, (4, -3), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 1, (-8, 5), -1, -1);
+  add_move(&mut mvs, Tile::VerticalSeparator, 1, (-3, -2), 6, 2);
+  add_move(&mut mvs, Tile::StartingTile, 1, (2, -5), -1, -1);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -2075,9 +2139,9 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::Straight, 1, (54, 46), -1, -1);
-  add_move(&mut mvs, Tile::TripleCity, 3, (47, 50), -1, -1);
-  add_move(&mut mvs, Tile::CityCap, 1, (47, 47), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 1, (4, -4), -1, -1);
+  add_move(&mut mvs, Tile::TripleCity, 3, (-3, 0), -1, -1);
+  add_move(&mut mvs, Tile::CityCap, 1, (-3, -3), -1, -1);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -2088,8 +2152,8 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::Left, 3, (55, 48), 12, 1);
-  add_move(&mut mvs, Tile::Right, 2, (43, 53), 6, 1);
+  add_move(&mut mvs, Tile::Left, 3, (5, -2), 12, 1);
+  add_move(&mut mvs, Tile::Right, 2, (-7, 3), 6, 1);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -2100,8 +2164,8 @@ fn calculate_test1() {
     }
     Err(e) => { panic!("Error: {}", e.msg); }
   }
-  add_move(&mut mvs, Tile::Separator, 2, (51, 53), 13, 2);
-  add_move(&mut mvs, Tile::Monastery, 0, (53, 46), 1, 0);
+  add_move(&mut mvs, Tile::Separator, 2, (1, 3), 13, 2);
+  add_move(&mut mvs, Tile::Monastery, 0, (3, -4), 1, 0);
   let status = calculate(&mvs, false);
   match status {
     Ok(res) => {
@@ -2115,33 +2179,68 @@ fn calculate_test1() {
   let status = calculate(&mvs, true);
   match status {
     Ok(res) => {
-      assert_eq!(res.complete_events[0].feature, FieldFeature);
-      assert_eq!(res.complete_events[0].meeple_ids, [6]);
-      assert_eq!(res.complete_events[0].point, 3);
-      assert_eq!(res.complete_events[1].feature, RoadFeature);
-      assert_eq!(res.complete_events[1].meeple_ids, [8]);
-      assert_eq!(res.complete_events[1].point, 6);
-      assert_eq!(res.complete_events[2].feature, CityFeature);
-      assert_eq!(res.complete_events[2].meeple_ids, [11]);
-      assert_eq!(res.complete_events[2].point, 2);
-      assert_eq!(res.complete_events[3].feature, MonasteryFeature);
-      assert_eq!(res.complete_events[3].meeple_ids, [5]);
-      assert_eq!(res.complete_events[3].point, 8);
-      assert_eq!(res.complete_events[4].feature, CityFeature);
-      assert_eq!(res.complete_events[4].meeple_ids, [7, 3, 2, 9, 4, 10]);
-      assert_eq!(res.complete_events[4].point, 27);
-      assert_eq!(res.complete_events[5].feature, FieldFeature);
-      assert_eq!(res.complete_events[5].meeple_ids, [13]);
-      assert_eq!(res.complete_events[5].point, 3);
-      assert_eq!(res.complete_events[6].feature, FieldFeature);
-      assert_eq!(res.complete_events[6].meeple_ids, [12]);
-      assert_eq!(res.complete_events[6].point, 9);
-      assert_eq!(res.complete_events[7].feature, MonasteryFeature);
-      assert_eq!(res.complete_events[7].meeple_ids, [1]);
-      assert_eq!(res.complete_events[7].point, 7);
+      let mut events = vec![];
+      for e in res.complete_events {
+        events.push(e);
+      }
+      events.sort_by(|a, b| {
+        if a.feature != b.feature {
+          if a.feature < b.feature {
+            return Less;
+          } else {
+            return Greater;
+          }
+        } else if a.point != b.point {
+          if a.point < b.point {
+            return Less;
+          } else {
+            return Greater;
+          }
+        } else if a.meeple_ids[0] < b.meeple_ids[0] {
+          return Less;
+        } else if a.meeple_ids[0] > b.meeple_ids[0] {
+          return Greater;
+        } else {
+          Equal
+        }
+      });
+      assert_eq!(events.len(), 8);
+      assert_eq!(events[0].feature, RoadFeature);
+      assert_eq!(events[0].meeple_ids, [8]);
+      assert_eq!(events[0].point, 6);
+      assert_eq!(events[1].feature, CityFeature);
+      assert_eq!(events[1].meeple_ids, [11]);
+      assert_eq!(events[1].point, 2);
+      assert_eq!(events[2].feature, CityFeature);
+      assert_eq!(events[2].meeple_ids, [7, 3, 2, 9, 4, 10]);
+      assert_eq!(events[2].point, 27);
+      assert_eq!(events[3].feature, MonasteryFeature);
+      assert_eq!(events[3].meeple_ids, [1]);
+      assert_eq!(events[3].point, 7);
+      assert_eq!(events[4].feature, MonasteryFeature);
+      assert_eq!(events[4].meeple_ids, [5]);
+      assert_eq!(events[4].point, 8);
+      assert_eq!(events[5].feature, FieldFeature);
+      assert_eq!(events[5].meeple_ids, [6]);
+      assert_eq!(events[5].point, 3);
+      assert_eq!(events[6].feature, FieldFeature);
+      assert_eq!(events[6].meeple_ids, [13]);
+      assert_eq!(events[6].point, 3);
+      assert_eq!(events[7].feature, FieldFeature);
+      assert_eq!(events[7].meeple_ids, [12]);
+      assert_eq!(events[7].point, 9);
       assert_eq!(res.player0_point, 110);
       assert_eq!(res.player1_point, 89);
     }
     Err(e) => { panic!("Error: {}", e.msg); }
+
+  }
+
+  // check if calculate works fairly fast (probably not fast enough yet)
+  for _i in 0..1000 {
+    match calculate(&mut mvs, false) {
+      Ok(_) => {}
+      Err(_) => {}
+    }
   }
 }

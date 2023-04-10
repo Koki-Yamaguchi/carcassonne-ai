@@ -67,8 +67,8 @@ pub fn create_game(note: String, player0_id: i32, player1_id: i32) -> Game {
     Some(first_player_id),
   );
 
-  let mv0 = TMove( TileMove { ord: 0, game_id: g.id, player_id: second_player_id, tile: StartingTile, rot: 0, pos: (50, 50) } );
-  let mv1 = MMove( MeepleMove { ord: 1, game_id: g.id, player_id: second_player_id, meeple_id: -1, tile_pos: (50, 50), meeple_pos: -1 });
+  let mv0 = TMove( TileMove { ord: 0, game_id: g.id, player_id: second_player_id, tile: StartingTile, rot: 0, pos: (0, 0) } );
+  let mv1 = MMove( MeepleMove { ord: 1, game_id: g.id, player_id: second_player_id, meeple_id: -1, tile_pos: (0, 0), meeple_pos: -1 });
 
   database::create_move(mv0.clone());
   database::create_move(mv1.clone());
