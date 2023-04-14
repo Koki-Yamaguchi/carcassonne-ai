@@ -65,9 +65,9 @@ impl Feature {
 }
 
 #[derive(Clone, Debug)]
-struct DistinctFeature {
-  id: i32,
-  feature: Feature,
+pub struct DistinctFeature {
+  pub id: i32,
+  pub feature: Feature,
 }
 
 impl TileItem {
@@ -524,7 +524,7 @@ impl TileItem {
       Tile::Invalid => vec![vec![]],
     }
   }
-  fn features(self) -> Vec<DistinctFeature> {
+  pub fn features(self) -> Vec<DistinctFeature> {
     match self.tile {
       Tile::StartingTile => vec![
         DistinctFeature { id: self.feature_starting_id + 0, feature: CityFeature },
