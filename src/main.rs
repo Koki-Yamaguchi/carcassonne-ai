@@ -5,6 +5,7 @@ mod handlers;
 mod database;
 mod game;
 mod player;
+mod error;
 
 use handlers::{ get_games, get_game, create_game };
 use handlers::{ create_player };

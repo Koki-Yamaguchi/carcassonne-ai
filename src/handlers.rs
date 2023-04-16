@@ -1,12 +1,8 @@
-use rocket::serde::{Deserialize, json::Json};
-use diesel::prelude::*;
-use diesel::pg::PgConnection;
-use std::env;
-use dotenvy::dotenv;
+use rocket::serde::{Deserialize, json::Json, json::to_string};
+use rocket::http::{Status, ContentType};
 
 use crate::database;
 use crate::game;
-use crate::game::MeepleMoveResult;
 use crate::game::tile;
 use crate::player;
 
@@ -47,65 +43,101 @@ pub struct CreateGame {
 }
 
 #[post("/players/create", format = "application/json", data = "<params>")]
-pub fn create_player(params: Json<player::CreatePlayer>) -> Json<player::Player> {
-  let conn = &mut establish_connection();
-
-  Json(database::create_player(conn, params.name.clone()))
+pub fn create_player(params: Json<player::CreatePlayer>) -> (Status, (ContentType, String)) {
+  match database::create_player(params.name.clone()) {
+    Ok(player) => {
+      (Status::Ok, (ContentType::JSON, to_string(&player).unwrap()))
+    }
+    Err(e) => {
+      (e.status, (ContentType::JSON, to_string(&e.detail).unwrap()))
+    }
+  }
 }
 
-#[get("/games")]
-pub fn get_games() -> &'static str {
-  "Games List Here"
+#[get("/games?<player>", format = "application/json")]
+pub fn get_games(player: Option<i32>) -> (Status, (ContentType, String)) {
+  match game::get_games(player) {
+    Ok(games) => {
+      (Status::Ok, (ContentType::JSON, to_string(&games).unwrap()))
+    }
+    Err(e) => {
+      (e.status, (ContentType::JSON, to_string(&e.detail).unwrap()))
+    }
+  }
 }
 
 #[get("/games/<game_id>")]
-pub fn get_game(game_id: i32) -> Json<game::Game> {
-  Json(game::get_game(game_id))
+pub fn get_game(game_id: i32) -> (Status, (ContentType, String)) {
+  match game::get_game(game_id) {
+    Ok(game) => {
+      (Status::Ok, (ContentType::JSON, to_string(&game).unwrap()))
+    }
+    Err(e) => {
+      (e.status, (ContentType::JSON, to_string(&e.detail).unwrap()))
+    }
+  }
 }
 
 #[post("/games/create", format = "application/json", data = "<params>")]
-pub fn create_game(params: Json<CreateGame>) -> Json<game::Game> {
-  let g = game::create_game(
+pub fn create_game(params: Json<CreateGame>) -> (Status, (ContentType, String)) {
+  match game::create_game(
     params.note.clone(),
     params.player0_id,
     params.player1_id,
-  );
-  Json(g)
+  ) {
+    Ok(game) => {
+      (Status::Ok, (ContentType::JSON, to_string(&game).unwrap()))
+    }
+    Err(e) => {
+      (e.status, (ContentType::JSON, to_string(&e.detail).unwrap()))
+    }
+  }
 }
 
 #[post("/tile-moves/create", format = "application/json", data = "<params>")]
-pub fn create_tile_move(params: Json<CreateTileMove>) -> Json<game::MeepleablePositions> {
-  let g = game::create_tile_move(
+pub fn create_tile_move(params: Json<CreateTileMove>) -> (Status, (ContentType, String)) {
+  match game::create_tile_move(
     params.game_id,
     params.player_id,
     tile::to_tile(params.tile_id),
     params.rot,
     (params.pos_y, params.pos_x),
-  );
-  Json(g)
+  ) {
+    Ok(res) => {
+      (Status::Ok, (ContentType::JSON, to_string(&res).unwrap()))
+    }
+    Err(e) => {
+      (e.status, (ContentType::JSON, to_string(&e.detail).unwrap()))
+    }
+  }
 }
 
 #[post("/meeple-moves/create", format = "application/json", data = "<params>")]
-pub fn create_meeple_move(params: Json<CreateMeepleMove>) -> Json<MeepleMoveResult> {
-  let g = game::create_meeple_move(
+pub fn create_meeple_move(params: Json<CreateMeepleMove>) -> (Status, (ContentType, String)) {
+  match game::create_meeple_move(
     params.game_id,
     params.player_id,
     params.meeple_id,
     (params.tile_pos_y, params.tile_pos_x),
     params.pos,
-  );
-  Json(g)
+  ) {
+    Ok(res) => {
+      (Status::Ok, (ContentType::JSON, to_string(&res).unwrap()))
+    }
+    Err(e) => {
+      (e.status, (ContentType::JSON, to_string(&e.detail).unwrap()))
+    }
+  }
 }
 
 #[post("/wait-ai-move", format = "application/json", data = "<params>")]
-pub fn wait_ai_move(params: Json<WaitAIMove>) -> Json<MeepleMoveResult> {
-  let g = game::wait_ai_move(params.game_id);
-  Json(g)
-}
-
-fn establish_connection() -> PgConnection {
-    dotenv().ok();
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    PgConnection::establish(&database_url)
-        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
+pub fn wait_ai_move(params: Json<WaitAIMove>) -> (Status, (ContentType, String)) {
+  match game::wait_ai_move(params.game_id) {
+    Ok(res) => {
+      (Status::Ok, (ContentType::JSON, to_string(&res).unwrap()))
+    }
+    Err(e) => {
+      (e.status, (ContentType::JSON, to_string(&e.detail).unwrap()))
+    }
+  }
 }

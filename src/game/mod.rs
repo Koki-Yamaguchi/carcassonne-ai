@@ -7,7 +7,9 @@ pub mod mergeable_feature;
 use rocket::{serde::{Serialize}};
 use diesel::prelude::*;
 
-use crate::{database};
+use crate::database;
+use crate::error::Error;
+
 use mov::Move::*;
 use tile::Tile::*;
 use mov::{ TileMove, MeepleMove };
@@ -51,7 +53,7 @@ pub struct MeepleMoveResult {
   pub next_player_id: i32,
 }
 
-pub fn create_game(note: String, player0_id: i32, player1_id: i32) -> Game {
+pub fn create_game(note: String, player0_id: i32, player1_id: i32) -> Result<Game, Error> {
   let mut rng = rand::thread_rng();
   let first_player_id = if rng.gen_range(0..2) < 1 { player0_id } else { player1_id };
   let second_player_id = if first_player_id == player0_id { player1_id } else { player0_id };
@@ -59,25 +61,37 @@ pub fn create_game(note: String, player0_id: i32, player1_id: i32) -> Game {
   let tiles = tiles();
   let next_tile = tiles[rng.gen_range(0..tiles.len())];
 
-  let g = database::create_game(
+  let g = match database::create_game(
     note,
     player0_id,
     player1_id,
     Some(next_tile.to_id()),
     Some(first_player_id),
-  );
+  ) {
+    Ok(g) => g,
+    Err(e) => { return Err(e); }
+  };
 
   let mv0 = TMove( TileMove { ord: 0, game_id: g.id, player_id: second_player_id, tile: StartingTile, rot: 0, pos: (0, 0) } );
   let mv1 = MMove( MeepleMove { ord: 1, game_id: g.id, player_id: second_player_id, meeple_id: -1, tile_pos: (0, 0), meeple_pos: -1 });
 
-  database::create_move(mv0.clone());
-  database::create_move(mv1.clone());
+  match database::create_move(mv0.clone()) {
+    Err(e) => { return Err(e) }
+    _ => {}
+  }
+  match database::create_move(mv1.clone()) {
+    Err(e) => { return Err(e) }
+    _ => {}
+  }
 
-  g
+  Ok(g)
 }
 
-pub fn create_tile_move(game_id: i32, player_id: i32, tile: tile::Tile, rot: i32, pos: (i32, i32)) -> MeepleablePositions {
-  let mut moves = database::list_moves(game_id);
+pub fn create_tile_move(game_id: i32, player_id: i32, tile: tile::Tile, rot: i32, pos: (i32, i32)) -> Result<MeepleablePositions, Error> {
+  let mut moves = match database::list_moves(game_id) {
+    Ok(mvs) => { mvs }
+    Err(e) => { return Err(e); }
+  };
   assert!(moves.len() != 0);
 
   let ord = moves.last().unwrap().ord() + 1;
@@ -88,36 +102,41 @@ pub fn create_tile_move(game_id: i32, player_id: i32, tile: tile::Tile, rot: i32
   let res = calculate::calculate(&moves, false);
   let meepleable_positions = match res {
     Ok(s) => { s.meepleable_positions }
-    Err(_) => { vec![] }
+    Err(e) => { return Err(e); }
   };
 
-  database::create_move(mv);
-
-  MeepleablePositions {
-    meepleable_positions,
+  match database::create_move(mv) {
+    Err(e) => { return Err(e) }
+    _ => {}
   }
+
+  Ok(MeepleablePositions {
+    meepleable_positions,
+  })
 }
 
-pub fn create_meeple_move(game_id: i32, player_id: i32, meeple_id: i32, tile_pos: (i32, i32), meeple_pos: i32) -> MeepleMoveResult {
+pub fn create_meeple_move(game_id: i32, player_id: i32, meeple_id: i32, tile_pos: (i32, i32), meeple_pos: i32) -> Result<MeepleMoveResult, Error> {
   let mut rng = rand::thread_rng();
-  let mut moves = database::list_moves(game_id);
+  let mut moves = match database::list_moves(game_id) {
+    Ok(mvs) => { mvs }
+    Err(e) => { return Err(e); }
+  };
   assert!(moves.len() != 0);
 
-  let ord = match moves.last().unwrap() {
-    MMove(m) => { m.ord + 1 },
-    TMove(m) => { m.ord + 1 },
-    InvalidMove => { 0 }
-  };
+  let ord = moves.last().unwrap().ord() + 1;
 
   let mv = MMove( MeepleMove { ord, game_id, player_id, meeple_id, tile_pos, meeple_pos } );
   moves.push(mv.clone());
 
-  database::create_move(mv);
+  match database::create_move(mv) {
+    Err(e) => { return Err(e) }
+    _ => {}
+  }
 
   let mut complete_events = vec![];
 
   let res = calculate::calculate(&moves, false);
-  match res {
+  let (player0_point, player1_point) = match res {
     Ok(s) => {
       for e in &s.complete_events {
         complete_events.push(CompleteEvent {
@@ -126,42 +145,62 @@ pub fn create_meeple_move(game_id: i32, player_id: i32, meeple_id: i32, tile_pos
           point: e.point,
         })
       }
+      (s.player0_point, s.player1_point)
     }
-    Err(_) => {}
+    Err(e) => { return Err(e); }
   };
 
-  let mut tiles = vec![];
+  let mut out_tiles = vec![];
   for mv in moves {
     match mv {
       mov::Move::TMove(tm) => {
-        tiles.push(tm.tile.clone());
+        out_tiles.push(tm.tile.clone());
       }
       _ => {}
     }
   }
-  let remaining_tiles = tile::remaining_tiles(tiles.clone());
+  let remaining_tiles = tile::remaining_tiles(out_tiles.clone());
   let next_tile = remaining_tiles[rng.gen_range(0..remaining_tiles.len())];
 
-  let gm = database::get_game(game_id).expect("game not found");
+  let gm = match database::get_game(game_id) {
+    Ok(game) => {
+      game
+    }
+    Err(e) => {
+      return Err(e);
+    }
+  };
+
   let next_player_id = if player_id == gm.player0_id { gm.player1_id } else { gm.player0_id };
 
-  let _ = database::update_game(
+  match database::update_game(
     game_id,
     next_tile.to_id(),
     next_player_id,
-  );
+    player0_point,
+    player1_point,
+  ) {
+    Err(e) => { return Err(e); }
+    Ok(_) => {}
+  }
 
-  MeepleMoveResult {
+  Ok(MeepleMoveResult {
     complete_events,
     next_tile_id: next_tile.to_id(),
     next_player_id,
-  }
+  })
 }
 
-pub fn wait_ai_move(game_id: i32) -> MeepleMoveResult {
-  let game = database::get_game(game_id).expect("game not found");
+pub fn wait_ai_move(game_id: i32) -> Result<MeepleMoveResult, Error> {
+  let game = match database::get_game(game_id) {
+    Ok(gm) => { gm }
+    Err(e) => { return Err(e); }
+  };
 
-  let moves = database::list_moves(game.id);
+  let moves = match database::list_moves(game.id) {
+    Ok(mvs) => { mvs }
+    Err(e) => { return Err(e); }
+  };
   assert!(moves.len() != 0);
 
   let placing_tile = tile::to_tile(game.next_tile_id.unwrap());
@@ -172,7 +211,10 @@ pub fn wait_ai_move(game_id: i32) -> MeepleMoveResult {
     placing_tile,
   );
 
-  let r = create_tile_move(game.id, 1, placing_tile, tile_move.rot, tile_move.pos);
+  let r = match create_tile_move(game.id, 1, placing_tile, tile_move.rot, tile_move.pos) {
+    Ok(res) => { res }
+    Err(e) => { return Err(e); }
+  };
   assert!(meeple_move.meeple_id == -1 || r.meepleable_positions.contains(&meeple_move.meeple_pos));
 
   let meeple_move_result = create_meeple_move(game.id, 1, meeple_move.meeple_id, meeple_move.tile_pos, meeple_move.meeple_pos);
@@ -180,6 +222,10 @@ pub fn wait_ai_move(game_id: i32) -> MeepleMoveResult {
   meeple_move_result
 }
 
-pub fn get_game(game_id: i32) -> Game {
-  database::get_game(game_id).expect("game not found")
+pub fn get_game(game_id: i32) -> Result<Game, Error> {
+  database::get_game(game_id)
+}
+
+pub fn get_games(player_id: Option<i32>) -> Result<Vec<Game>, Error> {
+  database::get_games(player_id)
 }

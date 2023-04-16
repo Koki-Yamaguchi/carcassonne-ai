@@ -3,6 +3,7 @@ use diesel::prelude::*;
 use std::env;
 use dotenvy::dotenv;
 
+use crate::error::{Error, internal_server_error, not_found_error};
 use crate::schema;
 use crate::game;
 use crate::player;
@@ -55,29 +56,67 @@ pub struct QueryMove {
   pub meeple_pos: i32,
 }
 
-pub fn create_player(conn: &mut PgConnection, name: String) -> player::Player {
+pub fn create_player(name: String) -> Result<player::Player, Error> {
+  let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
   let new_player = NewPlayer{
     name: name,
   };
-  let r = diesel::insert_into(schema::player::table)
+  match diesel::insert_into(schema::player::table)
     .values(&new_player)
-    .get_result(conn)
-    .expect("Error saving new player");
-  return r;
+    .get_result(conn) {
+    Ok(r) => {
+      Ok(r)
+    }
+    Err(e) => {
+      Err(internal_server_error(e.to_string()))
+    }
+  }
 }
 
-pub fn get_game(gmid: i32) -> Option<game::Game> {
+pub fn get_games(player_id: Option<i32>) -> Result<Vec<game::Game>, Error> {
+  let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+  use self::schema::game::dsl::{game as g, player0_id, player1_id};
+
+  match player_id {
+    Some(pid) => {
+      match g.filter(player0_id.eq(pid).or(player1_id.eq(pid))).load::<game::Game>(conn) {
+        Ok(gm) => {
+          return Ok(gm);
+        }
+        Err(e) => {
+          return Err(internal_server_error(e.to_string()));
+        }
+      }
+    }
+    None => {
+      match g.load::<game::Game>(conn) {
+        Ok(gm) => {
+          return Ok(gm);
+        }
+        Err(e) => {
+          return Err(internal_server_error(e.to_string()));
+        }
+      }
+    }
+  }
+}
+
+pub fn get_game(gmid: i32) -> Result<game::Game, Error> {
   let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
   use self::schema::game::dsl::{game as g, id};
-  let results = g
-    .filter(id.eq(gmid))
+  match g.filter(id.eq(gmid))
     .limit(1)
-    .load::<game::Game>(conn)
-    .expect("Error loading game");
-  if results.len() > 0 {
-    return Some(results[0].clone());
+    .load::<game::Game>(conn) {
+    Ok(games) => {
+      if games.len() == 0 {
+        return Err(not_found_error("game".to_string()));
+      }
+      return Ok(games[0].clone());
+    }
+    Err(e) => {
+      return Err(internal_server_error(e.to_string()));
+    }
   }
-  None
 }
 
 pub fn create_game(
@@ -86,7 +125,7 @@ pub fn create_game(
   player1_id: i32,
   next_tile_id: Option<i32>,
   next_player_id: Option<i32>,
-) -> game::Game {
+) -> Result<game::Game, Error> {
   let new_game = NewGame{
     note,
     player0_id,
@@ -97,38 +136,55 @@ pub fn create_game(
     next_player_id,
   };
   let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
-  let r = diesel::insert_into(schema::game::table)
+  match diesel::insert_into(schema::game::table)
     .values(&new_game)
-    .get_result(conn)
-    .expect("Error saving new game");
-  return r;
+    .get_result(conn) {
+    Ok(gm) => {
+      return Ok(gm);
+    }
+    Err(e) => {
+      return Err(internal_server_error(e.to_string()));
+    }
+  }
 }
 
-pub fn update_game(gmid: i32, next_tid: i32, next_pid: i32) -> game::Game {
-  use self::schema::game::dsl::{game, next_tile_id, next_player_id};
+pub fn update_game(gmid: i32, next_tid: i32, next_pid: i32, p0_point: i32, p1_point: i32) -> Result<game::Game, Error> {
+  use self::schema::game::dsl::{game, next_tile_id, next_player_id, player0_point, player1_point};
   let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
-  let r = diesel::update(game.find(gmid))
+  match diesel::update(game.find(gmid))
     .set((
       next_tile_id.eq(next_tid),
       next_player_id.eq(next_pid),
+      player0_point.eq(p0_point),
+      player1_point.eq(p1_point),
     ))
-    .get_result(conn)
-    .unwrap();
-  r
+    .get_result(conn) {
+    Ok(gm) => {
+      return Ok(gm);
+    }
+    Err(e) => {
+      return Err(internal_server_error(e.to_string()));
+    }
+  }
 }
 
-pub fn list_moves(gmid: i32) -> Vec<mov::Move> {
+pub fn list_moves(gmid: i32) -> Result<Vec<mov::Move>, Error> {
   let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
   use self::schema::move_::dsl::*;
-  let results = move_
+  match move_
     .filter(game_id.eq(gmid))
     .order(ord.asc())
-    .load::<QueryMove>(conn)
-    .expect("Error loading posts");
-  results.into_iter().map(|v| to_move(v)).collect()
+    .load::<QueryMove>(conn) {
+    Ok(mvs) => {
+      return Ok(mvs.into_iter().map(|v| to_move(v)).collect());
+    }
+    Err(e) => {
+      return Err(internal_server_error(e.to_string()));
+    }
+  }
 }
 
-pub fn create_move(mv: mov::Move) -> mov::Move {
+pub fn create_move(mv: mov::Move) -> Result<mov::Move, Error> {
   let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
 
   let new_move = match mv {
@@ -155,16 +211,20 @@ pub fn create_move(mv: mov::Move) -> mov::Move {
       meeple_pos: m.meeple_pos,
     },
     mov::Move::InvalidMove => {
-      return mov::Move::InvalidMove
+      return Ok(mov::Move::InvalidMove);
     }
   };
 
-  let query_move = diesel::insert_into(schema::move_::table)
+  match diesel::insert_into(schema::move_::table)
     .values(&new_move)
-    .get_result::<QueryMove>(conn)
-    .expect("Error saving new move");
-
-  to_move(query_move)
+    .get_result::<QueryMove>(conn) {
+    Ok(query_move) => {
+      return Ok(to_move(query_move));
+    }
+    Err(e) => {
+      return Err(internal_server_error(e.to_string()));
+    }
+  }
 }
 
 fn to_move(qm: QueryMove) -> mov::Move {
