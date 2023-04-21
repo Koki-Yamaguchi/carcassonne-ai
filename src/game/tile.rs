@@ -130,7 +130,7 @@ pub fn remaining_tiles(out_tiles: Vec<Tile>) -> Vec<Tile> {
     map.entry(*ot).and_modify(|v| *v += 1);
   }
   let mut tiles = vec![];
-  for _ in 0..3 - *map.get(&Tile::StartingTile).unwrap() { tiles.push(Tile::StartingTile); }
+  for _ in 0..4 - *map.get(&Tile::StartingTile).unwrap() { tiles.push(Tile::StartingTile); }
   for _ in 0..4 - *map.get(&Tile::Monastery).unwrap() { tiles.push(Tile::Monastery); }
   for _ in 0..2 - *map.get(&Tile::MonasteryWithRoad).unwrap() { tiles.push(Tile::MonasteryWithRoad); }
   for _ in 0..3 - *map.get(&Tile::CityCapWithCrossroad).unwrap() { tiles.push(Tile::CityCapWithCrossroad); }
@@ -205,6 +205,7 @@ mod tests {
       QuadrupleCityWithCOA,
     ]);
     let exp_remaining_tiles = Vec::from([
+      StartingTile,
       StartingTile,
       StartingTile,
       Monastery,

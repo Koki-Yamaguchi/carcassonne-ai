@@ -2,7 +2,7 @@
 use std::cmp::Ordering;
 #[allow(unused_imports)]
 use std::cmp::Ordering::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use super::mov::{Move, TileMove, MeepleMove };
 use super::tile::{Tile};
@@ -24,6 +24,8 @@ pub struct Status {
   pub player0_point: i32,
   pub player1_point: i32,
   pub board: HashMap<(i32, i32), TileItem>,
+  pub player0_remaining_meeples: HashSet<i32>,
+  pub player1_remaining_meeples: HashSet<i32>,
 }
 
 #[derive(Copy, Clone)]
@@ -64,6 +66,12 @@ impl Feature {
 pub struct DistinctFeature {
   pub id: i32,
   pub feature: Feature,
+}
+
+#[derive(Debug)]
+pub struct TileablePosition {
+  pub pos: (i32, i32),
+  pub rot: i32,
 }
 
 impl TileItem {
@@ -877,16 +885,15 @@ fn merge_features(mf: &mut MergeableFeature, feat0: Vec<DistinctFeature>, feat1:
 
 pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Error> {
   let mut mergeable_features = MergeableFeature::new();
-
   let mut meepleable_positions = vec![];
   let mut complete_events = vec![];
   let mut player0_point = 0;
   let mut player1_point = 0;
-
   let mut current_feature_id = 0;
   let mut current_tile_id = 0;
-
   let mut board = HashMap::<(i32, i32), TileItem>::new();
+  let mut player0_remaining_meeples = HashSet::from([0, 1, 2, 3, 4, 5, 6]);
+  let mut player1_remaining_meeples = HashSet::from([7, 8, 9, 10, 11, 12, 13]);
 
   for mv in moves {
     match mv {
@@ -1054,6 +1061,15 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
         let y = m.tile_pos.0;
         let x = m.tile_pos.1;
         if m.meeple_id != -1 {
+          if m.meeple_id < 7 { // FIXME
+            if !player0_remaining_meeples.contains(&m.meeple_id) {
+              return Err(moves_invalid_error(format!("meeple {} is alrealy on the board", m.meeple_id)));
+            }
+          } else {
+            if !player1_remaining_meeples.contains(&m.meeple_id) {
+              return Err(moves_invalid_error(format!("meeple {} is alrealy on the board", m.meeple_id)));
+            }
+          }
           match board.get(&(y, x)) {
             Some(t) => {
               let feature_id = t.feature_starting_id + m.meeple_pos;
@@ -1061,6 +1077,11 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                 return Err(moves_invalid_error("meepling on this feature is not allowed".to_string()));
               }
               mergeable_features.place_meeple(feature_id as usize, m.meeple_id);
+              if m.meeple_id < 7 { // FIXME
+                player0_remaining_meeples.remove(&m.meeple_id);
+              } else {
+                player1_remaining_meeples.remove(&m.meeple_id);
+              }
             }
             None => {
               assert!(false);
@@ -1095,8 +1116,10 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                 for meeple_id in &meeple_ids {
                   if *meeple_id < 7 {
                     player0_meeples += 1;
+                    player0_remaining_meeples.insert(*meeple_id);
                   } else {
                     player1_meeples += 1;
+                    player1_remaining_meeples.insert(*meeple_id);
                   }
                 }
                 if player0_meeples >= player1_meeples {
@@ -1137,8 +1160,10 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                       }
                       if meeple_ids[0] < 7 {
                         player0_point += 9;
+                        player0_remaining_meeples.insert(meeple_ids[0]);
                       } else {
                         player1_point += 9;
+                        player1_remaining_meeples.insert(meeple_ids[0]);
                       }
                       complete_events.push(CompleteEvent {
                         feature: MonasteryFeature,
@@ -1166,6 +1191,8 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
       player0_point,
       player1_point,
       board,
+      player0_remaining_meeples,
+      player1_remaining_meeples,
     });
   }
 
@@ -1215,8 +1242,10 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
       for meeple_id in &meeple_ids {
         if *meeple_id < 7 {
           player0_meeples += 1;
+          player0_remaining_meeples.insert(*meeple_id);
         } else {
           player1_meeples += 1;
+          player1_remaining_meeples.insert(*meeple_id);
         }
       }
       if player0_meeples >= player1_meeples {
@@ -1235,13 +1264,80 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
     }
   }
 
+  assert_eq!(player0_remaining_meeples.len(), 7);
+  assert_eq!(player1_remaining_meeples.len(), 7);
+
   Ok(Status {
     meepleable_positions,
     complete_events,
     player0_point,
     player1_point,
     board,
+    player0_remaining_meeples,
+    player1_remaining_meeples,
   })
+}
+
+pub fn calculate_tileable_positions(moves: &Vec<Move>, t: Tile) -> Vec<TileablePosition> {
+  let board = match calculate(&moves, false) {
+    Ok(s) => { s.board }
+    Err(_) => { HashMap::new() }
+  };
+
+  let mut tile = TileItem {
+    id: t.to_id(),
+    tile: t,
+    rot: 0,
+    feature_starting_id: 0,
+  };
+
+  let mut checked = HashMap::new();
+  let mut tileable_positions = vec![];
+  for (y, x) in board.keys() {
+    match checked.get(&(y, x)) {
+      Some(_) => { continue; }
+      None => {},
+    }
+    checked.insert((y, x), true);
+
+    let dy = [0, -1, 0, 1];
+    let dx = [1, 0, -1, 0];
+    for di in 0..4 {
+      let ny = y + dy[di];
+      let nx = x + dx[di];
+      match board.get(&(ny, nx)) {
+        Some(_) => { continue; }
+        None => {},
+      }
+      for rot in vec![1, 2, 3, 4] {
+        tile.rotate();
+
+        match board.get(&(ny - 1, nx)) {
+          Some(t) => { if t.bottom() != tile.top() { continue; } }
+          None => {},
+        }
+        match board.get(&(ny + 1, nx)) {
+          Some(t) => { if t.top() != tile.bottom() { continue; } }
+          None => {},
+        }
+        match board.get(&(ny, nx - 1)) {
+          Some(t) => { if t.right() != tile.left() { continue; } }
+          None => {},
+        }
+        match board.get(&(ny, nx + 1)) {
+          Some(t) => { if t.left() != tile.right() { continue; } }
+          None => {},
+        }
+
+        tileable_positions.push(TileablePosition{
+          pos: (ny, nx),
+          rot,
+        })
+      }
+    }
+  }
+
+  tileable_positions
 }
 
 #[test]
@@ -1834,7 +1930,7 @@ fn calculate_test0() {
   }
 
   add_move(&mut mvs, Tile::QuadrupleCityWithCOA, 0, (-2, 5), -1, -1);
-  add_move(&mut mvs, Tile::ConnectorWithCOA, 0, (3, 5), 13, 1);
+  add_move(&mut mvs, Tile::ConnectorWithCOA, 0, (3, 5), 10, 1);
   add_move(&mut mvs, Tile::CityCapWithCrossroad, 3, (-3, 0), 3, 2);
 
   let status = calculate(&mvs, false);
@@ -1860,7 +1956,7 @@ fn calculate_test0() {
     Ok(res) => {
       assert_eq!(res.complete_events.len(), 1);
       assert_eq!(res.complete_events[0].feature, CityFeature);
-      assert_eq!(res.complete_events[0].meeple_ids, vec![13]);
+      assert_eq!(res.complete_events[0].meeple_ids, vec![10]);
       assert_eq!(res.complete_events[0].point, 12);
       assert_eq!(res.player0_point, 51);
       assert_eq!(res.player1_point, 62);
@@ -1869,7 +1965,7 @@ fn calculate_test0() {
   }
 
   add_move(&mut mvs, Tile::Curve, 0, (-4, 1), 3, 0);
-  add_move(&mut mvs, Tile::Triangle, 2, (4, 5), 13, 1);
+  add_move(&mut mvs, Tile::Triangle, 2, (4, 5), 10, 1);
   add_move(&mut mvs, Tile::Triangle, 2, (5, 4), -1, -1);
   add_move(&mut mvs, Tile::Curve, 1, (-1, 4), -1, -1);
   add_move(&mut mvs, Tile::Separator, 2, (-3, -1), 4, 1);

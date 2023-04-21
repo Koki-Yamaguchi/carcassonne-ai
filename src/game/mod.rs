@@ -2,6 +2,7 @@ pub mod mov;
 pub mod tile;
 pub mod calculate;
 pub mod calculate_next_move;
+pub mod solver;
 pub mod mergeable_feature;
 
 use rocket::{serde::{Serialize}};

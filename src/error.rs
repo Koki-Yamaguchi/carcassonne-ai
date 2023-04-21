@@ -3,8 +3,8 @@ use rocket::{http::Status, serde::Serialize};
 #[derive(Debug, Serialize)]
 #[serde(crate = "rocket::serde")]
 pub struct Detail {
-  title: String,
-  msg: String,
+  pub title: String,
+  pub msg: String,
 }
 
 #[derive(Debug)]
