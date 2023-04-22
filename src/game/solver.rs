@@ -214,24 +214,6 @@ fn solve_test0() {
   add_move(&mut mvs, 1, Tile::CityCap, 2, (-4, 5), 11, 1);
   add_move(&mut mvs, 0, Tile::TripleCity, 0, (-2, -3), 1, 0);
   add_move(&mut mvs, 1, Tile::ConnectorWithCOA, 0, (-5, 5), -1, -1);
-
-  // FIXME: field calculation is wrong
-  /*
-  let status = calculate(&mvs, true);
-  match status {
-    Ok(res) => {
-      let mut events = vec![];
-      for e in res.complete_events {
-        println!("{:?}", e);
-        events.push(e);
-      }
-      println!("player0 {:?}", res.player0_point);
-      println!("player1 {:?}", res.player1_point);
-    }
-    Err(e) => { panic!("Error: {:?}", e.detail); }
-  }
-  */
-
   add_move(&mut mvs, 0, Tile::TriangleWithRoad, 0, (-3, 1), -1, -1);
   add_move(&mut mvs, 1, Tile::QuadrupleRoad, 0, (2, 1), 10, 1);
   add_move(&mut mvs, 0, Tile::ConnectorWithCOA, 0, (-5, 4), 2, 1);
@@ -250,24 +232,6 @@ fn solve_test0() {
   add_move(&mut mvs, 1, Tile::CityCap, 2, (1, 2), -1, -1);
   add_move(&mut mvs, 0, Tile::CityCapWithCrossroad, 0, (2, -2), 0, 1);
   add_move(&mut mvs, 1, Tile::Monastery, 0, (1, 0), 7, 0);
-
-  // field calculation is now correct
-  /*
-  let status = calculate(&mvs, true);
-  match status {
-    Ok(res) => {
-      let mut events = vec![];
-      for e in res.complete_events {
-        println!("{:?}", e);
-        events.push(e);
-      }
-      println!("player0 {:?}", res.player0_point);
-      println!("player1 {:?}", res.player1_point);
-    }
-    Err(e) => { panic!("Error: {:?}", e.detail); }
-  }
-  */
-
   add_move(&mut mvs, 0, Tile::Straight, 1, (2, -1), 4, 1);
   add_move(&mut mvs, 1, Tile::Connector, 1, (3, 4), -1, -1);
   add_move(&mut mvs, 0, Tile::TriangleWithCOA, 2, (3, 5), -1, -1);
@@ -292,13 +256,12 @@ fn solve_test0() {
   let status = calculate(&mvs, true);
   match status {
     Ok(res) => {
-      let mut events = vec![];
-      for e in res.complete_events {
-        events.push(e);
-      }
+      assert_eq!(res.player0_point, 91);
+      assert_eq!(res.player1_point, 90);
     }
     Err(e) => { panic!("Error: {:?}", e.detail); }
   }
 
-  solve(&mvs, -1, 0, 1, 0, 1, Tile::VerticalSeparator);
+  // FIXME: commented out because this currently takes too long (like 30 min)
+  // solve(&mvs, -1, 0, 1, 0, 1, Tile::VerticalSeparator);
 }

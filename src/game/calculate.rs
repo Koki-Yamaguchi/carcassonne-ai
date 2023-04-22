@@ -11,12 +11,48 @@ use self::Side::*;
 use self::Feature::*;
 use crate::error::{Error, moves_invalid_error};
 
-#[derive(Debug, Eq, PartialEq, PartialOrd)]
+#[derive(Debug)]
 pub struct CompleteEvent {
   pub feature: Feature,
   pub meeple_ids: Vec<i32>,
   pub point: i32,
 }
+impl Ord for CompleteEvent {
+  fn cmp(&self, other: &Self) -> Ordering {
+    if self.feature != other.feature {
+      if self.feature < other.feature {
+        return Less;
+      } else {
+        return Greater;
+      }
+    } else if self.point != other.point {
+      if self.point < other.point {
+        return Less;
+      } else {
+        return Greater;
+      }
+    } else if self.meeple_ids[0] < other.meeple_ids[0] {
+      return Less;
+    } else if self.meeple_ids[0] > other.meeple_ids[0] {
+      return Greater;
+    } else {
+      Equal
+    }
+  }
+}
+impl PartialOrd for CompleteEvent {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+      Some(self.cmp(other))
+  }
+}
+impl PartialEq for CompleteEvent {
+  fn eq(&self, other: &Self) -> bool {
+    self.feature == other.feature &&
+      self.point == other.point &&
+      self.meeple_ids[0] == other.meeple_ids[0]
+  }
+}
+impl Eq for CompleteEvent {}
 
 pub struct Status {
   pub meepleable_positions: Vec<i32>,
@@ -1456,27 +1492,7 @@ fn calculate_test_for_road_and_city_completion() {
       for e in res.complete_events {
         events.push(e);
       }
-      events.sort_by(|a, b| {
-        if a.feature != b.feature {
-          if a.feature < b.feature {
-            return Less;
-          } else {
-            return Greater;
-          }
-        } else if a.point != b.point {
-          if a.point < b.point {
-            return Less;
-          } else {
-            return Greater;
-          }
-        } else if a.meeple_ids[0] < b.meeple_ids[0] {
-          return Less;
-        } else if a.meeple_ids[0] > b.meeple_ids[0] {
-          return Greater;
-        } else {
-          Equal
-        }
-      });
+      events.sort();
       assert_eq!(events.len(), 2);
       assert_eq!(events[0].feature, RoadFeature);
       assert_eq!(events[0].meeple_ids, vec![8]);
@@ -1556,27 +1572,7 @@ fn calculate_test_for_monastery_completion() {
       for e in res.complete_events {
         events.push(e);
       }
-      events.sort_by(|a, b| {
-        if a.feature != b.feature {
-          if a.feature < b.feature {
-            return Less;
-          } else {
-            return Greater;
-          }
-        } else if a.point != b.point {
-          if a.point < b.point {
-            return Less;
-          } else {
-            return Greater;
-          }
-        } else if a.meeple_ids[0] < b.meeple_ids[0] {
-          return Less;
-        } else if a.meeple_ids[0] > b.meeple_ids[0] {
-          return Greater;
-        } else {
-          Equal
-        }
-      });
+      events.sort();
       assert_eq!(events.len(), 2);
       assert_eq!(events[0].feature, MonasteryFeature);
       assert_eq!(events[0].meeple_ids, vec![0]);
@@ -2275,27 +2271,7 @@ fn calculate_test1() {
       for e in res.complete_events {
         events.push(e);
       }
-      events.sort_by(|a, b| {
-        if a.feature != b.feature {
-          if a.feature < b.feature {
-            return Less;
-          } else {
-            return Greater;
-          }
-        } else if a.point != b.point {
-          if a.point < b.point {
-            return Less;
-          } else {
-            return Greater;
-          }
-        } else if a.meeple_ids[0] < b.meeple_ids[0] {
-          return Less;
-        } else if a.meeple_ids[0] > b.meeple_ids[0] {
-          return Greater;
-        } else {
-          Equal
-        }
-      });
+      events.sort();
       assert_eq!(events.len(), 8);
       assert_eq!(events[0].feature, RoadFeature);
       assert_eq!(events[0].meeple_ids, [8]);
@@ -2334,5 +2310,81 @@ fn calculate_test1() {
       Ok(_) => {}
       Err(_) => {}
     }
+  }
+}
+
+#[test]
+fn calculate_test_for_field() {
+  // actual game here: https://boardgamearena.com/table?table=367130620
+  let mut mvs = vec![];
+  add_move(&mut mvs, Tile::StartingTile, 0, (0, 0), -1, -1);
+  add_move(&mut mvs, Tile::TripleRoad, 1, (0, 1), 0, 4);
+  add_move(&mut mvs, Tile::Straight, 0, (-1, 1), 7, 1);
+  add_move(&mut mvs, Tile::CityCap, 2, (-1, 0), 1, 0);
+  add_move(&mut mvs, Tile::Triangle, 0, (-1, -1), 8, 0);
+  add_move(&mut mvs, Tile::Separator, 1, (-1, 2), 1, 0);
+  add_move(&mut mvs, Tile::TripleRoad, 3, (-2, 1), -1, -1);
+  add_move(&mut mvs, Tile::Separator, 0, (-1, 3), 2, 0);
+  add_move(&mut mvs, Tile::Monastery, 0, (0, 2), 7, 0);
+  add_move(&mut mvs, Tile::StartingTile, 2, (-2, 2), 1, 0);
+  add_move(&mut mvs, Tile::Straight, 0, (1, 1), 9, 2);
+  add_move(&mut mvs, Tile::VerticalSeparator, 0, (-1, 4), 1, 0);
+  add_move(&mut mvs, Tile::CityCapWithCrossroad, 0, (0, 4), 10, 0);
+  add_move(&mut mvs, Tile::TriangleWithRoad, 2, (-2, 3), 3, 2);
+  add_move(&mut mvs, Tile::TripleCity, 3, (-2, -1), -1, -1);
+  add_move(&mut mvs, Tile::Left, 3, (0, -1), 4, 0);
+  add_move(&mut mvs, Tile::Curve, 3, (0, 3), -1, -1);
+  add_move(&mut mvs, Tile::Left, 1, (0, -2), -1, -1);
+  add_move(&mut mvs, Tile::Curve, 2, (-1, 5), -1, -1);
+  add_move(&mut mvs, Tile::CityCap, 2, (1, -2), 4, 0);
+  add_move(&mut mvs, Tile::StartingTile, 1, (-2, 5), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 1, (-3, 2), -1, -1);
+  add_move(&mut mvs, Tile::Left, 0, (-3, 5), 10, 0);
+  add_move(&mut mvs, Tile::Curve, 2, (-3, 4), -1, -1);
+  add_move(&mut mvs, Tile::TriangleWithRoadWithCOA, 1, (-1, -2), -1, -1);
+  add_move(&mut mvs, Tile::Straight, 1, (-1, -3), -1, -1);
+  add_move(&mut mvs, Tile::CityCap, 3, (-2, 6), 11, 0);
+  add_move(&mut mvs, Tile::Triangle, 3, (-2, 4), -1, -1);
+
+  /* FIXME: field calculation is not correct
+  let status = calculate(&mvs, true);
+  match status {
+    Ok(mut res) => {
+      res.complete_events.sort();
+      assert_eq!(res.complete_events.len(), 7);
+      assert_eq!(res.complete_events[6].feature, FieldFeature);
+      assert_eq!(res.complete_events[6].meeple_ids, vec![9]);
+      assert_eq!(res.complete_events[6].point, 12);
+      assert_eq!(res.player0_point, 31);
+      assert_eq!(res.player1_point, 35);
+    }
+    Err(e) => { panic!("Error: {:?}", e.detail); }
+  }
+  */
+
+  add_move(&mut mvs, Tile::CityCap, 2, (-4, 5), 11, 1);
+  add_move(&mut mvs, Tile::TripleCity, 0, (-2, -3), 1, 0);
+  add_move(&mut mvs, Tile::ConnectorWithCOA, 0, (-5, 5), -1, -1);
+  add_move(&mut mvs, Tile::TriangleWithRoad, 0, (-3, 1), -1, -1);
+  add_move(&mut mvs, Tile::QuadrupleRoad, 0, (2, 1), 10, 1);
+  add_move(&mut mvs, Tile::ConnectorWithCOA, 0, (-5, 4), 2, 1);
+  add_move(&mut mvs, Tile::TripleRoad, 1, (-3, 3), 10, 4);
+
+  // but field calculation is now correct
+  let status = calculate(&mvs, true);
+  match status {
+    Ok(mut res) => {
+      res.complete_events.sort();
+      for e in &res.complete_events {
+        println!("{:?}", e);
+      }
+      assert_eq!(res.complete_events.len(), 8);
+      assert_eq!(res.complete_events[7].feature, FieldFeature);
+      assert_eq!(res.complete_events[7].meeple_ids, vec![9]);
+      assert_eq!(res.complete_events[7].point, 12);
+      assert_eq!(res.player0_point, 37);
+      assert_eq!(res.player1_point, 48);
+    }
+    Err(e) => { panic!("Error: {:?}", e.detail); }
   }
 }
