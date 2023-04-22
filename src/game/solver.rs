@@ -5,6 +5,7 @@ use super::calculate::{calculate, calculate_tileable_positions};
 use super::tile::Tile;
 use super::mov::{Move, Move::*, TileMove, MeepleMove };
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct Win {
   pos: (i32, i32),
@@ -13,6 +14,7 @@ pub struct Win {
   win_player_id: i32,
 }
 
+#[allow(dead_code)]
 pub fn next_permutation<T: std::cmp::Ord>(arr: &mut [T]) -> bool {
     use std::cmp::Ordering;
     let last_ascending = match arr.windows(2).rposition(|w| w[0] < w[1]) {
@@ -33,6 +35,7 @@ pub fn next_permutation<T: std::cmp::Ord>(arr: &mut [T]) -> bool {
     true
 }
 
+#[allow(dead_code)]
 pub fn search(mvs: &Vec<Move>, ordered_tiles: Vec<Tile>, player_id: i32, other_player_id: i32, player0_id: i32, player1_id: i32) -> Vec<Win> {
   let mut moves = mvs.clone();
 
@@ -113,6 +116,7 @@ pub fn search(mvs: &Vec<Move>, ordered_tiles: Vec<Tile>, player_id: i32, other_p
   wins
 }
 
+#[allow(dead_code)]
 pub fn solve(moves: &Vec<Move>, game_id: i32, player_id: i32, other_player_id: i32, player0_id: i32, player1_id: i32, next_tile: Tile) -> (TileMove, MeepleMove) {
   // check what remaining tiles are
   let mut out_tiles = vec![next_tile];
@@ -142,7 +146,7 @@ pub fn solve(moves: &Vec<Move>, game_id: i32, player_id: i32, other_player_id: i
     let wins = search(&moves, ordered_tiles, player_id, other_player_id, player0_id, player1_id);
 
     for win in wins {
-      if win.win_player_id == 1 { continue; }
+      if win.win_player_id != player_id { continue; }
       total_wins.push(win);
     }
 
