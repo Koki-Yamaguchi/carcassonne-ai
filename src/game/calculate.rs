@@ -1,9 +1,10 @@
-#[allow(unused_imports)]
+use std::cmp::Ordering::*;
 use std::cmp::Ordering;
 #[allow(unused_imports)]
-use std::cmp::Ordering::*;
 use std::collections::{HashMap, HashSet};
 
+#[allow(unused_imports)]
+use super::decoder;
 use super::mov::{Move, TileMove, MeepleMove };
 use super::tile::{Tile};
 use super::mergeable_feature::MergeableFeature;
@@ -2386,5 +2387,31 @@ fn calculate_test_for_field() {
       assert_eq!(res.player1_point, 48);
     }
     Err(e) => { panic!("Error: {:?}", e.detail); }
+  }
+}
+
+#[test]
+fn calculate_test_with_bga_json_data() {
+  let test_data = vec![
+    ("src/data/367163108.json", 89, 85),
+    ("src/data/366166200.json", 70, 96),
+    ("src/data/370417702.json", 91, 108),
+    ("src/data/369577999.json", 103, 96),
+    ("src/data/368679629.json", 91, 94),
+  ];
+  for d in test_data {
+    let file_path = d.0;
+    let exp_player0_point = d.1;
+    let exp_player1_point = d.2;
+
+    let mvs = decoder::decode(file_path.to_string());
+    let status = calculate(&mvs, true);
+    match status {
+      Ok(res) => {
+        assert_eq!(res.player0_point, exp_player0_point);
+        assert_eq!(res.player1_point, exp_player1_point);
+      }
+      Err(e) => { panic!("Error: {:?}", e.detail); }
+    }
   }
 }

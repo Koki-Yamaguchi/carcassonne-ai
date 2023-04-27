@@ -4,6 +4,7 @@ pub mod calculate;
 pub mod calculate_next_move;
 pub mod solver;
 pub mod mergeable_feature;
+pub mod decoder;
 
 use rocket::{serde::{Serialize}};
 use diesel::prelude::*;
