@@ -141,3 +141,6 @@ pub fn wait_ai_move(params: Json<WaitAIMove>) -> (Status, (ContentType, String))
     }
   }
 }
+
+#[options("/<_..>")]
+pub fn all_options() {}
