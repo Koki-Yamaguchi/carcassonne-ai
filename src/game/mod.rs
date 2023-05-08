@@ -10,7 +10,7 @@ use rocket::{serde::{Serialize}};
 use diesel::prelude::*;
 
 use crate::database;
-use crate::error::Error;
+use crate::error::{Error, bad_request_error};
 
 use mov::Move::*;
 use tile::Tile::*;
@@ -230,4 +230,15 @@ pub fn get_game(game_id: i32) -> Result<Game, Error> {
 
 pub fn get_games(player_id: Option<i32>) -> Result<Vec<Game>, Error> {
   database::get_games(player_id)
+}
+
+pub fn get_moves(game_id: Option<i32>) -> Result<Vec<mov::Move>, Error> {
+  match game_id {
+    Some(gid) => {
+      database::list_moves(gid)
+    }
+    None => {
+      Err(bad_request_error("parameter `game_id` is required".to_string()))
+    }
+  }
 }

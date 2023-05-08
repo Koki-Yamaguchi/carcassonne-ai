@@ -33,7 +33,6 @@ pub fn internal_server_error(msg: String) -> Error {
   }
 }
 
-#[allow(dead_code)]
 pub fn bad_request_error(msg: String) -> Error {
   Error {
     status: Status::BadRequest,

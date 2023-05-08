@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-#[derive(Hash, Eq, PartialEq, Debug, Copy, Clone)]
+use rocket::serde::Serialize;
+
+#[derive(Hash, Eq, PartialEq, Debug, Copy, Clone, Serialize)]
+#[serde(crate = "rocket::serde")]
 pub enum Tile {
   StartingTile,
   Monastery,
