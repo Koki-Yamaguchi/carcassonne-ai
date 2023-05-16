@@ -286,16 +286,32 @@ const currentTile = () => {
 };
 </script>
 <template>
-  <div :style="{ display: 'flex' }">
-    <p>You must place a tile</p>
-    <img
-      width="30"
-      height="30"
-      :src="currentTile() ? currentTile()!.src : null"
-    />
+  <div class="bg-orange-100 rounded text-orange-900 px-4 py-3 shadow-md flex">
+    <p class="flex flex-col justify-center mr-3">You must place a tile</p>
+    <div class="min-w-[30px]">
+      <img
+        class="flex flex-col justify-center min-h-[30px]"
+        width="30"
+        height="30"
+        :src="currentTile() ? currentTile()!.src : null"
+      />
+    </div>
   </div>
-  <p>player point: {{ player0Point }}</p>
-  <p>AI point: {{ player1Point }}</p>
+  <div class="infos flex flex-wrap">
+    <div
+      class="w-64 max-w-xs ml-3 mt-3 px-3 py-3 block border border-gray-200 shadow rounded-lg"
+    >
+      <div class="text-sm font-bold">KokiYamaguchi</div>
+      {{ player0Point }} pt
+      <div>remaining meeples {{ player0Meeples.size }}</div>
+    </div>
+    <div
+      class="w-64 max-w-xs ml-3 mt-3 px-3 py-3 block border border-gray-200 shadow rounded-lg"
+    >
+      <div class="text-sm font-bold">AI</div>
+      {{ player1Point }} pt
+    </div>
+  </div>
   <button @click="confirm">confirm</button>
   <button @click="skip">skip</button>
   <div class="board">
