@@ -141,3 +141,18 @@ pub fn wait_ai_move(params: Json<WaitAIMove>) -> (Status, (ContentType, String))
     }
   }
 }
+
+#[get("/moves?<game>", format = "application/json")]
+pub fn get_moves(game: Option<i32>) -> (Status, (ContentType, String)) {
+  match game::get_moves(game) {
+    Ok(moves) => {
+      (Status::Ok, (ContentType::JSON, to_string(&moves).unwrap()))
+    }
+    Err(e) => {
+      (e.status, (ContentType::JSON, to_string(&e.detail).unwrap()))
+    }
+  }
+}
+
+#[options("/<_..>")]
+pub fn all_options() {}
