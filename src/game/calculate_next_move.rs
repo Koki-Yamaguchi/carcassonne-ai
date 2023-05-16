@@ -5,7 +5,9 @@ use super::calculate::TileItem;
 use super::tile::Tile;
 use super::mov::{Move, TileMove, MeepleMove };
 
-pub fn calculate_next_move(moves: &Vec<Move>, game_id: i32, player_id: i32, next_tile: Tile) -> (TileMove, MeepleMove) {
+pub fn calculate_next_move(moves: &Vec<Move>, game_id: i32, player0_id: i32, _player1_id: i32, player_id: i32, next_tile: Tile) -> (TileMove, MeepleMove) {
+  let mut mvs = moves.clone();
+
   let mut tile = TileItem {
     id: next_tile.to_id(),
     tile: next_tile,
@@ -13,10 +15,10 @@ pub fn calculate_next_move(moves: &Vec<Move>, game_id: i32, player_id: i32, next
     feature_starting_id: 0,
   };
 
-  let tile_move_ord = moves.last().unwrap().ord() + 1;
+  let tile_move_ord = mvs.last().unwrap().ord() + 1;
   let meeple_move_ord = tile_move_ord + 1;
 
-  let board = match calculate(&moves, false) {
+  let board = match calculate(&mvs, false) {
     Ok(s) => {
       s.board
     }
@@ -24,6 +26,9 @@ pub fn calculate_next_move(moves: &Vec<Move>, game_id: i32, player_id: i32, next
   };
 
   let mut checked = HashMap::new();
+  let mut max_diff = -1000;
+  let mut tile_move = TileMove { ord: 0, game_id, player_id: player_id, tile: next_tile, rot: 0, pos: (-1, -1) };
+  let mut meeple_move = MeepleMove { ord: 1, game_id, player_id: player_id, meeple_id: -1, tile_pos: (-1, -1), meeple_pos: -1 };
   for pos in board.keys() {
     match checked.get(pos) {
       Some(_) => {
@@ -81,16 +86,55 @@ pub fn calculate_next_move(moves: &Vec<Move>, game_id: i32, player_id: i32, next
           }
           None => {},
         }
-        return (
-          TileMove { ord: tile_move_ord, game_id, player_id, tile: next_tile, rot: rot, pos: (ny, nx) },
-          MeepleMove { ord: meeple_move_ord, game_id, player_id, meeple_id: -1, tile_pos: (ny, nx), meeple_pos: -1 },
-        );
+        let tmove = TileMove { ord: tile_move_ord, game_id, player_id, tile: next_tile, rot: rot, pos: (ny, nx) };
+
+        mvs.push(Move::TMove(tmove.clone()));
+
+        let s = match calculate(&mvs, false) {
+          Ok(s) => s,
+          Err(e) => panic!("{:?}", e.detail.msg)
+        };
+
+        let remaining_meeples = if player_id == player0_id {
+          s.player0_remaining_meeples
+        } else {
+          s.player1_remaining_meeples
+        };
+        let mut meepleable_positions = s.meepleable_positions;
+        meepleable_positions.push(-1);
+        for mpos in &meepleable_positions {
+          let mut meeple_id = -1;
+          if *mpos != -1 {
+            if remaining_meeples.len() == 0 {
+              continue;
+            }
+            meeple_id = remaining_meeples.iter().next().unwrap().clone();
+          }
+
+          let mmove = MeepleMove { ord: meeple_move_ord, game_id, player_id, meeple_id, tile_pos: (ny, nx), meeple_pos: *mpos };
+          mvs.push(Move::MMove(mmove.clone()));
+
+          let s = match calculate(&mvs, true) {
+            Ok(s) => s,
+            Err(e) => panic!("{:?}", e.detail.msg)
+          };
+          let diff = if player_id == player0_id {
+            s.player0_point - s.player1_point
+          } else {
+            s.player1_point - s.player0_point
+          };
+          if diff > max_diff {
+            max_diff = diff;
+            tile_move = tmove.clone();
+            meeple_move = mmove.clone();
+          }
+
+          mvs.pop();
+        }
+        mvs.pop();
       }
     }
   }
 
-  (
-    TileMove { ord: 0, game_id, player_id: player_id, tile: next_tile, rot: 0, pos: (-1, -1) },
-    MeepleMove { ord: 1, game_id, player_id: player_id, meeple_id: -1, tile_pos: (-1, -1), meeple_pos: -1 },
-  )
+  (tile_move, meeple_move)
 }

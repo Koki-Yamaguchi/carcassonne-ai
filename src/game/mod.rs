@@ -209,6 +209,8 @@ pub fn wait_ai_move(game_id: i32) -> Result<MeepleMoveResult, Error> {
   let (tile_move, meeple_move): (TileMove, MeepleMove) = calculate_next_move::calculate_next_move(
     &moves,
     game.id,
+    game.player0_id,
+    game.player0_id,
     1,
     placing_tile,
   );
