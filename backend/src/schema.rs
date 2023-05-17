@@ -41,8 +41,4 @@ diesel::table! {
 diesel::joinable!(move_ -> game (game_id));
 diesel::joinable!(move_ -> player (player_id));
 
-diesel::allow_tables_to_appear_in_same_query!(
-    game,
-    move_,
-    player,
-);
+diesel::allow_tables_to_appear_in_same_query!(game, move_, player,);
