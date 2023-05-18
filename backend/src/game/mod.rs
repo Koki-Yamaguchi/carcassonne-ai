@@ -220,7 +220,12 @@ pub fn create_meeple_move(
         }
     }
     let remaining_tiles = tile::remaining_tiles(out_tiles.clone());
-    let next_tile = remaining_tiles[rng.gen_range(0..remaining_tiles.len())];
+
+    let next_tile = if remaining_tiles.len() == 0 {
+        Invalid
+    } else {
+        remaining_tiles[rng.gen_range(0..remaining_tiles.len())]
+    };
 
     let gm = match database::get_game(game_id) {
         Ok(game) => game,
@@ -317,4 +322,68 @@ pub fn get_moves(game_id: Option<i32>) -> Result<Vec<mov::Move>, Error> {
             "parameter `game_id` is required".to_string(),
         )),
     }
+}
+
+pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error> {
+    let gid = match game_id {
+        Some(gid) => gid,
+        None => {
+            return Err(bad_request_error(
+                "parameter `game_id` is required".to_string(),
+            ))
+        }
+    };
+
+    let moves = match database::list_moves(gid) {
+        Ok(mvs) => mvs,
+        Err(e) => {
+            return Err(e);
+        }
+    };
+    assert!(moves.len() != 0);
+
+    let mut complete_events = vec![];
+
+    let res = calculate::calculate(&moves, true);
+    let (player0_point, player1_point) = match res {
+        Ok(s) => {
+            for e in &s.complete_events {
+                complete_events.push(CompleteEvent {
+                    meeple_ids: e.meeple_ids.clone(),
+                    feature: e.feature.clone().to_string(),
+                    point: e.point,
+                })
+            }
+            (s.player0_point, s.player1_point)
+        }
+        Err(e) => {
+            return Err(e);
+        }
+    };
+
+    let gm = match database::get_game(gid) {
+        Ok(game) => game,
+        Err(e) => {
+            return Err(e);
+        }
+    };
+
+    match database::update_game(
+        gm.id,
+        gm.next_tile_id.unwrap(),
+        gm.next_player_id.unwrap(),
+        player0_point,
+        player1_point,
+    ) {
+        Err(e) => {
+            return Err(e);
+        }
+        Ok(_) => {}
+    }
+
+    Ok(MeepleMoveResult {
+        complete_events,
+        next_tile_id: gm.next_tile_id.unwrap(),
+        next_player_id: gm.next_player_id.unwrap(),
+    })
 }

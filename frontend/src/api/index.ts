@@ -184,4 +184,30 @@ export class API {
       throw e;
     }
   }
+
+  async getFinalEevnts(gameID: number): Promise<MeepleMoveResult> {
+    try {
+      const res = await axios.get(
+        `${this.base_url}/final-events?game=${gameID}`
+      );
+      console.log({ res });
+      const meepleMoveResult: MeepleMoveResult = {
+        completeEvents: res.data.complete_events.map(
+          (e: any): CompleteEvent => {
+            return {
+              meepleIDs: e.meeple_ids,
+              feature: e.feature,
+              point: e.point,
+            };
+          }
+        ),
+        nextPlayerID: res.data.next_player_id,
+        nextTileID: res.data.next_tile_id,
+      };
+      return meepleMoveResult;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
 }

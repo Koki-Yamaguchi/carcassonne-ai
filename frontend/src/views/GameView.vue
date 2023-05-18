@@ -28,6 +28,7 @@ const player1Meeples = ref<Set<number>>(new Set([7, 8, 9, 10, 11, 12, 13]));
 const player0Point = ref<number>(0);
 const player1Point = ref<number>(0);
 const meepledPositions = ref<Map<number, TilePosition>>(new Map());
+const finished = ref<boolean>(false);
 const useMeeple = (
   meeples: Set<number>,
   pos: TilePosition,
@@ -235,7 +236,22 @@ const handlePlaceMeeple = async (pos: number) => {
   placeablePositions.value = [];
   meepleablePositions.value = [];
 
+  if (res.nextTileID === -1) {
+    const finalEvents = await api.getFinalEevnts(game.value.id);
+    processCompleteEvents(finalEvents.completeEvents);
+    finished.value = true;
+    return;
+  }
+
   nextTileID.value = await processAIMove();
+
+  if (nextTileID.value === -1) {
+    const finalEvents = await api.getFinalEevnts(game.value.id);
+    processCompleteEvents(finalEvents.completeEvents);
+    finished.value = true;
+    return;
+  }
+
   placingTile.value = newTile(0, idToTileKind(nextTileID.value));
   placeablePositions.value = getPlaceablePositions(placingTile.value);
 };
@@ -272,6 +288,16 @@ const processAIMove = async (): Promise<number> => {
   return res.nextTileID;
 };
 
+const winner = computed(() => {
+  if (player0Point.value > player1Point.value) {
+    return "KokiYamaguchi";
+  } else if (player0Point.value < player1Point.value) {
+    return "AI";
+  } else {
+    return "tie";
+  }
+});
+
 onMounted(async () => {
   const api = new API();
   const route = useRoute();
@@ -301,31 +327,41 @@ const boardStyle = computed(() => {
 });
 </script>
 <template>
-  <div class="bg-orange-100 rounded text-orange-900 px-4 py-3 shadow-md flex">
-    <p class="flex flex-col justify-center mr-3">You must place a tile</p>
-    <div class="flex flex-col justify-center min-w-[30px] mr-3">
-      <img
-        class="min-h-[30px]"
-        width="30"
-        height="30"
-        :src="currentTile() ? currentTile()!.src : null"
-      />
+  <div v-if="!finished">
+    <div class="bg-orange-100 rounded text-orange-900 px-4 py-3 shadow-md flex">
+      <p class="flex flex-col justify-center mr-3">You must place a tile</p>
+      <div class="flex flex-col justify-center min-w-[30px] mr-3">
+        <img
+          class="min-h-[30px]"
+          width="30"
+          height="30"
+          :src="currentTile() ? currentTile()!.src : null"
+        />
+      </div>
+      <div class="flex flex-col justify-center">
+        <button
+          class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
+          v-if="placingPosition.y !== -1 && placingTile !== null"
+          @click="confirm"
+        >
+          Confirm
+        </button>
+        <button
+          class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
+          v-else-if="meepleablePositions.length !== 0"
+          @click="skip"
+        >
+          Skip
+        </button>
+      </div>
     </div>
-    <div class="flex flex-col justify-center">
-      <button
-        class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
-        v-if="placingPosition.y !== -1 && placingTile !== null"
-        @click="confirm"
-      >
-        Confirm
-      </button>
-      <button
-        class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
-        v-else-if="meepleablePositions.length !== 0"
-        @click="skip"
-      >
-        Skip
-      </button>
+  </div>
+  <div v-else>
+    <div class="bg-orange-100 rounded text-orange-900 px-4 py-3 shadow-md flex">
+      <p v-if="winner !== 'tie'" class="flex flex-col justify-center mr-3">
+        {{ winner }} wins!
+      </p>
+      <p v-else>tie!</p>
     </div>
   </div>
   <div class="infos flex flex-wrap">

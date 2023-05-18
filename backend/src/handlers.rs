@@ -118,5 +118,13 @@ pub fn get_moves(game: Option<i32>) -> (Status, (ContentType, String)) {
     }
 }
 
+#[get("/final-events?<game>", format = "application/json")]
+pub fn get_final_events(game: Option<i32>) -> (Status, (ContentType, String)) {
+    match game::get_final_events(game) {
+        Ok(events) => (Status::Ok, (ContentType::JSON, to_string(&events).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
 #[options("/<_..>")]
 pub fn all_options() {}

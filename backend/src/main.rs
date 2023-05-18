@@ -10,6 +10,7 @@ mod schema;
 
 use handlers::all_options;
 use handlers::create_player;
+use handlers::get_final_events;
 use handlers::get_moves;
 use handlers::wait_ai_move;
 use handlers::{create_game, get_game, get_games};
@@ -54,6 +55,7 @@ fn rocket() -> _ {
             create_meeple_move,
             wait_ai_move,
             get_moves,
+            get_final_events,
             all_options,
         ],
     )
