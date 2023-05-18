@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 import { API } from "./../api";
 import { useRoute } from "vue-router";
 import {
@@ -12,6 +12,8 @@ import {
 import { Tile } from "../tiles";
 import GameBoard from "../components/GameBoard.vue";
 import { newTile, idToTileKind, boardSize, getInitialBoard } from "../tiles";
+import PlayerInfo from "../components/PlayerInfo.vue";
+import WoodImg from "../assets/img/background-wood.png";
 
 const game = ref<Game | null>(null);
 const tiles = ref<(Tile | null)[][]>(getInitialBoard());
@@ -157,6 +159,13 @@ const confirm = async () => {
   meepleablePositions.value = res.meepleablePositions;
 
   placingTile.value = null;
+
+  if (
+    meepleablePositions.value.length === 0 ||
+    player0Meeples.value.size === 0
+  ) {
+    skip();
+  }
 };
 
 const skip = () => {
@@ -224,6 +233,7 @@ const handlePlaceMeeple = async (pos: number) => {
 
   placingPosition.value = { y: -1, x: -1 };
   placeablePositions.value = [];
+  meepleablePositions.value = [];
 
   nextTileID.value = await processAIMove();
   placingTile.value = newTile(0, idToTileKind(nextTileID.value));
@@ -284,37 +294,55 @@ const currentTile = () => {
     return newTile(0, idToTileKind(nextTileID.value));
   }
 };
+const boardStyle = computed(() => {
+  return {
+    "background-image": "url(" + WoodImg + ")",
+  };
+});
 </script>
 <template>
   <div class="bg-orange-100 rounded text-orange-900 px-4 py-3 shadow-md flex">
     <p class="flex flex-col justify-center mr-3">You must place a tile</p>
-    <div class="min-w-[30px]">
+    <div class="flex flex-col justify-center min-w-[30px] mr-3">
       <img
-        class="flex flex-col justify-center min-h-[30px]"
+        class="min-h-[30px]"
         width="30"
         height="30"
         :src="currentTile() ? currentTile()!.src : null"
       />
     </div>
+    <div class="flex flex-col justify-center">
+      <button
+        class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
+        v-if="placingPosition.y !== -1 && placingTile !== null"
+        @click="confirm"
+      >
+        Confirm
+      </button>
+      <button
+        class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
+        v-else-if="meepleablePositions.length !== 0"
+        @click="skip"
+      >
+        Skip
+      </button>
+    </div>
   </div>
   <div class="infos flex flex-wrap">
-    <div
-      class="w-64 max-w-xs ml-3 mt-3 px-3 py-3 block border border-gray-200 shadow rounded-lg"
-    >
-      <div class="text-sm font-bold">KokiYamaguchi</div>
-      {{ player0Point }} pt
-      <div>remaining meeples {{ player0Meeples.size }}</div>
-    </div>
-    <div
-      class="w-64 max-w-xs ml-3 mt-3 px-3 py-3 block border border-gray-200 shadow rounded-lg"
-    >
-      <div class="text-sm font-bold">AI</div>
-      {{ player1Point }} pt
-    </div>
+    <PlayerInfo
+      :name="'KokiYamaguchi'"
+      :point="player0Point"
+      :meepleNumber="player0Meeples.size"
+      :meepleColor="'yellow'"
+    />
+    <PlayerInfo
+      :name="'AI'"
+      :point="player1Point"
+      :meepleNumber="player1Meeples.size"
+      :meepleColor="'red'"
+    />
   </div>
-  <button @click="confirm">confirm</button>
-  <button @click="skip">skip</button>
-  <div class="board">
+  <div class="board mt-3" :style="boardStyle">
     <GameBoard
       :tiles="tiles"
       :placeablePositions="placeablePositions"
