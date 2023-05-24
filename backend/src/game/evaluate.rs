@@ -54,7 +54,7 @@ pub fn list_fitting_tiles(
     exclude_tile: Tile,
     y: i32,
     x: i32,
-) -> Vec<Tile> {
+) -> Option<Vec<Tile>> {
     let right = match board.get(&(y, x + 1)) {
         Some(t) => t.left(),
         None => NoSide,
@@ -72,7 +72,7 @@ pub fn list_fitting_tiles(
         None => NoSide,
     };
     if right == NoSide && top == NoSide && left == NoSide && bottom == NoSide {
-        return remaining_tiles.clone();
+        return None;
     }
     let mut tiles = vec![];
     let mut excluded = false;
@@ -104,7 +104,7 @@ pub fn list_fitting_tiles(
             tiles.push(rem_tile.clone());
         }
     }
-    tiles
+    Some(tiles)
 }
 
 pub fn count_fitting_tiles(
@@ -113,29 +113,28 @@ pub fn count_fitting_tiles(
     exclude_tile: Tile,
     y: i32,
     x: i32,
-) -> i32 {
-    list_fitting_tiles(board, remaining_tiles, exclude_tile, y, x).len() as i32
+) -> Option<i32> {
+    match list_fitting_tiles(board, remaining_tiles, exclude_tile, y, x) {
+        Some(ts) => Some(ts.len() as i32),
+        None => None,
+    }
 }
 
 pub fn last_n(n: i32) -> i32 {
     let naive = match n {
         0 => 0,
-        1 => 20,
+        1 => 40,
         2 => 45,
-        3 => 58,
-        4 => 64,
-        5 => 70,
-        6 => 90,
-        _ => 95,
+        3 => 50,
+        4 => 60,
+        5 | 6 => 67,
+        7 | 8 | 9 | 10 => 74,
+        11 | 12 | 13 | 14 => 81,
+        15 | 16 | 17 | 18 => 88,
+        19 | 20 | 21 | 22 => 95,
+        _ => 99,
     };
     naive
-}
-
-pub fn last_n_to_last_m_prob(n: i32, m: i32) -> i32 {
-    if n == 0 || m == 0 {
-        return 0;
-    }
-    return last_n(m) * 100 / last_n(n);
 }
 
 pub fn evaluate(moves: &Vec<Move>) -> i32 {
@@ -235,7 +234,7 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
 
     for player in 0..2 {
         for city in &cities[player] {
-            let mut complete_prob = 90;
+            let mut complete_prob = 100;
             for tile in &city.tiles {
                 let y0 = tile.pos.0;
                 let x0 = tile.pos.1;
@@ -290,8 +289,9 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                     Tile::Invalid,
                                     y1,
                                     x1,
-                                );
-                                let mut fill_prob_coef = 0;
+                                )
+                                .unwrap();
+                                let mut after_need_tile_count = 0;
                                 let mut tot = 0;
                                 for dir1 in 0..dx.len() {
                                     let y2 = y1 + dy[dir1];
@@ -302,13 +302,18 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                     match board.get(&(y2, x2)) {
                                         Some(_) => {}
                                         None => {
-                                            let adjacent_fitting_tiles = list_fitting_tiles(
+                                            let adjacent_fitting_tiles = match list_fitting_tiles(
                                                 &board,
                                                 &remaining_tiles,
                                                 Tile::Invalid,
                                                 y2,
                                                 x2,
-                                            );
+                                            ) {
+                                                Some(ts) => ts,
+                                                None => {
+                                                    continue;
+                                                }
+                                            };
                                             for adjacent_tile in &adjacent_fitting_tiles {
                                                 let mut min = 100;
                                                 for rot in 0..4 {
@@ -328,7 +333,8 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                                                 *adjacent_tile,
                                                                 y1,
                                                                 x1,
-                                                            );
+                                                            )
+                                                            .unwrap();
 
                                                         if min > updated_need_tile_count {
                                                             min = updated_need_tile_count;
@@ -337,18 +343,16 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                                         board.remove(&(y2, x2));
                                                     }
                                                 }
-                                                fill_prob_coef +=
-                                                    last_n_to_last_m_prob(need_tile_count, min);
+                                                after_need_tile_count += min;
                                             }
                                             tot += adjacent_fitting_tiles.len() as i32;
                                         }
                                     }
                                 }
-                                let fill_prob = last_n(need_tile_count);
+                                let mut fill_prob = last_n(need_tile_count);
                                 if tot != 0 {
-                                    fill_prob_coef /= tot;
-                                    complete_prob *= fill_prob_coef;
-                                    complete_prob /= 100;
+                                    after_need_tile_count /= tot;
+                                    fill_prob = (fill_prob + last_n(after_need_tile_count)) / 2;
                                 }
                                 complete_prob *= fill_prob;
                                 complete_prob /= 100;
@@ -365,7 +369,7 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
 
     for player in 0..2 {
         for road in &roads[player] {
-            let mut complete_prob = 90;
+            let mut complete_prob = 100;
             for tile in &road.tiles {
                 let y0 = tile.pos.0;
                 let x0 = tile.pos.1;
@@ -428,8 +432,9 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                     Tile::Invalid,
                                     y1,
                                     x1,
-                                );
-                                let mut fill_prob_coef = 0;
+                                )
+                                .unwrap();
+                                let mut after_need_tile_count = 0;
                                 let mut tot = 0;
                                 for dir1 in 0..dx.len() {
                                     let y2 = y1 + dy[dir1];
@@ -440,13 +445,18 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                     match board.get(&(y2, x2)) {
                                         Some(_) => {}
                                         None => {
-                                            let adjacent_fitting_tiles = list_fitting_tiles(
+                                            let adjacent_fitting_tiles = match list_fitting_tiles(
                                                 &board,
                                                 &remaining_tiles,
                                                 Tile::Invalid,
                                                 y2,
                                                 x2,
-                                            );
+                                            ) {
+                                                Some(ts) => ts,
+                                                None => {
+                                                    continue;
+                                                }
+                                            };
                                             for adjacent_tile in &adjacent_fitting_tiles {
                                                 let mut min = 100;
                                                 for rot in 0..4 {
@@ -466,7 +476,8 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                                                 *adjacent_tile,
                                                                 y1,
                                                                 x1,
-                                                            );
+                                                            )
+                                                            .unwrap();
 
                                                         if min > updated_need_tile_count {
                                                             min = updated_need_tile_count;
@@ -475,18 +486,16 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                                         board.remove(&(y2, x2));
                                                     }
                                                 }
-                                                fill_prob_coef +=
-                                                    last_n_to_last_m_prob(need_tile_count, min);
+                                                after_need_tile_count += min
                                             }
                                             tot += adjacent_fitting_tiles.len() as i32;
                                         }
                                     }
                                 }
-                                let fill_prob = last_n(need_tile_count);
+                                let mut fill_prob = last_n(need_tile_count);
                                 if tot != 0 {
-                                    fill_prob_coef /= tot;
-                                    complete_prob *= fill_prob_coef;
-                                    complete_prob /= 100;
+                                    after_need_tile_count /= tot;
+                                    fill_prob = (fill_prob + last_n(after_need_tile_count)) / 2;
                                 }
                                 complete_prob *= fill_prob;
                                 complete_prob /= 100;
@@ -506,7 +515,7 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
 
     for player in 0..2 {
         for monastery in &monasteries[player] {
-            let mut complete_prob = 90;
+            let mut complete_prob = 100;
             for tile in &monastery.tiles {
                 let y0 = tile.pos.0;
                 let x0 = tile.pos.1;
@@ -517,14 +526,20 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                     match board.get(&(y1, x1)) {
                         Some(_) => {}
                         None => {
-                            let need_tile_count = count_fitting_tiles(
+                            let need_tile_count = match count_fitting_tiles(
                                 &board,
                                 &remaining_tiles,
                                 Tile::Invalid,
                                 y1,
                                 x1,
-                            );
-                            let mut fill_prob_coef = 0;
+                            ) {
+                                Some(c) => c,
+                                None => {
+                                    continue;
+                                }
+                            };
+
+                            let mut after_need_tile_count = 0;
                             let mut tot = 0;
                             for dir1 in 0..dx.len() {
                                 let y2 = y1 + dy[dir1];
@@ -535,13 +550,18 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                 match board.get(&(y2, x2)) {
                                     Some(_) => {}
                                     None => {
-                                        let adjacent_fitting_tiles = list_fitting_tiles(
+                                        let adjacent_fitting_tiles = match list_fitting_tiles(
                                             &board,
                                             &remaining_tiles,
                                             Tile::Invalid,
                                             y2,
                                             x2,
-                                        );
+                                        ) {
+                                            Some(ts) => ts,
+                                            None => {
+                                                continue;
+                                            }
+                                        };
                                         for adjacent_tile in &adjacent_fitting_tiles {
                                             let mut min = 100;
                                             for rot in 0..4 {
@@ -561,7 +581,8 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                                             *adjacent_tile,
                                                             y1,
                                                             x1,
-                                                        );
+                                                        )
+                                                        .unwrap();
 
                                                     if min > updated_need_tile_count {
                                                         min = updated_need_tile_count;
@@ -570,18 +591,16 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                                     board.remove(&(y2, x2));
                                                 }
                                             }
-                                            fill_prob_coef +=
-                                                last_n_to_last_m_prob(need_tile_count, min);
+                                            after_need_tile_count += min;
                                         }
                                         tot += adjacent_fitting_tiles.len() as i32;
                                     }
                                 }
                             }
-                            let fill_prob = last_n(need_tile_count);
+                            let mut fill_prob = last_n(need_tile_count);
                             if tot != 0 {
-                                fill_prob_coef /= tot;
-                                complete_prob *= fill_prob_coef;
-                                complete_prob /= 100;
+                                after_need_tile_count /= tot;
+                                fill_prob = (fill_prob + last_n(after_need_tile_count)) / 2;
                             }
                             complete_prob *= fill_prob;
                             complete_prob /= 100;
@@ -620,14 +639,13 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
         results[1] -= 80;
     }
 
-    println!("last move = {:?}", moves.last().unwrap());
-    println!("result = {}", results[0] - results[1]);
     return results[0] - results[1];
 }
 
 #[test]
 fn evaluate_test() {
     let mvs = decoder::decode("src/data/379255560.json".to_string());
+    let mvs = mvs[..58].to_vec();
     evaluate(&mvs);
     assert!(false);
 }
