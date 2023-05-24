@@ -505,7 +505,7 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                 }
             }
 
-            let result = road.point * 10 + (meeple_value * complete_prob / 100);
+            let result = road.point * 5 + (meeple_value * complete_prob / 100);
             results[player] += result;
         }
     }
