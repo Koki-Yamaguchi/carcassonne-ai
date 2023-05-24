@@ -1,6 +1,7 @@
 pub mod calculate;
 pub mod calculate_next_move;
 pub mod decoder;
+pub mod evaluate;
 pub mod mergeable_feature;
 pub mod mov;
 pub mod solver;

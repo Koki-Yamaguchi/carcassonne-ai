@@ -63,9 +63,12 @@ pub struct Status {
     pub board: HashMap<(i32, i32), TileItem>,
     pub player0_remaining_meeples: HashSet<i32>,
     pub player1_remaining_meeples: HashSet<i32>,
+    pub tile_id_to_pos: HashMap<i32, (i32, i32)>,
+    pub mergeable_features: MergeableFeature,
+    pub feature_num: i32,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct TileItem {
     pub id: i32,
     pub tile: Tile,
@@ -78,6 +81,7 @@ pub enum Side {
     Field,
     Road,
     City,
+    NoSide,
 }
 
 #[derive(Eq, PartialEq, PartialOrd, Clone, Debug)]
@@ -157,16 +161,16 @@ impl TileItem {
     pub fn bottom(self) -> Side {
         self.sides()[((self.rot + 3) % 4) as usize]
     }
-    fn right_features(self) -> Vec<DistinctFeature> {
+    pub fn right_features(self) -> Vec<DistinctFeature> {
         self.side_features()[((self.rot + 0) % 4) as usize].clone()
     }
-    fn top_features(self) -> Vec<DistinctFeature> {
+    pub fn top_features(self) -> Vec<DistinctFeature> {
         self.side_features()[((self.rot + 1) % 4) as usize].clone()
     }
-    fn left_features(self) -> Vec<DistinctFeature> {
+    pub fn left_features(self) -> Vec<DistinctFeature> {
         self.side_features()[((self.rot + 2) % 4) as usize].clone()
     }
-    fn bottom_features(self) -> Vec<DistinctFeature> {
+    pub fn bottom_features(self) -> Vec<DistinctFeature> {
         self.side_features()[((self.rot + 3) % 4) as usize].clone()
     }
     // side_features defined so that they are not influenced by the effect of turn
@@ -1563,6 +1567,7 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
     let mut board = HashMap::<(i32, i32), TileItem>::new();
     let mut player0_remaining_meeples = HashSet::from([0, 1, 2, 3, 4, 5, 6]);
     let mut player1_remaining_meeples = HashSet::from([7, 8, 9, 10, 11, 12, 13]);
+    let mut tile_id_to_pos = HashMap::<i32, (i32, i32)>::new();
 
     for mv in moves {
         match mv {
@@ -1577,11 +1582,13 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                 create_mergeable_features(&mut mergeable_features, &current_tile);
                 set_cities_to_fields(&mut mergeable_features, &current_tile);
 
-                current_feature_id += current_tile.features().len() as i32;
-                current_tile_id += 1;
-
                 let y = m.pos.0;
                 let x = m.pos.1;
+
+                tile_id_to_pos.insert(current_tile_id, (y, x));
+
+                current_feature_id += current_tile.features().len() as i32;
+                current_tile_id += 1;
 
                 // check if the placing position is empty
                 if board.contains_key(&(y, x)) {
@@ -1885,6 +1892,9 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
             board,
             player0_remaining_meeples,
             player1_remaining_meeples,
+            tile_id_to_pos,
+            mergeable_features,
+            feature_num: current_feature_id,
         });
     }
 
@@ -1967,6 +1977,9 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
         board,
         player0_remaining_meeples,
         player1_remaining_meeples,
+        tile_id_to_pos,
+        mergeable_features,
+        feature_num: current_feature_id,
     })
 }
 
@@ -3484,6 +3497,7 @@ fn calculate_test_with_bga_json_data() {
         ("src/data/370417702.json", 91, 108),
         ("src/data/369577999.json", 103, 96),
         ("src/data/368679629.json", 91, 94),
+        ("src/data/377230846.json", 86, 101),
     ];
     for d in test_data {
         let file_path = d.0;

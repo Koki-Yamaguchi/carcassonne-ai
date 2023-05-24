@@ -99,7 +99,7 @@ impl MergeableFeature {
         self.meeples[x].push(meeple_id);
     }
     #[allow(unused)]
-    fn is_same_set(&mut self, x: usize, y: usize) -> bool {
+    pub fn is_same_set(&mut self, x: usize, y: usize) -> bool {
         self.root(x) == self.root(y)
     }
     #[allow(unused)]
@@ -134,5 +134,9 @@ impl MergeableFeature {
     pub fn is_done(&mut self, x: usize) -> bool {
         let x = self.root(x);
         self.done[x]
+    }
+    pub fn get_tile_ids(&mut self, x: usize) -> Vec<i32> {
+        let x = self.root(x);
+        self.tile_ids[x].clone()
     }
 }

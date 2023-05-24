@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use super::calculate::calculate;
 use super::calculate::TileItem;
+use super::evaluate::evaluate;
 use super::mov::{MeepleMove, Move, TileMove};
 use super::tile::Tile;
 
@@ -31,7 +32,7 @@ pub fn calculate_next_move(
     };
 
     let mut checked = HashMap::new();
-    let mut max_diff = -1000;
+    let mut max_val = -100000;
     let mut tile_move = TileMove {
         ord: 0,
         game_id,
@@ -147,17 +148,13 @@ pub fn calculate_next_move(
                     };
                     mvs.push(Move::MMove(mmove.clone()));
 
-                    let s = match calculate(&mvs, true) {
-                        Ok(s) => s,
-                        Err(e) => panic!("{:?}", e.detail.msg),
-                    };
-                    let diff = if player_id == player0_id {
-                        s.player0_point - s.player1_point
+                    let val = if player_id == player0_id {
+                        evaluate(&mvs)
                     } else {
-                        s.player1_point - s.player0_point
+                        -evaluate(&mvs)
                     };
-                    if diff > max_diff {
-                        max_diff = diff;
+                    if val > max_val {
+                        max_val = val;
                         tile_move = tmove.clone();
                         meeple_move = mmove.clone();
                     }
