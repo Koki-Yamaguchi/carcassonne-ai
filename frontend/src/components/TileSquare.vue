@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Tile } from "../tiles";
+import { Tile, Color } from "../tiles";
 import { lyingMeepleSrc, standingMeepleSrc } from "../meeples";
 
 defineProps<{
@@ -21,6 +21,12 @@ const boxStyle = {
   height: `${tileSize}px`,
   width: `${tileSize}px`,
 };
+const frameStyle = (frame: Color) => {
+  return {
+    outline: frame !== null ? `2px solid ${frame}` : "none",
+    "outline-offset": frame !== null ? "-2px" : "none",
+  };
+};
 </script>
 
 <template>
@@ -34,7 +40,10 @@ const boxStyle = {
     />
     <div v-else>
       <img
-        :style="{ transform: `rotate(${tile.direction * 90}deg)` }"
+        :style="{
+          transform: `rotate(${tile.direction * 90}deg)`,
+          ...frameStyle(tile.frame),
+        }"
         :src="tile.src"
       />
       <div v-if="meepling" class="meeple-spots">

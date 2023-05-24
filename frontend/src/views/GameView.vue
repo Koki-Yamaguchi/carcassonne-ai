@@ -27,6 +27,8 @@ const player0Meeples = ref<Set<number>>(new Set([0, 1, 2, 3, 4, 5, 6]));
 const player1Meeples = ref<Set<number>>(new Set([7, 8, 9, 10, 11, 12, 13]));
 const player0Point = ref<number>(0);
 const player1Point = ref<number>(0);
+const player0LastTilePos = ref<TilePosition>({ y: -1, x: -1 });
+const player1LastTilePos = ref<TilePosition>({ y: -1, x: -1 });
 const meepledPositions = ref<Map<number, TilePosition>>(new Map());
 const finished = ref<boolean>(false);
 const useMeeple = (
@@ -217,6 +219,16 @@ const handlePlaceMeeple = async (pos: number) => {
     });
   }
 
+  if (player0LastTilePos.value.y !== -1) {
+    tiles.value[player0LastTilePos.value.y][
+      player0LastTilePos.value.x
+    ]?.addFrame(null);
+  }
+  tiles.value[placingPosition.value.y][placingPosition.value.x]?.addFrame(
+    "yellow"
+  );
+  player0LastTilePos.value = placingPosition.value;
+
   const tilePosY = placingPosition.value.y - Math.floor(boardSize / 2);
   const tilePosX = placingPosition.value.x - Math.floor(boardSize / 2);
 
@@ -282,6 +294,14 @@ const processAIMove = async (): Promise<number> => {
   }
 
   tiles.value[tilePosY][tilePosX] = tile;
+
+  if (player1LastTilePos.value.y !== -1) {
+    tiles.value[player1LastTilePos.value.y][
+      player1LastTilePos.value.x
+    ]?.addFrame(null);
+  }
+  tiles.value[tilePosY][tilePosX]?.addFrame("red");
+  player1LastTilePos.value = { y: tilePosY, x: tilePosX };
 
   processCompleteEvents(res.completeEvents);
 
