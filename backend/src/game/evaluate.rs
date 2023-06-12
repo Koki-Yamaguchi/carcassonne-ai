@@ -137,6 +137,19 @@ pub fn last_n(n: i32) -> i32 {
     naive
 }
 
+fn remaining_meeple_values(num: usize) -> i32 {
+    match num {
+        0 => -100,
+        1 => -60,
+        2 => -40,
+        3 => -30,
+        4 => -20,
+        5 => -10,
+        6 => -5,
+        _ => 0,
+    }
+}
+
 pub fn evaluate(moves: &Vec<Move>) -> i32 {
     let s = match calculate(&moves, false) {
         Ok(s) => s,
@@ -629,15 +642,11 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
         }
     }
 
-    results[0] += s.player0_point * 11;
-    results[1] += s.player1_point * 11;
+    results[0] += s.player0_point * 12;
+    results[1] += s.player1_point * 12;
 
-    if s.player0_remaining_meeples.len() == 0 {
-        results[0] -= 80;
-    }
-    if s.player1_remaining_meeples.len() == 0 {
-        results[1] -= 80;
-    }
+    results[0] += remaining_meeple_values(s.player0_remaining_meeples.len());
+    results[1] += remaining_meeple_values(s.player1_remaining_meeples.len());
 
     return results[0] - results[1];
 }
