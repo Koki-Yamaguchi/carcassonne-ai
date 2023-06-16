@@ -163,6 +163,7 @@ export class API {
       const moves = res.data.map((mv: any, idx: number) => {
         if (idx % 2 === 0) {
           const tm: TileMove = {
+            playerID: mv.TMove.player_id,
             ord: mv.TMove.ord,
             tile: mv.TMove.tile,
             pos: { y: mv.TMove.pos[0], x: mv.TMove.pos[1] },
@@ -171,6 +172,7 @@ export class API {
           return tm;
         } else {
           const mm: MeepleMove = {
+            playerID: mv.MMove.player_id,
             ord: mv.MMove.ord,
             meepleID: mv.MMove.meeple_id,
             pos: mv.MMove.meeple_pos,

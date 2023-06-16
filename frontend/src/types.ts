@@ -30,6 +30,7 @@ export interface CompleteEvent {
 }
 
 export interface TileMove {
+  playerID: number;
   ord: number;
   tile: TileKind;
   pos: TilePosition;
@@ -37,6 +38,7 @@ export interface TileMove {
 }
 
 export interface MeepleMove {
+  playerID: number;
   ord: number;
   meepleID: number;
   pos: number;

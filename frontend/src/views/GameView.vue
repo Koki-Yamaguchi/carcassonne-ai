@@ -31,7 +31,7 @@ const player0LastTilePos = ref<TilePosition>({ y: -1, x: -1 });
 const player1LastTilePos = ref<TilePosition>({ y: -1, x: -1 });
 const meepledPositions = ref<Map<number, TilePosition>>(new Map());
 const finished = ref<boolean>(false);
-const remaining_tiles = ref<number>(71);
+const tileCount = ref<number>(1);
 const useMeeple = (
   meeples: Set<number>,
   pos: TilePosition,
@@ -244,7 +244,7 @@ const handlePlaceMeeple = async (pos: number) => {
   );
 
   processCompleteEvents(res.completeEvents);
-  remaining_tiles.value--;
+  tileCount.value++;
 
   placingPosition.value = { y: -1, x: -1 };
   placeablePositions.value = [];
@@ -307,7 +307,7 @@ const processAIMove = async (): Promise<number> => {
 
   processCompleteEvents(res.completeEvents);
 
-  remaining_tiles.value--;
+  tileCount.value++;
   return res.nextTileID;
 };
 
@@ -400,7 +400,7 @@ const boardStyle = computed(() => {
       :meepleNumber="player1Meeples.size"
       :meepleColor="'red'"
     />
-    <div>{{ remaining_tiles }} tiles remain</div>
+    <div>{{ 72 - tileCount }} tiles remain</div>
   </div>
   <div class="board mt-3" :style="boardStyle">
     <GameBoard
