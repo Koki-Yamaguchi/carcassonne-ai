@@ -11,7 +11,6 @@ use super::{tile, tile::Tile};
 
 #[derive(Debug, Clone)]
 struct Tl {
-    id: i32,
     pos: (i32, i32),
 }
 
@@ -86,6 +85,8 @@ pub fn list_fitting_tiles(
             rot: 0,
             id: -1,
             feature_starting_id: -1,
+            meeple_id: None,
+            meeple_pos: None,
         };
 
         let mut ok = false;
@@ -208,7 +209,6 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                     .get_tile_ids(f.id as usize)
                     .into_iter()
                     .map(|id| Tl {
-                        id,
                         pos: *tile_id_to_pos.get(&id).unwrap(),
                     })
                     .collect(),
@@ -335,6 +335,8 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                                         rot,
                                                         id: -1,
                                                         feature_starting_id: -1,
+                                                        meeple_id: None,
+                                                        meeple_pos: None,
                                                     };
                                                     if is_fitting(&board, t, y2, x2) {
                                                         board.insert((y2, x2), t);
@@ -478,6 +480,8 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                                         rot,
                                                         id: -1,
                                                         feature_starting_id: -1,
+                                                        meeple_id: None,
+                                                        meeple_pos: None,
                                                     };
                                                     if is_fitting(&board, t, y2, x2) {
                                                         board.insert((y2, x2), t);
@@ -583,6 +587,8 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                                     rot,
                                                     id: -1,
                                                     feature_starting_id: -1,
+                                                    meeple_id: None,
+                                                    meeple_pos: None,
                                                 };
                                                 if is_fitting(&board, t, y2, x2) {
                                                     board.insert((y2, x2), t);
@@ -656,5 +662,4 @@ fn evaluate_test() {
     let mvs = decoder::decode("src/data/379255560.json".to_string());
     let mvs = mvs[..58].to_vec();
     evaluate(&mvs);
-    assert!(false);
 }

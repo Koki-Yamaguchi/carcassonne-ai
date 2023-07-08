@@ -21,6 +21,8 @@ pub fn calculate_next_move(
         tile: next_tile,
         rot: 0,
         feature_starting_id: 0,
+        meeple_id: None,
+        meeple_pos: None,
     };
 
     let tile_move_ord = mvs.last().unwrap().ord() + 1;

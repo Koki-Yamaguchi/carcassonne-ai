@@ -10,6 +10,7 @@ mod schema;
 
 use handlers::all_options;
 use handlers::create_player;
+use handlers::get_board;
 use handlers::get_final_events;
 use handlers::get_moves;
 use handlers::wait_ai_move;
@@ -56,6 +57,7 @@ fn rocket() -> _ {
             wait_ai_move,
             get_moves,
             get_final_events,
+            get_board,
             all_options,
         ],
     )
