@@ -365,6 +365,10 @@ const updateSituation = async (gameID: number) => {
       player1LastTilePos.value = { y: tilePosY, x: tilePosX };
     }
   }
+
+  if (tileCount.value === 72) {
+    finished.value = true;
+  }
 };
 
 onMounted(async () => {
