@@ -65,6 +65,7 @@ export class Tile {
   src: any;
   defaultMeepleablePositions: Position[] = [];
   sides: Side[];
+  meepleID = -1;
   meepledPosition = -1;
   meepleColor: Color;
   frame: Color = null;
@@ -86,13 +87,15 @@ export class Tile {
   resetDirection() {
     this.direction = 0;
   }
-  placeMeeple(idx: number, color: Color) {
+  placeMeeple(idx: number, color: Color, meepleID: number) {
     this.meepledPosition = idx;
     this.meepleColor = color;
+    this.meepleID = meepleID;
   }
   removeMeeple() {
     this.meepledPosition = -1;
     this.meepleColor = null;
+    this.meepleID = -1;
   }
   addFrame(color: Color) {
     this.frame = color;
@@ -116,19 +119,19 @@ export class Tile {
     sides: Side[],
     src: any,
     meepleColor: Color,
+    meepledPostion: number,
+    meepleID: number,
     defaultMeepleablePositions?: Position[],
-    meepledPostion?: number,
     frame?: Color
   ) {
     this.direction = direction;
     this.sides = sides;
     this.src = src;
     this.meepleColor = meepleColor;
+    this.meepledPosition = meepledPostion;
+    this.meepleID = meepleID;
     if (defaultMeepleablePositions) {
       this.defaultMeepleablePositions = defaultMeepleablePositions;
-    }
-    if (meepledPostion) {
-      this.meepledPosition = meepledPostion;
     }
     if (frame) {
       this.frame = frame;
@@ -136,14 +139,20 @@ export class Tile {
   }
 }
 
-export function newTile(rot: number, tileKind: TileKind): Tile {
-  console.log("newTile");
-  console.log({ tileKind });
+export function newTile(
+  rot: number,
+  tileKind: TileKind,
+  meepleColor: Color,
+  meepledPosition: number,
+  meepleID: number
+): Tile {
   return new Tile(
     rot,
     getSides(tileKind),
     getSrc(tileKind),
-    null,
+    meepleColor,
+    meepledPosition,
+    meepleID,
     getDefaultMeeplePositions(tileKind)
   );
 }
@@ -545,7 +554,10 @@ export function getInitialBoard(): (Tile | null)[][] {
   }
   initialBoard[(boardSize - 1) / 2][(boardSize - 1) / 2] = newTile(
     0,
-    "StartingTile"
+    "StartingTile",
+    null,
+    -1,
+    -1
   );
   return initialBoard;
 }
