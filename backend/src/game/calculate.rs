@@ -74,6 +74,8 @@ pub struct TileItem {
     pub tile: Tile,
     pub rot: i32,
     pub feature_starting_id: i32,
+    pub meeple_id: Option<i32>,
+    pub meeple_pos: Option<i32>,
 }
 
 #[derive(PartialEq, Copy, Clone, Debug)]
@@ -1568,6 +1570,7 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
     let mut player0_remaining_meeples = HashSet::from([0, 1, 2, 3, 4, 5, 6]);
     let mut player1_remaining_meeples = HashSet::from([7, 8, 9, 10, 11, 12, 13]);
     let mut tile_id_to_pos = HashMap::<i32, (i32, i32)>::new();
+    let mut meeple_id_to_pos = HashMap::<i32, (i32, i32)>::new();
 
     for mv in moves {
         match mv {
@@ -1577,6 +1580,8 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                     tile: m.tile,
                     rot: m.rot,
                     feature_starting_id: current_feature_id,
+                    meeple_id: None,
+                    meeple_pos: None,
                 };
 
                 create_mergeable_features(&mut mergeable_features, &current_tile);
@@ -1782,6 +1787,19 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                                 ));
                             }
                             mergeable_features.place_meeple(feature_id as usize, m.meeple_id);
+                            board.insert(
+                                (y, x),
+                                TileItem {
+                                    id: board[&(y, x)].id,
+                                    tile: board[&(y, x)].tile,
+                                    feature_starting_id: board[&(y, x)].feature_starting_id,
+                                    rot: board[&(y, x)].rot,
+                                    meeple_id: Some(m.meeple_id),
+                                    meeple_pos: Some(m.meeple_pos),
+                                },
+                            ); // is there a better way to do this?
+                            assert!(!meeple_id_to_pos.contains_key(&m.meeple_id));
+                            meeple_id_to_pos.insert(m.meeple_id, (y, x));
                             if m.meeple_id < 7 {
                                 // FIXME
                                 player0_remaining_meeples.remove(&m.meeple_id);
@@ -1819,6 +1837,21 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                                         player1_meeples += 1;
                                         player1_remaining_meeples.insert(*meeple_id);
                                     }
+                                    assert!(meeple_id_to_pos.contains_key(meeple_id));
+                                    let pos = meeple_id_to_pos.get(meeple_id).unwrap();
+                                    assert!(board.contains_key(&pos));
+                                    board.insert(
+                                        *pos,
+                                        TileItem {
+                                            id: board[pos].id,
+                                            tile: board[pos].tile,
+                                            feature_starting_id: board[pos].feature_starting_id,
+                                            rot: board[pos].rot,
+                                            meeple_id: None,
+                                            meeple_pos: None,
+                                        },
+                                    );
+                                    meeple_id_to_pos.remove(&meeple_id);
                                 }
                                 if player0_meeples >= player1_meeples {
                                     player0_point += pts;
@@ -1858,6 +1891,7 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                                         if meeple_ids.len() == 0 {
                                             continue;
                                         }
+                                        assert!(meeple_ids.len() == 1);
                                         if meeple_ids[0] < 7 {
                                             player0_point += 9;
                                             player0_remaining_meeples.insert(meeple_ids[0]);
@@ -1865,6 +1899,21 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                                             player1_point += 9;
                                             player1_remaining_meeples.insert(meeple_ids[0]);
                                         }
+                                        assert!(meeple_id_to_pos.contains_key(&meeple_ids[0]));
+                                        let pos = meeple_id_to_pos.get(&meeple_ids[0]).unwrap();
+                                        assert!(board.contains_key(&pos));
+                                        board.insert(
+                                            *pos,
+                                            TileItem {
+                                                id: board[pos].id,
+                                                tile: board[pos].tile,
+                                                feature_starting_id: board[pos].feature_starting_id,
+                                                rot: board[pos].rot,
+                                                meeple_id: None,
+                                                meeple_pos: None,
+                                            },
+                                        );
+                                        meeple_id_to_pos.remove(&meeple_ids[0]);
                                         complete_events.push(CompleteEvent {
                                             feature: MonasteryFeature,
                                             meeple_ids,
@@ -1966,6 +2015,21 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
         }
     }
 
+    for pos in meeple_id_to_pos.values() {
+        assert!(board.contains_key(pos));
+        board.insert(
+            *pos,
+            TileItem {
+                id: board[pos].id,
+                tile: board[pos].tile,
+                feature_starting_id: board[pos].feature_starting_id,
+                rot: board[pos].rot,
+                meeple_id: None,
+                meeple_pos: None,
+            },
+        );
+    }
+
     assert_eq!(player0_remaining_meeples.len(), 7);
     assert_eq!(player1_remaining_meeples.len(), 7);
 
@@ -1994,6 +2058,8 @@ pub fn calculate_tileable_positions(moves: &Vec<Move>, t: Tile) -> Vec<TileableP
         tile: t,
         rot: 0,
         feature_starting_id: 0,
+        meeple_id: None,
+        meeple_pos: None,
     };
 
     let mut checked = HashMap::new();

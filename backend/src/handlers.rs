@@ -126,5 +126,13 @@ pub fn get_final_events(game: Option<i32>) -> (Status, (ContentType, String)) {
     }
 }
 
+#[get("/board?<game>", format = "application/json")]
+pub fn get_board(game: Option<i32>) -> (Status, (ContentType, String)) {
+    match game::get_board(game) {
+        Ok(board) => (Status::Ok, (ContentType::JSON, to_string(&board).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
 #[options("/<_..>")]
 pub fn all_options() {}

@@ -31,7 +31,7 @@ const player0LastTilePos = ref<TilePosition>({ y: -1, x: -1 });
 const player1LastTilePos = ref<TilePosition>({ y: -1, x: -1 });
 const meepledPositions = ref<Map<number, TilePosition>>(new Map());
 const finished = ref<boolean>(false);
-const remaining_tiles = ref<number>(71);
+const tileCount = ref<number>(1);
 const useMeeple = (
   meeples: Set<number>,
   pos: TilePosition,
@@ -209,15 +209,16 @@ const handlePlaceMeeple = async (pos: number) => {
 
   let meepleID = -1;
   if (pos !== -1) {
-    tiles.value[placingPosition.value.y][placingPosition.value.x]?.placeMeeple(
-      pos,
-      "yellow"
-    );
-
     meepleID = useMeeple(player0Meeples.value, {
       y: placingPosition.value.y,
       x: placingPosition.value.x,
     });
+
+    tiles.value[placingPosition.value.y][placingPosition.value.x]?.placeMeeple(
+      pos,
+      "yellow",
+      meepleID
+    );
   }
 
   if (player0LastTilePos.value.y !== -1) {
@@ -244,7 +245,7 @@ const handlePlaceMeeple = async (pos: number) => {
   );
 
   processCompleteEvents(res.completeEvents);
-  remaining_tiles.value--;
+  tileCount.value++;
 
   placingPosition.value = { y: -1, x: -1 };
   placeablePositions.value = [];
@@ -266,7 +267,7 @@ const handlePlaceMeeple = async (pos: number) => {
     return;
   }
 
-  placingTile.value = newTile(0, idToTileKind(nextTileID.value));
+  placingTile.value = newTile(0, idToTileKind(nextTileID.value), null, -1, -1);
   placeablePositions.value = getPlaceablePositions(placingTile.value);
 };
 
@@ -282,12 +283,12 @@ const processAIMove = async (): Promise<number> => {
 
   const tileMove = moves[moves.length - 2] as TileMove;
   const meepleMove = moves[moves.length - 1] as MeepleMove;
-  const tile = newTile(tileMove.rot, tileMove.tile);
+  const tile = newTile(tileMove.rot, tileMove.tile, null, -1, -1);
   const tilePosY = tileMove.pos.y + Math.floor(boardSize / 2);
   const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
 
   if (meepleMove.meepleID !== -1) {
-    tile.placeMeeple(meepleMove.pos, "red");
+    tile.placeMeeple(meepleMove.pos, "red", meepleMove.meepleID);
     useMeeple(
       player1Meeples.value,
       { y: tilePosY, x: tilePosX },
@@ -307,7 +308,7 @@ const processAIMove = async (): Promise<number> => {
 
   processCompleteEvents(res.completeEvents);
 
-  remaining_tiles.value--;
+  tileCount.value++;
   return res.nextTileID;
 };
 
@@ -321,6 +322,51 @@ const winner = computed(() => {
   }
 });
 
+const updateSituation = async (gameID: number) => {
+  const api = new API();
+  const board = await api.getBoard(gameID);
+  tiles.value = board;
+
+  for (let y = 0; y < tiles.value.length; y++) {
+    for (let x = 0; x < tiles.value[y].length; x++) {
+      if (tiles.value[y][x] !== null) {
+        const meepleID = tiles.value[y][x]?.meepleID;
+        if (meepleID !== -1) {
+          if ((meepleID as number) < 7) {
+            useMeeple(player0Meeples.value, { y, x }, meepleID);
+          } else {
+            useMeeple(player1Meeples.value, { y, x }, meepleID);
+          }
+        }
+      }
+    }
+  }
+
+  player0Point.value = game.value?.player0Point as number;
+  player1Point.value = game.value?.player1Point as number;
+
+  const moves = await api.getMoves(gameID);
+
+  tileCount.value = moves.length / 2;
+  if (moves.length === 2) {
+    return;
+  }
+
+  // frame tiles from last 1 or 2 tile moves
+  for (let i = moves.length - 4; i < moves.length; i += 2) {
+    const tileMove = moves[i] as TileMove;
+    const tilePosY = tileMove.pos.y + Math.floor(boardSize / 2);
+    const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
+    if (tileMove.playerID === 10) {
+      tiles.value[tilePosY][tilePosX]?.addFrame("yellow");
+      player0LastTilePos.value = { y: tilePosY, x: tilePosX };
+    } else {
+      tiles.value[tilePosY][tilePosX]?.addFrame("red");
+      player1LastTilePos.value = { y: tilePosY, x: tilePosX };
+    }
+  }
+};
+
 onMounted(async () => {
   const api = new API();
   const route = useRoute();
@@ -328,19 +374,21 @@ onMounted(async () => {
   const gameID: number = parseInt(route.params.id as string, 10);
   game.value = await api.getGame(gameID);
 
+  await updateSituation(gameID);
+
   nextTileID.value = game.value.nextTileID;
 
   if (game.value.nextPlayerID === 1) {
     nextTileID.value = await processAIMove();
   }
 
-  placingTile.value = newTile(0, idToTileKind(nextTileID.value));
+  placingTile.value = newTile(0, idToTileKind(nextTileID.value), null, -1, -1);
   placeablePositions.value = getPlaceablePositions(placingTile.value);
 });
 
 const currentTile = () => {
   if (nextTileID.value !== null) {
-    return newTile(0, idToTileKind(nextTileID.value));
+    return newTile(0, idToTileKind(nextTileID.value), null, -1, -1);
   }
 };
 const boardStyle = computed(() => {
@@ -400,7 +448,7 @@ const boardStyle = computed(() => {
       :meepleNumber="player1Meeples.size"
       :meepleColor="'red'"
     />
-    <div>{{ remaining_tiles }} tiles remain</div>
+    <div>{{ 72 - tileCount }} tiles remain</div>
   </div>
   <div class="board mt-3" :style="boardStyle">
     <GameBoard

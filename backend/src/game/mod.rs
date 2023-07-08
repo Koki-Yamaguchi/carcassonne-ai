@@ -1,3 +1,4 @@
+pub mod board;
 pub mod calculate;
 pub mod calculate_next_move;
 pub mod decoder;
@@ -13,6 +14,8 @@ use rocket::serde::Serialize;
 use crate::database;
 use crate::error::{bad_request_error, Error};
 
+use self::board::BoardTile;
+use self::calculate::calculate;
 use self::tile::tiles;
 use mov::Move::*;
 use mov::{MeepleMove, TileMove};
@@ -387,4 +390,60 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
         next_tile_id: gm.next_tile_id.unwrap(),
         next_player_id: gm.next_player_id.unwrap(),
     })
+}
+
+pub fn get_board(game_id: Option<i32>) -> Result<Vec<Vec<BoardTile>>, Error> {
+    let gid = match game_id {
+        Some(gid) => gid,
+        None => {
+            return Err(bad_request_error(
+                "parameter `game_id` is required".to_string(),
+            ))
+        }
+    };
+
+    let moves = match database::list_moves(gid) {
+        Ok(mvs) => mvs,
+        Err(e) => {
+            return Err(e);
+        }
+    };
+
+    let b = match calculate(&moves, false) {
+        Ok(s) => s.board,
+        Err(e) => {
+            return Err(e);
+        }
+    };
+
+    let board_size = 20 * 2 + 1;
+    let mut board = vec![
+        vec![
+            BoardTile {
+                id: -1,
+                rot: -1,
+                meeple_id: -1,
+                meeple_pos: -1,
+            };
+            board_size
+        ];
+        board_size
+    ];
+    for ((y, x), t) in b.iter() {
+        board[(*y + board_size as i32 / 2) as usize][(*x + board_size as i32 / 2) as usize] =
+            BoardTile {
+                id: t.tile.to_id(),
+                rot: t.rot,
+                meeple_id: match t.meeple_id {
+                    Some(mid) => mid,
+                    None => -1,
+                },
+                meeple_pos: match t.meeple_pos {
+                    Some(mpos) => mpos,
+                    None => -1,
+                },
+            }
+    }
+
+    Ok(board)
 }

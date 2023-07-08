@@ -1,9 +1,11 @@
-import { TileKind } from "./tiles";
+import { TileKind, Tile } from "./tiles";
 
 export interface Game {
   id: number;
   player0ID: number;
   player1ID: number;
+  player0Point: number;
+  player1Point: number;
   nextPlayerID: number;
   nextTileID: number;
 }
@@ -30,6 +32,7 @@ export interface CompleteEvent {
 }
 
 export interface TileMove {
+  playerID: number;
   ord: number;
   tile: TileKind;
   pos: TilePosition;
@@ -37,9 +40,12 @@ export interface TileMove {
 }
 
 export interface MeepleMove {
+  playerID: number;
   ord: number;
   meepleID: number;
   pos: number;
 }
 
 export type Move = TileMove | MeepleMove;
+
+export type Board = Tile[][];

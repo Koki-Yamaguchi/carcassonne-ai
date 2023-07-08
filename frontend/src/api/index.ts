@@ -1,4 +1,5 @@
 import axios from "axios";
+import { idToTileKind, newTile } from "../tiles";
 import {
   Game,
   MeepleMoveResult,
@@ -7,6 +8,7 @@ import {
   Move,
   TileMove,
   MeepleMove,
+  Board,
 } from "../types";
 
 export class API {
@@ -33,6 +35,8 @@ export class API {
         id: res.data.id,
         player0ID: res.data.player0_id,
         player1ID: res.data.player1_id,
+        player0Point: res.data.player0_point,
+        player1Point: res.data.player1_point,
         nextPlayerID: res.data.next_player_id,
         nextTileID: res.data.next_tile_id,
       };
@@ -163,6 +167,7 @@ export class API {
       const moves = res.data.map((mv: any, idx: number) => {
         if (idx % 2 === 0) {
           const tm: TileMove = {
+            playerID: mv.TMove.player_id,
             ord: mv.TMove.ord,
             tile: mv.TMove.tile,
             pos: { y: mv.TMove.pos[0], x: mv.TMove.pos[1] },
@@ -171,6 +176,7 @@ export class API {
           return tm;
         } else {
           const mm: MeepleMove = {
+            playerID: mv.MMove.player_id,
             ord: mv.MMove.ord,
             meepleID: mv.MMove.meeple_id,
             pos: mv.MMove.meeple_pos,
@@ -205,6 +211,35 @@ export class API {
         nextTileID: res.data.next_tile_id,
       };
       return meepleMoveResult;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async getBoard(gameID: number): Promise<Board> {
+    try {
+      const res = await axios.get(`${this.base_url}/board?game=${gameID}`);
+      const board = res.data.map((row: any) => {
+        return row.map((tile: any) => {
+          const meepleColor =
+            tile.meeple_id === -1
+              ? null
+              : tile.meeple_id < 7
+              ? "yellow"
+              : "red";
+          return tile.id === -1
+            ? null
+            : newTile(
+                tile.rot,
+                idToTileKind(tile.id),
+                meepleColor,
+                tile.meeple_pos,
+                tile.meeple_id
+              );
+        });
+      });
+      return board;
     } catch (e) {
       console.log({ e });
       throw e;
