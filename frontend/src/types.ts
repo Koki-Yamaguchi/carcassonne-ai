@@ -48,4 +48,8 @@ export interface MeepleMove {
 
 export type Move = TileMove | MeepleMove;
 
-export type Board = Tile[][];
+export interface Board {
+  player0Point: number;
+  player1Point: number;
+  tiles: Tile[][];
+}

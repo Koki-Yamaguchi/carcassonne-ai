@@ -172,11 +172,16 @@ pub fn update_game(
     }
 }
 
-pub fn list_moves(gmid: i32) -> Result<Vec<mov::Move>, Error> {
+pub fn list_moves(gmid: i32, move_id: Option<i32>) -> Result<Vec<mov::Move>, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     use self::schema::move_::dsl::*;
+    let max_ord = match move_id {
+        Some(mid) => mid,
+        None => 1000,
+    };
     match move_
         .filter(game_id.eq(gmid))
+        .filter(ord.le(max_ord))
         .order(ord.asc())
         .load::<QueryMove>(conn)
     {

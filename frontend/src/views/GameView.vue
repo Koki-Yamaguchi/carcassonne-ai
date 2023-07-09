@@ -32,6 +32,7 @@ const player1LastTilePos = ref<TilePosition>({ y: -1, x: -1 });
 const meepledPositions = ref<Map<number, TilePosition>>(new Map());
 const finished = ref<boolean>(false);
 const tileCount = ref<number>(1);
+const replayMove = ref<number>(144 - 1);
 const useMeeple = (
   meeples: Set<number>,
   pos: TilePosition,
@@ -56,6 +57,11 @@ const retrieveMeeple = (meeples: Set<number>, meeple: number): TilePosition => {
     return { y: -1, x: -1 };
   }
   return pos;
+};
+
+const resetMeeples = () => {
+  player0Meeples.value = new Set([0, 1, 2, 3, 4, 5, 6]);
+  player1Meeples.value = new Set([7, 8, 9, 10, 11, 12, 13]);
 };
 
 const getPlaceablePositions = (placingTile: Tile): TilePosition[] => {
@@ -255,6 +261,7 @@ const handlePlaceMeeple = async (pos: number) => {
     const finalEvents = await api.getFinalEevnts(game.value.id);
     processCompleteEvents(finalEvents.completeEvents);
     finished.value = true;
+    placeablePositions.value = [];
     return;
   }
 
@@ -264,6 +271,7 @@ const handlePlaceMeeple = async (pos: number) => {
     const finalEvents = await api.getFinalEevnts(game.value.id);
     processCompleteEvents(finalEvents.completeEvents);
     finished.value = true;
+    placeablePositions.value = [];
     return;
   }
 
@@ -322,11 +330,14 @@ const winner = computed(() => {
   }
 });
 
-const updateSituation = async (gameID: number) => {
+const updateSituation = async (gameID: number, moveID?: number) => {
   const api = new API();
-  const board = await api.getBoard(gameID);
-  tiles.value = board;
+  const board = await api.getBoard(gameID, moveID);
+  tiles.value = board.tiles;
+  player0Point.value = board.player0Point;
+  player1Point.value = board.player1Point;
 
+  resetMeeples();
   for (let y = 0; y < tiles.value.length; y++) {
     for (let x = 0; x < tiles.value[y].length; x++) {
       if (tiles.value[y][x] !== null) {
@@ -342,10 +353,7 @@ const updateSituation = async (gameID: number) => {
     }
   }
 
-  player0Point.value = game.value?.player0Point as number;
-  player1Point.value = game.value?.player1Point as number;
-
-  const moves = await api.getMoves(gameID);
+  const moves = await api.getMoves(gameID, moveID);
 
   tileCount.value = moves.length / 2;
   if (moves.length === 2) {
@@ -368,7 +376,17 @@ const updateSituation = async (gameID: number) => {
 
   if (tileCount.value === 72) {
     finished.value = true;
+    placeablePositions.value = [];
   }
+};
+
+const goPrev = () => {
+  replayMove.value -= 2;
+  updateSituation(game.value?.id as number, replayMove.value);
+};
+const goNext = () => {
+  replayMove.value += 2;
+  updateSituation(game.value?.id as number, replayMove.value);
 };
 
 onMounted(async () => {
@@ -379,6 +397,10 @@ onMounted(async () => {
   game.value = await api.getGame(gameID);
 
   await updateSituation(gameID);
+
+  if (finished.value) {
+    return;
+  }
 
   nextTileID.value = game.value.nextTileID;
 
@@ -432,11 +454,27 @@ const boardStyle = computed(() => {
     </div>
   </div>
   <div v-else>
-    <div class="bg-orange-100 rounded text-orange-900 px-4 py-3 shadow-md flex">
-      <p v-if="winner !== 'tie'" class="flex flex-col justify-center mr-3">
-        {{ winner }} wins!
-      </p>
-      <p v-else>tie!</p>
+    <div class="bg-orange-100 rounded text-orange-900 px-4 py-3 shadow-md">
+      <div v-if="tileCount === 72">
+        <p v-if="winner !== 'tie'" class="flex flex-col justify-center mr-3">
+          {{ winner }} wins!
+        </p>
+        <p v-else>tie!</p>
+      </div>
+      <div class="flex gap-2">
+        <button
+          class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
+          @click="goPrev"
+        >
+          Previous
+        </button>
+        <button
+          class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
+          @click="goNext"
+        >
+          Next
+        </button>
+      </div>
     </div>
   </div>
   <div class="infos flex flex-wrap">

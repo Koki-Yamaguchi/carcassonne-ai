@@ -14,7 +14,7 @@ use rocket::serde::Serialize;
 use crate::database;
 use crate::error::{bad_request_error, Error};
 
-use self::board::BoardTile;
+use self::board::{Board, BoardTile};
 use self::calculate::calculate;
 use self::tile::tiles;
 use mov::Move::*;
@@ -124,7 +124,7 @@ pub fn create_tile_move(
     rot: i32,
     pos: (i32, i32),
 ) -> Result<MeepleablePositions, Error> {
-    let mut moves = match database::list_moves(game_id) {
+    let mut moves = match database::list_moves(game_id, None) {
         Ok(mvs) => mvs,
         Err(e) => {
             return Err(e);
@@ -170,7 +170,7 @@ pub fn create_meeple_move(
     meeple_pos: i32,
 ) -> Result<MeepleMoveResult, Error> {
     let mut rng = rand::thread_rng();
-    let mut moves = match database::list_moves(game_id) {
+    let mut moves = match database::list_moves(game_id, None) {
         Ok(mvs) => mvs,
         Err(e) => {
             return Err(e);
@@ -272,7 +272,7 @@ pub fn wait_ai_move(game_id: i32) -> Result<MeepleMoveResult, Error> {
         }
     };
 
-    let moves = match database::list_moves(game.id) {
+    let moves = match database::list_moves(game.id, None) {
         Ok(mvs) => mvs,
         Err(e) => {
             return Err(e);
@@ -319,9 +319,9 @@ pub fn get_games(player_id: Option<i32>) -> Result<Vec<Game>, Error> {
     database::get_games(player_id)
 }
 
-pub fn get_moves(game_id: Option<i32>) -> Result<Vec<mov::Move>, Error> {
+pub fn get_moves(game_id: Option<i32>, move_id: Option<i32>) -> Result<Vec<mov::Move>, Error> {
     match game_id {
-        Some(gid) => database::list_moves(gid),
+        Some(gid) => database::list_moves(gid, move_id),
         None => Err(bad_request_error(
             "parameter `game_id` is required".to_string(),
         )),
@@ -338,7 +338,7 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
         }
     };
 
-    let moves = match database::list_moves(gid) {
+    let moves = match database::list_moves(gid, None) {
         Ok(mvs) => mvs,
         Err(e) => {
             return Err(e);
@@ -392,7 +392,7 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
     })
 }
 
-pub fn get_board(game_id: Option<i32>) -> Result<Vec<Vec<BoardTile>>, Error> {
+pub fn get_board(game_id: Option<i32>, move_id: Option<i32>) -> Result<Board, Error> {
     let gid = match game_id {
         Some(gid) => gid,
         None => {
@@ -402,22 +402,22 @@ pub fn get_board(game_id: Option<i32>) -> Result<Vec<Vec<BoardTile>>, Error> {
         }
     };
 
-    let moves = match database::list_moves(gid) {
+    let moves = match database::list_moves(gid, move_id) {
         Ok(mvs) => mvs,
         Err(e) => {
             return Err(e);
         }
     };
 
-    let b = match calculate(&moves, false) {
-        Ok(s) => s.board,
+    let (player0_point, player1_point, b) = match calculate(&moves, moves.len() == 144) {
+        Ok(s) => (s.player0_point, s.player1_point, s.board),
         Err(e) => {
             return Err(e);
         }
     };
 
     let board_size = 20 * 2 + 1;
-    let mut board = vec![
+    let mut tiles = vec![
         vec![
             BoardTile {
                 id: -1,
@@ -430,7 +430,7 @@ pub fn get_board(game_id: Option<i32>) -> Result<Vec<Vec<BoardTile>>, Error> {
         board_size
     ];
     for ((y, x), t) in b.iter() {
-        board[(*y + board_size as i32 / 2) as usize][(*x + board_size as i32 / 2) as usize] =
+        tiles[(*y + board_size as i32 / 2) as usize][(*x + board_size as i32 / 2) as usize] =
             BoardTile {
                 id: t.tile.to_id(),
                 rot: t.rot,
@@ -445,5 +445,9 @@ pub fn get_board(game_id: Option<i32>) -> Result<Vec<Vec<BoardTile>>, Error> {
             }
     }
 
-    Ok(board)
+    Ok(Board {
+        player0_point,
+        player1_point,
+        tiles,
+    })
 }
