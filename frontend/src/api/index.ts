@@ -160,9 +160,11 @@ export class API {
     }
   }
 
-  async getMoves(gameID: number): Promise<Move[]> {
+  async getMoves(gameID: number, moveID?: number): Promise<Move[]> {
     try {
-      const res = await axios.get(`${this.base_url}/moves?game=${gameID}`);
+      const res = await axios.get(
+        `${this.base_url}/moves?game=${gameID}` + (moveID ? `&m=${moveID}` : "")
+      );
       console.log({ res });
       const moves = res.data.map((mv: any, idx: number) => {
         if (idx % 2 === 0) {
@@ -217,28 +219,34 @@ export class API {
     }
   }
 
-  async getBoard(gameID: number): Promise<Board> {
+  async getBoard(gameID: number, moveID?: number): Promise<Board> {
     try {
-      const res = await axios.get(`${this.base_url}/board?game=${gameID}`);
-      const board = res.data.map((row: any) => {
-        return row.map((tile: any) => {
-          const meepleColor =
-            tile.meeple_id === -1
+      const res = await axios.get(
+        `${this.base_url}/board?game=${gameID}` + (moveID ? `&m=${moveID}` : "")
+      );
+      const board: Board = {
+        player0Point: res.data.player0_point,
+        player1Point: res.data.player1_point,
+        tiles: res.data.tiles.map((row: any) => {
+          return row.map((tile: any) => {
+            const meepleColor =
+              tile.meeple_id === -1
+                ? null
+                : tile.meeple_id < 7
+                ? "yellow"
+                : "red";
+            return tile.id === -1
               ? null
-              : tile.meeple_id < 7
-              ? "yellow"
-              : "red";
-          return tile.id === -1
-            ? null
-            : newTile(
-                tile.rot,
-                idToTileKind(tile.id),
-                meepleColor,
-                tile.meeple_pos,
-                tile.meeple_id
-              );
-        });
-      });
+              : newTile(
+                  tile.rot,
+                  idToTileKind(tile.id),
+                  meepleColor,
+                  tile.meeple_pos,
+                  tile.meeple_id
+                );
+          });
+        }),
+      };
       return board;
     } catch (e) {
       console.log({ e });
