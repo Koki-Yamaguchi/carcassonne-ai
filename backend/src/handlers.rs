@@ -136,3 +136,8 @@ pub fn get_board(game: Option<i32>, m: Option<i32>) -> (Status, (ContentType, St
 
 #[options("/<_..>")]
 pub fn all_options() {}
+
+#[get("/health", format = "application/json")]
+pub fn health() -> (Status, (ContentType, String)) {
+    (Status::Ok, (ContentType::JSON, "".to_string()))
+}
