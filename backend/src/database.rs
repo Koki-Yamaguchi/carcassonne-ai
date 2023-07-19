@@ -19,7 +19,6 @@ struct NewPlayer {
 #[derive(Insertable)]
 #[diesel(table_name = schema::game)]
 struct NewGame {
-    note: String,
     player0_id: i32,
     player1_id: i32,
     player0_point: i32,
@@ -114,14 +113,12 @@ pub fn get_game(gmid: i32) -> Result<game::Game, Error> {
 }
 
 pub fn create_game(
-    note: String,
     player0_id: i32,
     player1_id: i32,
     next_tile_id: Option<i32>,
     next_player_id: Option<i32>,
 ) -> Result<game::Game, Error> {
     let new_game = NewGame {
-        note,
         player0_id,
         player1_id,
         player0_point: 0,
@@ -156,10 +153,10 @@ pub fn update_game(
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     match diesel::update(game.find(gmid))
         .set((
-            next_tile_id.eq(next_tid),
-            next_player_id.eq(next_pid),
             player0_point.eq(p0_point),
             player1_point.eq(p1_point),
+            next_tile_id.eq(next_tid),
+            next_player_id.eq(next_pid),
         ))
         .get_result(conn)
     {

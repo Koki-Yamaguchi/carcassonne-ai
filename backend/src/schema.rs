@@ -3,15 +3,14 @@
 diesel::table! {
     game (id) {
         id -> Int4,
-        note -> Text,
         player0_id -> Int4,
         player1_id -> Int4,
         player0_point -> Int4,
         player1_point -> Int4,
-        created_at -> Timestamp,
-        ended_at -> Nullable<Timestamp>,
         next_tile_id -> Nullable<Int4>,
         next_player_id -> Nullable<Int4>,
+        created_at -> Timestamp,
+        ended_at -> Nullable<Timestamp>,
     }
 }
 
@@ -41,4 +40,8 @@ diesel::table! {
 diesel::joinable!(move_ -> game (game_id));
 diesel::joinable!(move_ -> player (player_id));
 
-diesel::allow_tables_to_appear_in_same_query!(game, move_, player,);
+diesel::allow_tables_to_appear_in_same_query!(
+    game,
+    move_,
+    player,
+);

@@ -37,7 +37,6 @@ pub struct WaitAIMove {
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct CreateGame {
-    pub note: String,
     pub player0_id: i32,
     pub player1_id: i32,
 }
@@ -68,7 +67,7 @@ pub fn get_game(game_id: i32) -> (Status, (ContentType, String)) {
 
 #[post("/games/create", format = "application/json", data = "<params>")]
 pub fn create_game(params: Json<CreateGame>) -> (Status, (ContentType, String)) {
-    match game::create_game(params.note.clone(), params.player0_id, params.player1_id) {
+    match game::create_game(params.player0_id, params.player1_id) {
         Ok(game) => (Status::Ok, (ContentType::JSON, to_string(&game).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }

@@ -1,3 +1,3 @@
-curl -X GET "http://127.0.0.1:8000/games/31" \
+curl -X GET "http://0.0.0.0:8000/games/31" \
     -H "Content-Type: application/json" \
 
