@@ -58,6 +58,8 @@ export class API {
         id: res.data.id,
         player0ID: res.data.player0_id,
         player1ID: res.data.player1_id,
+        player0Point: res.data.player0_point,
+        player1Point: res.data.player1_point,
         nextPlayerID: res.data.next_player_id,
         nextTileID: res.data.next_tile_id,
       };
