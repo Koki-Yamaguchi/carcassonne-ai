@@ -14,7 +14,7 @@ import {
 export class API {
   base_url: string;
   constructor() {
-    this.base_url = "http://127.0.0.1:8000";
+    this.base_url = "http://0.0.0.0:8000";
   }
 
   async getGames() {

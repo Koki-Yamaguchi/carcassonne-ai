@@ -159,7 +159,7 @@ const confirm = async () => {
   const api = new API();
   const res = await api.createTileMove(
     game.value.id,
-    10,
+    0,
     nextTileID.value,
     placingTile.value.direction,
     placingPosition.value.y - Math.floor(boardSize / 2),
@@ -243,7 +243,7 @@ const handlePlaceMeeple = async (pos: number) => {
   const api = new API();
   const res = await api.createMeepleMove(
     game.value.id,
-    10,
+    0,
     meepleID,
     pos,
     tilePosY,
@@ -365,7 +365,7 @@ const updateSituation = async (gameID: number, moveID?: number) => {
     const tileMove = moves[i] as TileMove;
     const tilePosY = tileMove.pos.y + Math.floor(boardSize / 2);
     const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
-    if (tileMove.playerID === 10) {
+    if (tileMove.playerID === 0) {
       tiles.value[tilePosY][tilePosX]?.addFrame("yellow");
       player0LastTilePos.value = { y: tilePosY, x: tilePosX };
     } else {
