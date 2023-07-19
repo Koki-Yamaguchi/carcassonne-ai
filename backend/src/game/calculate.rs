@@ -1815,6 +1815,9 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                 match board.get(&(y, x)) {
                     Some(t) => {
                         for f in &t.features() {
+                            if mergeable_features.is_done(f.id as usize) {
+                                continue;
+                            }
                             if mergeable_features.is_completed(f.id as usize) {
                                 let sz = mergeable_features.size(f.id as usize);
                                 let meeple_ids = mergeable_features.get_meeples(f.id as usize);
@@ -1864,6 +1867,7 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                                     meeple_ids,
                                     point: pts,
                                 });
+                                mergeable_features.set_as_done(f.id as usize);
                             }
                         }
                     }

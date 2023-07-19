@@ -27,15 +27,14 @@ use tile::Tile::*;
 #[diesel(table_name = schema::game)]
 pub struct Game {
     pub id: i32,
-    pub note: String,
     pub player0_id: i32,
     pub player1_id: i32,
     pub player0_point: i32,
     pub player1_point: i32,
-    pub created_at: chrono::NaiveDateTime,
-    pub ended_at: Option<chrono::NaiveDateTime>,
     pub next_tile_id: Option<i32>,
     pub next_player_id: Option<i32>,
+    pub created_at: chrono::NaiveDateTime,
+    pub ended_at: Option<chrono::NaiveDateTime>,
 }
 
 #[derive(Serialize, Queryable, Clone)]
@@ -59,7 +58,7 @@ pub struct MeepleMoveResult {
     pub next_player_id: i32,
 }
 
-pub fn create_game(note: String, player0_id: i32, player1_id: i32) -> Result<Game, Error> {
+pub fn create_game(player0_id: i32, player1_id: i32) -> Result<Game, Error> {
     let mut rng = rand::thread_rng();
     let first_player_id = if rng.gen_range(0..2) < 1 {
         player0_id
@@ -76,7 +75,6 @@ pub fn create_game(note: String, player0_id: i32, player1_id: i32) -> Result<Gam
     let next_tile = tiles[rng.gen_range(0..tiles.len())];
 
     let g = match database::create_game(
-        note,
         player0_id,
         player1_id,
         Some(next_tile.to_id()),

@@ -1,0 +1,3 @@
+DROP TABLE move;
+DROP TABLE game;
+DROP TABLE player;

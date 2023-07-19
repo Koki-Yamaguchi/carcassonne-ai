@@ -13,6 +13,7 @@ use handlers::create_player;
 use handlers::get_board;
 use handlers::get_final_events;
 use handlers::get_moves;
+use handlers::health;
 use handlers::wait_ai_move;
 use handlers::{create_game, get_game, get_games};
 use handlers::{create_meeple_move, create_tile_move};
@@ -59,6 +60,7 @@ fn rocket() -> _ {
             get_final_events,
             get_board,
             all_options,
+            health,
         ],
     )
 }

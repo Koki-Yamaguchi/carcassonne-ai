@@ -121,7 +121,9 @@ pub fn calculate_next_move(
 
                 let s = match calculate(&mvs, false) {
                     Ok(s) => s,
-                    Err(e) => panic!("{:?}", e.detail.msg),
+                    Err(e) => {
+                        panic!("{:?}", e.detail.msg);
+                    }
                 };
 
                 let remaining_meeples = if player_id == player0_id {
