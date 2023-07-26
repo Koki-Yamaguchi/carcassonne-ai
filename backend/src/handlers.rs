@@ -41,6 +41,14 @@ pub struct CreateGame {
     pub player1_id: i32,
 }
 
+#[get("/players?<user>", format = "application/json")]
+pub fn get_player(user: String) -> (Status, (ContentType, String)) {
+    match database::get_player(user) {
+        Ok(player) => (Status::Ok, (ContentType::JSON, to_string(&player).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
 #[post("/players/create", format = "application/json", data = "<params>")]
 pub fn create_player(params: Json<player::CreatePlayer>) -> (Status, (ContentType, String)) {
     match database::create_player(

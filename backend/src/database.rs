@@ -57,6 +57,23 @@ pub struct QueryMove {
     pub meeple_pos: i32,
 }
 
+pub fn get_player(uid: String) -> Result<player::Player, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    use self::schema::player::dsl::{player as p, user_id};
+
+    match p.filter(user_id.eq(uid)).load::<player::Player>(conn) {
+        Ok(ps) => {
+            if ps.len() == 0 {
+                return Err(not_found_error("player".to_string()));
+            }
+            return Ok(ps[0].clone());
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
 pub fn create_player(
     name: String,
     email: String,
