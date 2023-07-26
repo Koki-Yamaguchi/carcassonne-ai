@@ -34,6 +34,8 @@ diesel::table! {
     player (id) {
         id -> Int4,
         name -> Varchar,
+        email -> Text,
+        user_id -> Text,
     }
 }
 

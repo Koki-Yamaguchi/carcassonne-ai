@@ -43,7 +43,11 @@ pub struct CreateGame {
 
 #[post("/players/create", format = "application/json", data = "<params>")]
 pub fn create_player(params: Json<player::CreatePlayer>) -> (Status, (ContentType, String)) {
-    match database::create_player(params.name.clone()) {
+    match database::create_player(
+        params.name.clone(),
+        params.email.clone(),
+        params.user_id.clone(),
+    ) {
         Ok(player) => (Status::Ok, (ContentType::JSON, to_string(&player).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
