@@ -1,0 +1,2 @@
+ALTER TABLE player DROP COLUMN email;
+ALTER TABLE player DROP COLUMN user_id;

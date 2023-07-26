@@ -14,6 +14,8 @@ use crate::schema;
 #[diesel(table_name = schema::player)]
 struct NewPlayer {
     name: String,
+    email: String,
+    user_id: String,
 }
 
 #[derive(Insertable)]
@@ -55,9 +57,17 @@ pub struct QueryMove {
     pub meeple_pos: i32,
 }
 
-pub fn create_player(name: String) -> Result<player::Player, Error> {
+pub fn create_player(
+    name: String,
+    email: String,
+    user_id: String,
+) -> Result<player::Player, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
-    let new_player = NewPlayer { name: name };
+    let new_player = NewPlayer {
+        name,
+        email,
+        user_id,
+    };
     match diesel::insert_into(schema::player::table)
         .values(&new_player)
         .get_result(conn)

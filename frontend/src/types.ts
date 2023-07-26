@@ -1,5 +1,12 @@
 import { TileKind, Tile } from "./tiles";
 
+export interface Player {
+  id: number;
+  name: string;
+  email: string;
+  userID: string;
+}
+
 export interface Game {
   id: number;
   player0ID: number;

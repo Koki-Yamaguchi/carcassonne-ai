@@ -16,6 +16,13 @@ const createGame = async () => {
 
 <template>
   <div>
-    <button @click="createGame()">Play</button>
+    <div class="flex flex-col items-center">
+      <button
+        class="mt-4 bg-gray-500 hover:bg-gray-400 text-[#eeeeee] rounded px-4 py-2"
+        @click="createGame"
+      >
+        Play
+      </button>
+    </div>
   </div>
 </template>

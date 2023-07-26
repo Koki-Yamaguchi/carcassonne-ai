@@ -5,6 +5,8 @@ use rocket::serde::{Deserialize, Serialize};
 #[serde(crate = "rocket::serde")]
 pub struct CreatePlayer {
     pub name: String,
+    pub email: String,
+    pub user_id: String,
 }
 
 #[derive(Serialize, Queryable, Clone)]
@@ -12,4 +14,6 @@ pub struct CreatePlayer {
 pub struct Player {
     pub id: i32,
     pub name: String,
+    pub email: String,
+    pub user_id: String,
 }

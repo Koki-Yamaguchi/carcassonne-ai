@@ -9,12 +9,37 @@ import {
   TileMove,
   MeepleMove,
   Board,
+  Player,
 } from "../types";
 
 export class API {
   base_url: string;
   constructor() {
     this.base_url = "http://0.0.0.0:8000";
+  }
+
+  async createPlayer(
+    name: string,
+    email: string,
+    userID: string
+  ): Promise<Player> {
+    try {
+      const res = await axios.post(`${this.base_url}/players/create`, {
+        name,
+        email,
+        user_id: userID,
+      });
+      const player: Player = {
+        id: res.data.id,
+        name: res.data.name,
+        email: res.data.email,
+        userID: res.data.user_id,
+      };
+      return player;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
   }
 
   async getGames() {
