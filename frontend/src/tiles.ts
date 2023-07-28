@@ -53,6 +53,15 @@ type Side = "field" | "road" | "city";
 
 export type Color = "red" | "yellow" | "green" | "black" | "blue" | null;
 
+export const colorIDToColor = (colorID: number): Color => {
+  if (colorID === 0) return "red";
+  if (colorID === 1) return "yellow";
+  if (colorID === 2) return "green";
+  if (colorID === 3) return "black";
+  if (colorID === 4) return "blue";
+  return null;
+};
+
 export type Position = {
   idx: number;
   y: number;
