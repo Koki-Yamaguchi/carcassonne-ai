@@ -13,7 +13,7 @@ const signout = () => {
 </script>
 
 <template>
-  <div class="bg-green-200 w-full h-14 flex justify-between px-4">
+  <div class="bg-gray-200 w-full h-14 flex justify-between px-4">
     <div class="flex flex-col justify-center text-lg" @click="router.push('/')">
       <div>Carcassonne AI</div>
     </div>

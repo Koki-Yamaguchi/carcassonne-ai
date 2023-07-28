@@ -18,6 +18,23 @@ export class API {
     this.base_url = "http://0.0.0.0:8000";
   }
 
+  async getPlayer(userID: string): Promise<Player> {
+    try {
+      const res = await axios.get(`${this.base_url}/players?user=${userID}`);
+      console.log({ res });
+      const p: Player = {
+        id: res.data.id,
+        name: res.data.name,
+        userID: res.data.user_id,
+        email: res.data.email,
+      };
+      return p;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
   async createPlayer(
     name: string,
     email: string,

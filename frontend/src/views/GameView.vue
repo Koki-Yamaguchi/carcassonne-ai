@@ -8,12 +8,14 @@ import {
   TilePosition,
   TileMove,
   MeepleMove,
+  Player,
 } from "../types";
 import { Tile } from "../tiles";
 import GameBoard from "../components/GameBoard.vue";
 import { newTile, idToTileKind, boardSize, getInitialBoard } from "../tiles";
 import PlayerInfo from "../components/PlayerInfo.vue";
 import WoodImg from "../assets/img/background-wood.png";
+import { store } from "../store";
 
 const game = ref<Game | null>(null);
 const tiles = ref<(Tile | null)[][]>(getInitialBoard());
@@ -23,6 +25,7 @@ const placeablePositions = ref<TilePosition[]>([]);
 const placeableDirections = ref<number[]>([]);
 const placingPosition = ref<TilePosition>({ y: -1, x: -1 });
 const meepleablePositions = ref<number[]>([]);
+const player = ref<Player | null>(null);
 const player0Meeples = ref<Set<number>>(new Set([0, 1, 2, 3, 4, 5, 6]));
 const player1Meeples = ref<Set<number>>(new Set([7, 8, 9, 10, 11, 12, 13]));
 const player0Point = ref<number>(0);
@@ -159,7 +162,7 @@ const confirm = async () => {
   const api = new API();
   const res = await api.createTileMove(
     game.value.id,
-    0,
+    game.value.player0ID,
     nextTileID.value,
     placingTile.value.direction,
     placingPosition.value.y - Math.floor(boardSize / 2),
@@ -243,7 +246,7 @@ const handlePlaceMeeple = async (pos: number) => {
   const api = new API();
   const res = await api.createMeepleMove(
     game.value.id,
-    0,
+    game.value.player0ID,
     meepleID,
     pos,
     tilePosY,
@@ -322,7 +325,7 @@ const processAIMove = async (): Promise<number> => {
 
 const winner = computed(() => {
   if (player0Point.value > player1Point.value) {
-    return "KokiYamaguchi";
+    return player.value ? player.value.name : "";
   } else if (player0Point.value < player1Point.value) {
     return "AI";
   } else {
@@ -395,6 +398,8 @@ onMounted(async () => {
 
   const gameID: number = parseInt(route.params.id as string, 10);
   game.value = await api.getGame(gameID);
+
+  player.value = await api.getPlayer(store.userID);
 
   await updateSituation(gameID);
 
@@ -479,7 +484,7 @@ const boardStyle = computed(() => {
   </div>
   <div class="infos flex flex-wrap">
     <PlayerInfo
-      :name="'KokiYamaguchi'"
+      :name="player ? player.name : ''"
       :point="player0Point"
       :meepleNumber="player0Meeples.size"
       :meepleColor="'yellow'"
