@@ -36,6 +36,30 @@ export class API {
     }
   }
 
+  async updatePlayer(
+    id: number,
+    name: string,
+    meepleColor: number
+  ): Promise<Player> {
+    try {
+      const res = await axios.post(`${this.base_url}/players/${id}/update`, {
+        name,
+        meeple_color: Number(meepleColor),
+      });
+      const player: Player = {
+        id: res.data.id,
+        name: res.data.name,
+        email: res.data.email,
+        userID: res.data.user_id,
+        meepleColor: colorIDToColor(res.data.meeple_color),
+      };
+      return player;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
   async createPlayer(
     name: string,
     email: string,

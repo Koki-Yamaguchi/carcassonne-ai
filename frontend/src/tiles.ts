@@ -62,6 +62,15 @@ export const colorIDToColor = (colorID: number): Color => {
   return null;
 };
 
+export const colorToColorID = (color: Color): number => {
+  if (color === "red") return 0;
+  if (color === "yellow") return 1;
+  if (color === "green") return 2;
+  if (color === "black") return 3;
+  if (color === "blue") return 4;
+  return -1;
+};
+
 export type Position = {
   idx: number;
   y: number;

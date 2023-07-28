@@ -1,15 +1,9 @@
 <script setup lang="ts">
-import { getAuth, signOut } from "firebase/auth";
 import { useRouter } from "vue-router";
 import { store } from "../store";
+import CogIcon from "./CogIcon.vue";
 
 const router = useRouter();
-const signout = () => {
-  const auth = getAuth();
-  signOut(auth);
-  store.setAuthenticated(false);
-  router.push("/signin");
-};
 </script>
 
 <template>
@@ -24,8 +18,12 @@ const signout = () => {
     >
       <div>Sign In</div>
     </div>
-    <div v-else class="flex flex-col justify-center text-lg" @click="signout">
-      Sign Out
+    <div
+      v-else
+      class="flex flex-col justify-center"
+      @click="router.push('/settings')"
+    >
+      <CogIcon />
     </div>
   </div>
   <slot />

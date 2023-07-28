@@ -3,6 +3,7 @@ import HomeView from "../views/HomeView.vue";
 import GameView from "../views/GameView.vue";
 import SignupView from "../views/SignupView.vue";
 import SigninView from "../views/SigninView.vue";
+import SettingsView from "../views/SettingsView.vue";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { store } from "../store";
 
@@ -29,13 +30,11 @@ const router = createRouter({
       name: "game",
       component: GameView,
     },
-    /*
     {
-      path: "/simulator/settings",
+      path: "/settings",
       name: "settings",
       component: SettingsView,
     },
-    */
   ],
 });
 

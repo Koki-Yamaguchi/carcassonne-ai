@@ -15,7 +15,7 @@ const signin = async () => {
     await signInWithEmailAndPassword(auth, email.value, password.value);
     router.push(`/`);
   } catch (e) {
-    error.value = "ログインに失敗しました。再度お試しください。";
+    error.value = "Failed to sign in. Please try again.";
   }
 };
 </script>
@@ -27,7 +27,7 @@ const signin = async () => {
         <div class="md:w-1/3">
           <label
             class="block text-gray-500 md:text-right mb-1 md:mb-0 pr-4"
-            for="inline-password"
+            for="inline-email"
           >
             Email
           </label>
