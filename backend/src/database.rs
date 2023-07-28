@@ -97,6 +97,22 @@ pub fn create_player(
     }
 }
 
+pub fn update_player(pid: i32, nam: String, m_color: i32) -> Result<player::Player, Error> {
+    use self::schema::player::dsl::{meeple_color, name, player};
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    match diesel::update(player.find(pid))
+        .set((name.eq(nam), meeple_color.eq(m_color)))
+        .get_result(conn)
+    {
+        Ok(gm) => {
+            return Ok(gm);
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
 pub fn get_games(player_id: Option<i32>) -> Result<Vec<game::Game>, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     use self::schema::game::dsl::{game as g, player0_id, player1_id};

@@ -49,6 +49,21 @@ pub fn get_player(user: String) -> (Status, (ContentType, String)) {
     }
 }
 
+#[post(
+    "/players/<player_id>/update",
+    format = "application/json",
+    data = "<params>"
+)]
+pub fn update_player(
+    player_id: i32,
+    params: Json<player::UpdatePlayer>,
+) -> (Status, (ContentType, String)) {
+    match database::update_player(player_id, params.name.clone(), params.meeple_color) {
+        Ok(player) => (Status::Ok, (ContentType::JSON, to_string(&player).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
 #[post("/players/create", format = "application/json", data = "<params>")]
 pub fn create_player(params: Json<player::CreatePlayer>) -> (Status, (ContentType, String)) {
     match database::create_player(

@@ -10,6 +10,13 @@ pub struct CreatePlayer {
     pub meeple_color: i32,
 }
 
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct UpdatePlayer {
+    pub name: String,
+    pub meeple_color: i32,
+}
+
 #[derive(Serialize, Queryable, Clone)]
 #[serde(crate = "rocket::serde")]
 pub struct Player {

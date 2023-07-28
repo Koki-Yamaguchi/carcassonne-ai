@@ -14,6 +14,7 @@ use handlers::get_board;
 use handlers::get_final_events;
 use handlers::get_moves;
 use handlers::get_player;
+use handlers::update_player;
 use handlers::health;
 use handlers::wait_ai_move;
 use handlers::{create_game, get_game, get_games};
@@ -51,6 +52,7 @@ fn rocket() -> _ {
         "/",
         routes![
             get_player,
+            update_player,
             get_game,
             get_games,
             create_game,
