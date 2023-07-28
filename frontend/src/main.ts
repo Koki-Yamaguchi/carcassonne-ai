@@ -11,7 +11,6 @@ app.use(router);
 
 const firebaseConfig = {
   apiKey: "",
-  authDomain: "",
   projectId: "",
 };
 initializeApp(firebaseConfig);

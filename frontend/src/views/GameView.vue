@@ -8,12 +8,14 @@ import {
   TilePosition,
   TileMove,
   MeepleMove,
+  Player,
 } from "../types";
-import { Tile } from "../tiles";
+import { Color, Tile } from "../tiles";
 import GameBoard from "../components/GameBoard.vue";
 import { newTile, idToTileKind, boardSize, getInitialBoard } from "../tiles";
 import PlayerInfo from "../components/PlayerInfo.vue";
 import WoodImg from "../assets/img/background-wood.png";
+import { store } from "../store";
 
 const game = ref<Game | null>(null);
 const tiles = ref<(Tile | null)[][]>(getInitialBoard());
@@ -23,6 +25,7 @@ const placeablePositions = ref<TilePosition[]>([]);
 const placeableDirections = ref<number[]>([]);
 const placingPosition = ref<TilePosition>({ y: -1, x: -1 });
 const meepleablePositions = ref<number[]>([]);
+const player = ref<Player | null>(null);
 const player0Meeples = ref<Set<number>>(new Set([0, 1, 2, 3, 4, 5, 6]));
 const player1Meeples = ref<Set<number>>(new Set([7, 8, 9, 10, 11, 12, 13]));
 const player0Point = ref<number>(0);
@@ -33,6 +36,9 @@ const meepledPositions = ref<Map<number, TilePosition>>(new Map());
 const finished = ref<boolean>(false);
 const tileCount = ref<number>(1);
 const replayMove = ref<number>(144 - 1);
+const meepleColor = ref<Color>("yellow");
+const AIMeepleColor = ref<Color>("red");
+
 const useMeeple = (
   meeples: Set<number>,
   pos: TilePosition,
@@ -159,7 +165,7 @@ const confirm = async () => {
   const api = new API();
   const res = await api.createTileMove(
     game.value.id,
-    0,
+    game.value.player0ID,
     nextTileID.value,
     placingTile.value.direction,
     placingPosition.value.y - Math.floor(boardSize / 2),
@@ -222,7 +228,7 @@ const handlePlaceMeeple = async (pos: number) => {
 
     tiles.value[placingPosition.value.y][placingPosition.value.x]?.placeMeeple(
       pos,
-      "yellow",
+      meepleColor.value,
       meepleID
     );
   }
@@ -233,7 +239,7 @@ const handlePlaceMeeple = async (pos: number) => {
     ]?.addFrame(null);
   }
   tiles.value[placingPosition.value.y][placingPosition.value.x]?.addFrame(
-    "yellow"
+    meepleColor.value
   );
   player0LastTilePos.value = placingPosition.value;
 
@@ -243,7 +249,7 @@ const handlePlaceMeeple = async (pos: number) => {
   const api = new API();
   const res = await api.createMeepleMove(
     game.value.id,
-    0,
+    game.value.player0ID,
     meepleID,
     pos,
     tilePosY,
@@ -296,7 +302,7 @@ const processAIMove = async (): Promise<number> => {
   const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
 
   if (meepleMove.meepleID !== -1) {
-    tile.placeMeeple(meepleMove.pos, "red", meepleMove.meepleID);
+    tile.placeMeeple(meepleMove.pos, AIMeepleColor.value, meepleMove.meepleID);
     useMeeple(
       player1Meeples.value,
       { y: tilePosY, x: tilePosX },
@@ -311,7 +317,7 @@ const processAIMove = async (): Promise<number> => {
       player1LastTilePos.value.x
     ]?.addFrame(null);
   }
-  tiles.value[tilePosY][tilePosX]?.addFrame("red");
+  tiles.value[tilePosY][tilePosX]?.addFrame(AIMeepleColor.value);
   player1LastTilePos.value = { y: tilePosY, x: tilePosX };
 
   processCompleteEvents(res.completeEvents);
@@ -322,7 +328,7 @@ const processAIMove = async (): Promise<number> => {
 
 const winner = computed(() => {
   if (player0Point.value > player1Point.value) {
-    return "KokiYamaguchi";
+    return player.value ? player.value.name : "";
   } else if (player0Point.value < player1Point.value) {
     return "AI";
   } else {
@@ -332,7 +338,7 @@ const winner = computed(() => {
 
 const updateSituation = async (gameID: number, moveID?: number) => {
   const api = new API();
-  const board = await api.getBoard(gameID, moveID);
+  const board = await api.getBoard(gameID, meepleColor, AIMeepleColor, moveID);
   tiles.value = board.tiles;
   player0Point.value = board.player0Point;
   player1Point.value = board.player1Point;
@@ -365,11 +371,11 @@ const updateSituation = async (gameID: number, moveID?: number) => {
     const tileMove = moves[i] as TileMove;
     const tilePosY = tileMove.pos.y + Math.floor(boardSize / 2);
     const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
-    if (tileMove.playerID === 0) {
-      tiles.value[tilePosY][tilePosX]?.addFrame("yellow");
+    if (tileMove.playerID === player.value?.id) {
+      tiles.value[tilePosY][tilePosX]?.addFrame(meepleColor.value);
       player0LastTilePos.value = { y: tilePosY, x: tilePosX };
     } else {
-      tiles.value[tilePosY][tilePosX]?.addFrame("red");
+      tiles.value[tilePosY][tilePosX]?.addFrame(AIMeepleColor.value);
       player1LastTilePos.value = { y: tilePosY, x: tilePosX };
     }
   }
@@ -395,6 +401,12 @@ onMounted(async () => {
 
   const gameID: number = parseInt(route.params.id as string, 10);
   game.value = await api.getGame(gameID);
+
+  player.value = await api.getPlayer(store.userID);
+  meepleColor.value = player.value ? player.value.meepleColor : "yellow";
+  if (meepleColor.value === "red") {
+    AIMeepleColor.value = "yellow";
+  }
 
   await updateSituation(gameID);
 
@@ -479,16 +491,16 @@ const boardStyle = computed(() => {
   </div>
   <div class="infos flex flex-wrap">
     <PlayerInfo
-      :name="'KokiYamaguchi'"
+      :name="player ? player.name : ''"
       :point="player0Point"
       :meepleNumber="player0Meeples.size"
-      :meepleColor="'yellow'"
+      :meepleColor="meepleColor"
     />
     <PlayerInfo
       :name="'AI'"
       :point="player1Point"
       :meepleNumber="player1Meeples.size"
-      :meepleColor="'red'"
+      :meepleColor="AIMeepleColor"
     />
     <div>{{ 72 - tileCount }} tiles remain</div>
   </div>

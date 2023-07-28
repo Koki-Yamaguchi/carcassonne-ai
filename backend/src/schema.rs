@@ -1,6 +1,13 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    color (id) {
+        id -> Int4,
+        name -> Text,
+    }
+}
+
+diesel::table! {
     game (id) {
         id -> Int4,
         player0_id -> Int4,
@@ -36,13 +43,16 @@ diesel::table! {
         name -> Varchar,
         email -> Text,
         user_id -> Text,
+        meeple_color -> Int4,
     }
 }
 
 diesel::joinable!(move_ -> game (game_id));
 diesel::joinable!(move_ -> player (player_id));
+diesel::joinable!(player -> color (meeple_color));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    color,
     game,
     move_,
     player,

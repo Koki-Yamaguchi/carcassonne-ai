@@ -1,5 +1,5 @@
 import axios from "axios";
-import { idToTileKind, newTile } from "../tiles";
+import { Color, colorIDToColor, idToTileKind, newTile } from "../tiles";
 import {
   Game,
   MeepleMoveResult,
@@ -18,6 +18,48 @@ export class API {
     this.base_url = "http://0.0.0.0:8000";
   }
 
+  async getPlayer(userID: string): Promise<Player> {
+    try {
+      const res = await axios.get(`${this.base_url}/players?user=${userID}`);
+      console.log({ res });
+      const p: Player = {
+        id: res.data.id,
+        name: res.data.name,
+        userID: res.data.user_id,
+        email: res.data.email,
+        meepleColor: colorIDToColor(res.data.meeple_color),
+      };
+      return p;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async updatePlayer(
+    id: number,
+    name: string,
+    meepleColor: number
+  ): Promise<Player> {
+    try {
+      const res = await axios.post(`${this.base_url}/players/${id}/update`, {
+        name,
+        meeple_color: Number(meepleColor),
+      });
+      const player: Player = {
+        id: res.data.id,
+        name: res.data.name,
+        email: res.data.email,
+        userID: res.data.user_id,
+        meepleColor: colorIDToColor(res.data.meeple_color),
+      };
+      return player;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
   async createPlayer(
     name: string,
     email: string,
@@ -34,6 +76,7 @@ export class API {
         name: res.data.name,
         email: res.data.email,
         userID: res.data.user_id,
+        meepleColor: colorIDToColor(res.data.meeple_color),
       };
       return player;
     } catch (e) {
@@ -246,7 +289,12 @@ export class API {
     }
   }
 
-  async getBoard(gameID: number, moveID?: number): Promise<Board> {
+  async getBoard(
+    gameID: number,
+    player0MeepleColor: Color,
+    player1MeepleColor: Color,
+    moveID?: number
+  ): Promise<Board> {
     try {
       const res = await axios.get(
         `${this.base_url}/board?game=${gameID}` + (moveID ? `&m=${moveID}` : "")
@@ -260,8 +308,8 @@ export class API {
               tile.meeple_id === -1
                 ? null
                 : tile.meeple_id < 7
-                ? "yellow"
-                : "red";
+                ? player0MeepleColor
+                : player1MeepleColor;
             return tile.id === -1
               ? null
               : newTile(

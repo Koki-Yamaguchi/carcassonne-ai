@@ -1,10 +1,11 @@
-import { TileKind, Tile } from "./tiles";
+import { TileKind, Tile, Color } from "./tiles";
 
 export interface Player {
   id: number;
   name: string;
   email: string;
   userID: string;
+  meepleColor: Color;
 }
 
 export interface Game {

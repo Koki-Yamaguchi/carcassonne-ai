@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { API } from "./../api";
 import { useRouter } from "vue-router";
+import { store } from "../store";
 
 const router = useRouter();
 
 const createGame = async () => {
   const api = new API();
 
-  const player0ID = 0;
+  const player = await api.getPlayer(store.userID);
+
+  const player0ID = player.id;
   const player1ID = 1;
   const game = await api.createGame(player0ID, player1ID);
   router.push(`/games/${game.id}`);

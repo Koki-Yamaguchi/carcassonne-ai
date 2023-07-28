@@ -7,7 +7,7 @@ use crate::error::{internal_server_error, not_found_error, Error};
 use crate::game;
 use crate::game::mov;
 use crate::game::tile;
-use crate::player;
+use crate::player::{self};
 use crate::schema;
 
 #[derive(Insertable)]
@@ -16,6 +16,7 @@ struct NewPlayer {
     name: String,
     email: String,
     user_id: String,
+    meeple_color: i32,
 }
 
 #[derive(Insertable)]
@@ -57,16 +58,35 @@ pub struct QueryMove {
     pub meeple_pos: i32,
 }
 
+pub fn get_player(uid: String) -> Result<player::Player, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    use self::schema::player::dsl::{player as p, user_id};
+
+    match p.filter(user_id.eq(uid)).load::<player::Player>(conn) {
+        Ok(ps) => {
+            if ps.len() == 0 {
+                return Err(not_found_error("player".to_string()));
+            }
+            return Ok(ps[0].clone());
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
 pub fn create_player(
     name: String,
     email: String,
     user_id: String,
+    meeple_color: i32,
 ) -> Result<player::Player, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     let new_player = NewPlayer {
         name,
         email,
         user_id,
+        meeple_color,
     };
     match diesel::insert_into(schema::player::table)
         .values(&new_player)
@@ -74,6 +94,22 @@ pub fn create_player(
     {
         Ok(r) => Ok(r),
         Err(e) => Err(internal_server_error(e.to_string())),
+    }
+}
+
+pub fn update_player(pid: i32, nam: String, m_color: i32) -> Result<player::Player, Error> {
+    use self::schema::player::dsl::{meeple_color, name, player};
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    match diesel::update(player.find(pid))
+        .set((name.eq(nam), meeple_color.eq(m_color)))
+        .get_result(conn)
+    {
+        Ok(gm) => {
+            return Ok(gm);
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
     }
 }
 
