@@ -7,6 +7,7 @@ pub struct CreatePlayer {
     pub name: String,
     pub email: String,
     pub user_id: String,
+    pub meeple_color: i32,
 }
 
 #[derive(Serialize, Queryable, Clone)]
@@ -16,4 +17,5 @@ pub struct Player {
     pub name: String,
     pub email: String,
     pub user_id: String,
+    pub meeple_color: i32,
 }

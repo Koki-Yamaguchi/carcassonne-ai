@@ -7,7 +7,7 @@ use crate::error::{internal_server_error, not_found_error, Error};
 use crate::game;
 use crate::game::mov;
 use crate::game::tile;
-use crate::player;
+use crate::player::{self};
 use crate::schema;
 
 #[derive(Insertable)]
@@ -16,6 +16,7 @@ struct NewPlayer {
     name: String,
     email: String,
     user_id: String,
+    meeple_color: i32,
 }
 
 #[derive(Insertable)]
@@ -78,12 +79,14 @@ pub fn create_player(
     name: String,
     email: String,
     user_id: String,
+    meeple_color: i32,
 ) -> Result<player::Player, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     let new_player = NewPlayer {
         name,
         email,
         user_id,
+        meeple_color,
     };
     match diesel::insert_into(schema::player::table)
         .values(&new_player)

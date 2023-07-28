@@ -55,6 +55,7 @@ pub fn create_player(params: Json<player::CreatePlayer>) -> (Status, (ContentTyp
         params.name.clone(),
         params.email.clone(),
         params.user_id.clone(),
+        params.meeple_color,
     ) {
         Ok(player) => (Status::Ok, (ContentType::JSON, to_string(&player).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
