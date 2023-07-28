@@ -7,7 +7,6 @@ pub struct CreatePlayer {
     pub name: String,
     pub email: String,
     pub user_id: String,
-    pub meeple_color: i32,
 }
 
 #[derive(Deserialize)]

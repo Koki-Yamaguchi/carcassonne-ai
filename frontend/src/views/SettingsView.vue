@@ -57,6 +57,7 @@ onMounted(async () => {
             id="inline-full-name"
             type="text"
             v-model="name"
+            disabled
           />
         </div>
       </div>

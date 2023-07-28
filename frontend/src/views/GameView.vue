@@ -338,7 +338,12 @@ const winner = computed(() => {
 
 const updateSituation = async (gameID: number, moveID?: number) => {
   const api = new API();
-  const board = await api.getBoard(gameID, meepleColor, AIMeepleColor, moveID);
+  const board = await api.getBoard(
+    gameID,
+    meepleColor.value,
+    AIMeepleColor.value,
+    moveID
+  );
   tiles.value = board.tiles;
   player0Point.value = board.player0Point;
   player1Point.value = board.player1Point;
