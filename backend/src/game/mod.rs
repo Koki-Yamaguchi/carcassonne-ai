@@ -13,10 +13,11 @@ use rocket::serde::Serialize;
 
 use crate::database;
 use crate::error::{bad_request_error, Error};
+use crate::game::tile::to_tile;
 
 use self::board::{Board, BoardTile};
 use self::calculate::calculate;
-use self::tile::tiles;
+use self::tile::{remaining_tiles, tiles};
 use mov::Move::*;
 use mov::{MeepleMove, TileMove};
 use rand::Rng;
@@ -35,6 +36,8 @@ pub struct Game {
     pub next_player_id: Option<i32>,
     pub created_at: chrono::NaiveDateTime,
     pub ended_at: Option<chrono::NaiveDateTime>,
+    pub current_player_id: Option<i32>,
+    pub current_tile_id: Option<i32>,
 }
 
 #[derive(Serialize, Queryable, Clone)]
@@ -56,6 +59,8 @@ pub struct MeepleMoveResult {
     pub complete_events: Vec<CompleteEvent>,
     pub next_tile_id: i32,
     pub next_player_id: i32,
+    pub current_tile_id: i32,
+    pub current_player_id: i32,
 }
 
 pub fn create_game(player0_id: i32, player1_id: i32) -> Result<Game, Error> {
@@ -72,12 +77,16 @@ pub fn create_game(player0_id: i32, player1_id: i32) -> Result<Game, Error> {
     };
 
     let tiles = tiles();
-    let next_tile = tiles[rng.gen_range(0..tiles.len())];
+    let cur_tile = tiles[rng.gen_range(0..tiles.len())];
+    let rem_tiles = remaining_tiles(vec![cur_tile]);
+    let next_tile = rem_tiles[rng.gen_range(0..rem_tiles.len())];
 
     let g = match database::create_game(
         player0_id,
         player1_id,
         Some(next_tile.to_id()),
+        Some(second_player_id),
+        Some(cur_tile.to_id()),
         Some(first_player_id),
     ) {
         Ok(g) => g,
@@ -167,6 +176,13 @@ pub fn create_meeple_move(
     tile_pos: (i32, i32),
     meeple_pos: i32,
 ) -> Result<MeepleMoveResult, Error> {
+    let gm = match database::get_game(game_id) {
+        Ok(game) => game,
+        Err(e) => {
+            return Err(e);
+        }
+    };
+
     let mut rng = rand::thread_rng();
     let mut moves = match database::list_moves(game_id, None) {
         Ok(mvs) => mvs,
@@ -213,6 +229,14 @@ pub fn create_meeple_move(
     };
 
     let mut out_tiles = vec![];
+    match gm.next_tile_id {
+        Some(tid) => {
+            if tid != -1 {
+                out_tiles.push(to_tile(tid))
+            }
+        }
+        None => {}
+    }
     for mv in moves {
         match mv {
             mov::Move::TMove(tm) => {
@@ -229,17 +253,15 @@ pub fn create_meeple_move(
         remaining_tiles[rng.gen_range(0..remaining_tiles.len())]
     };
 
-    let gm = match database::get_game(game_id) {
-        Ok(game) => game,
-        Err(e) => {
-            return Err(e);
-        }
-    };
-
-    let next_player_id = if player_id == gm.player0_id {
+    let cur_player_id = if player_id == gm.player0_id {
         gm.player1_id
     } else {
         gm.player0_id
+    };
+    let next_player_id = if player_id == gm.player0_id {
+        gm.player0_id
+    } else {
+        gm.player1_id
     };
 
     match database::update_game(
@@ -248,6 +270,8 @@ pub fn create_meeple_move(
         next_player_id,
         player0_point,
         player1_point,
+        gm.next_tile_id.unwrap(),
+        cur_player_id,
     ) {
         Err(e) => {
             return Err(e);
@@ -259,6 +283,8 @@ pub fn create_meeple_move(
         complete_events,
         next_tile_id: next_tile.to_id(),
         next_player_id,
+        current_tile_id: gm.next_tile_id.unwrap(),
+        current_player_id: cur_player_id,
     })
 }
 
@@ -278,7 +304,7 @@ pub fn wait_ai_move(game_id: i32) -> Result<MeepleMoveResult, Error> {
     };
     assert!(moves.len() != 0);
 
-    let placing_tile = tile::to_tile(game.next_tile_id.unwrap());
+    let placing_tile = tile::to_tile(game.current_tile_id.unwrap());
     let (tile_move, meeple_move): (TileMove, MeepleMove) = calculate_next_move::calculate_next_move(
         &moves,
         game.id,
@@ -376,6 +402,8 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
         gm.next_player_id.unwrap(),
         player0_point,
         player1_point,
+        gm.current_tile_id.unwrap(),
+        gm.current_player_id.unwrap(),
     ) {
         Err(e) => {
             return Err(e);
@@ -387,6 +415,8 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
         complete_events,
         next_tile_id: gm.next_tile_id.unwrap(),
         next_player_id: gm.next_player_id.unwrap(),
+        current_tile_id: gm.current_tile_id.unwrap(),
+        current_player_id: gm.current_player_id.unwrap(),
     })
 }
 

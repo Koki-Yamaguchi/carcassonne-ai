@@ -18,6 +18,8 @@ diesel::table! {
         next_player_id -> Nullable<Int4>,
         created_at -> Timestamp,
         ended_at -> Nullable<Timestamp>,
+        current_player_id -> Nullable<Int4>,
+        current_tile_id -> Nullable<Int4>,
     }
 }
 

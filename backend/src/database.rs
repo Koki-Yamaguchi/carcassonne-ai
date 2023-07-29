@@ -28,6 +28,8 @@ struct NewGame {
     player1_point: i32,
     next_tile_id: Option<i32>,
     next_player_id: Option<i32>,
+    current_tile_id: Option<i32>,
+    current_player_id: Option<i32>,
 }
 
 #[derive(Insertable)]
@@ -163,6 +165,8 @@ pub fn create_game(
     player1_id: i32,
     next_tile_id: Option<i32>,
     next_player_id: Option<i32>,
+    current_tile_id: Option<i32>,
+    current_player_id: Option<i32>,
 ) -> Result<game::Game, Error> {
     let new_game = NewGame {
         player0_id,
@@ -171,6 +175,8 @@ pub fn create_game(
         player1_point: 0,
         next_tile_id,
         next_player_id,
+        current_tile_id,
+        current_player_id,
     };
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     match diesel::insert_into(schema::game::table)
@@ -192,9 +198,12 @@ pub fn update_game(
     next_pid: i32,
     p0_point: i32,
     p1_point: i32,
+    cur_tid: i32,
+    cur_pid: i32,
 ) -> Result<game::Game, Error> {
     use self::schema::game::dsl::{
-        game, next_player_id, next_tile_id, player0_point, player1_point,
+        current_player_id, current_tile_id, game, next_player_id, next_tile_id, player0_point,
+        player1_point,
     };
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     match diesel::update(game.find(gmid))
@@ -203,6 +212,8 @@ pub fn update_game(
             player1_point.eq(p1_point),
             next_tile_id.eq(next_tid),
             next_player_id.eq(next_pid),
+            current_tile_id.eq(cur_tid),
+            current_player_id.eq(cur_pid),
         ))
         .get_result(conn)
     {
