@@ -105,7 +105,9 @@ export class API {
         player1ID: res.data.player1_id,
         player0Point: res.data.player0_point,
         player1Point: res.data.player1_point,
+        currentPlayerID: res.data.current_player_id,
         nextPlayerID: res.data.next_player_id,
+        currentTileID: res.data.current_tile_id,
         nextTileID: res.data.next_tile_id,
       };
       return game;
@@ -128,7 +130,9 @@ export class API {
         player1ID: res.data.player1_id,
         player0Point: res.data.player0_point,
         player1Point: res.data.player1_point,
+        currentPlayerID: res.data.current_player_id,
         nextPlayerID: res.data.next_player_id,
+        currentTileID: res.data.current_tile_id,
         nextTileID: res.data.next_tile_id,
       };
       return game;
@@ -194,7 +198,9 @@ export class API {
             };
           }
         ),
+        currentPlayerID: res.data.current_player_id,
         nextPlayerID: res.data.next_player_id,
+        currentTileID: res.data.current_tile_id,
         nextTileID: res.data.next_tile_id,
       };
       return meepleMoveResult;
@@ -220,7 +226,9 @@ export class API {
             };
           }
         ),
+        currentPlayerID: res.data.current_player_id,
         nextPlayerID: res.data.next_player_id,
+        currentTileID: res.data.current_tile_id,
         nextTileID: res.data.next_tile_id,
       };
       return meepleMoveResult;
@@ -279,7 +287,9 @@ export class API {
             };
           }
         ),
+        currentPlayerID: res.data.current_player_id,
         nextPlayerID: res.data.next_player_id,
+        currentTileID: res.data.current_tile_id,
         nextTileID: res.data.next_tile_id,
       };
       return meepleMoveResult;

@@ -13,6 +13,7 @@ use rocket::serde::Serialize;
 
 use crate::database;
 use crate::error::{bad_request_error, Error};
+use crate::game::tile::to_tile;
 
 use self::board::{Board, BoardTile};
 use self::calculate::calculate;
@@ -175,6 +176,13 @@ pub fn create_meeple_move(
     tile_pos: (i32, i32),
     meeple_pos: i32,
 ) -> Result<MeepleMoveResult, Error> {
+    let gm = match database::get_game(game_id) {
+        Ok(game) => game,
+        Err(e) => {
+            return Err(e);
+        }
+    };
+
     let mut rng = rand::thread_rng();
     let mut moves = match database::list_moves(game_id, None) {
         Ok(mvs) => mvs,
@@ -221,6 +229,14 @@ pub fn create_meeple_move(
     };
 
     let mut out_tiles = vec![];
+    match gm.next_tile_id {
+        Some(tid) => {
+            if tid != -1 {
+                out_tiles.push(to_tile(tid))
+            }
+        }
+        None => {}
+    }
     for mv in moves {
         match mv {
             mov::Move::TMove(tm) => {
@@ -235,13 +251,6 @@ pub fn create_meeple_move(
         Invalid
     } else {
         remaining_tiles[rng.gen_range(0..remaining_tiles.len())]
-    };
-
-    let gm = match database::get_game(game_id) {
-        Ok(game) => game,
-        Err(e) => {
-            return Err(e);
-        }
     };
 
     let cur_player_id = if player_id == gm.player0_id {

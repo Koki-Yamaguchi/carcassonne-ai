@@ -14,7 +14,9 @@ export interface Game {
   player1ID: number;
   player0Point: number;
   player1Point: number;
+  currentPlayerID: number;
   nextPlayerID: number;
+  currentTileID: number;
   nextTileID: number;
 }
 
@@ -29,7 +31,9 @@ export interface TileMoveResult {
 
 export interface MeepleMoveResult {
   completeEvents: CompleteEvent[];
+  currentTileID: number;
   nextTileID: number;
+  currentPlayerID: number;
   nextPlayerID: number;
 }
 
