@@ -53,7 +53,7 @@ const getCurrentUser = () => {
 };
 
 router.beforeEach(async (to) => {
-  const currentUser = await getCurrentUser();
+  const currentUser = (await getCurrentUser()) as any;
   if (to.path !== "/signin" && to.path !== "/signup") {
     if (currentUser) {
       store.setAuthenticated(true);

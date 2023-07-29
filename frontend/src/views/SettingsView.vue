@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { getAuth, signOut } from "firebase/auth";
-import { h, onMounted, ref } from "vue";
+import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { API } from "../api";
 import { store } from "../store";
