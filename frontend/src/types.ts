@@ -12,6 +12,10 @@ export interface Game {
   id: number;
   player0ID: number;
   player1ID: number;
+  player0Name: string;
+  player1Name: string;
+  player0Color: Color;
+  player1Color: Color;
   player0Point: number;
   player1Point: number;
   currentPlayerID: number;

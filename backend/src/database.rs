@@ -30,6 +30,10 @@ struct NewGame {
     next_player_id: Option<i32>,
     current_tile_id: Option<i32>,
     current_player_id: Option<i32>,
+    player0_name: String,
+    player1_name: String,
+    player0_color: i32,
+    player1_color: i32,
 }
 
 #[derive(Insertable)]
@@ -60,7 +64,24 @@ pub struct QueryMove {
     pub meeple_pos: i32,
 }
 
-pub fn get_player(uid: String) -> Result<player::Player, Error> {
+pub fn get_player(pid: i32) -> Result<player::Player, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    use self::schema::player::dsl::{id, player as p};
+
+    match p.filter(id.eq(pid)).load::<player::Player>(conn) {
+        Ok(ps) => {
+            if ps.len() == 0 {
+                return Err(not_found_error("player".to_string()));
+            }
+            return Ok(ps[0].clone());
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
+pub fn get_player_by_uid(uid: String) -> Result<player::Player, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     use self::schema::player::dsl::{player as p, user_id};
 
@@ -167,6 +188,10 @@ pub fn create_game(
     next_player_id: Option<i32>,
     current_tile_id: Option<i32>,
     current_player_id: Option<i32>,
+    player0_name: String,
+    player1_name: String,
+    player0_color: i32,
+    player1_color: i32,
 ) -> Result<game::Game, Error> {
     let new_game = NewGame {
         player0_id,
@@ -177,6 +202,10 @@ pub fn create_game(
         next_player_id,
         current_tile_id,
         current_player_id,
+        player0_name,
+        player1_name,
+        player0_color,
+        player1_color,
     };
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     match diesel::insert_into(schema::game::table)

@@ -1,5 +1,11 @@
 import axios from "axios";
-import { Color, colorIDToColor, idToTileKind, newTile } from "../tiles";
+import {
+  Color,
+  colorIDToColor,
+  colorToColorID,
+  idToTileKind,
+  newTile,
+} from "../tiles";
 import {
   Game,
   MeepleMoveResult,
@@ -109,6 +115,10 @@ export class API {
         nextPlayerID: res.data.next_player_id,
         currentTileID: res.data.current_tile_id,
         nextTileID: res.data.next_tile_id,
+        player0Name: res.data.player0_name,
+        player1Name: res.data.player1_name,
+        player0Color: colorIDToColor(res.data.player0_color),
+        player1Color: colorIDToColor(res.data.player1_color),
       };
       return game;
     } catch (e) {
@@ -117,12 +127,18 @@ export class API {
     }
   }
 
-  async createGame(player0ID: number, player1ID: number): Promise<Game> {
+  async createGame(
+    player0ID: number,
+    player1ID: number,
+    player0Color: Color,
+    player1Color: Color
+  ): Promise<Game> {
     try {
       const res = await axios.post(`${this.base_url}/games/create`, {
         player0_id: player0ID,
         player1_id: player1ID,
-        note: "",
+        player0_color: colorToColorID(player0Color),
+        player1_color: colorToColorID(player1Color),
       });
       const game: Game = {
         id: res.data.id,
@@ -134,6 +150,10 @@ export class API {
         nextPlayerID: res.data.next_player_id,
         currentTileID: res.data.current_tile_id,
         nextTileID: res.data.next_tile_id,
+        player0Name: res.data.player0_name,
+        player1Name: res.data.player1_name,
+        player0Color: colorIDToColor(res.data.player0_color),
+        player1Color: colorIDToColor(res.data.player1_color),
       };
       return game;
     } catch (e) {

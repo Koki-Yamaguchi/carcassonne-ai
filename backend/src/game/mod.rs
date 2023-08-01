@@ -38,6 +38,10 @@ pub struct Game {
     pub ended_at: Option<chrono::NaiveDateTime>,
     pub current_player_id: Option<i32>,
     pub current_tile_id: Option<i32>,
+    pub player0_name: String,
+    pub player1_name: String,
+    pub player0_color: i32,
+    pub player1_color: i32,
 }
 
 #[derive(Serialize, Queryable, Clone)]
@@ -63,7 +67,12 @@ pub struct MeepleMoveResult {
     pub current_player_id: i32,
 }
 
-pub fn create_game(player0_id: i32, player1_id: i32) -> Result<Game, Error> {
+pub fn create_game(
+    player0_id: i32,
+    player1_id: i32,
+    player0_color: i32,
+    player1_color: i32,
+) -> Result<Game, Error> {
     let mut rng = rand::thread_rng();
     let first_player_id = if rng.gen_range(0..2) < 1 {
         player0_id
@@ -81,6 +90,19 @@ pub fn create_game(player0_id: i32, player1_id: i32) -> Result<Game, Error> {
     let rem_tiles = remaining_tiles(vec![cur_tile]);
     let next_tile = rem_tiles[rng.gen_range(0..rem_tiles.len())];
 
+    let player0_name = match database::get_player(player0_id) {
+        Ok(p) => p.name,
+        Err(e) => {
+            return Err(e);
+        }
+    };
+    let player1_name = match database::get_player(player1_id) {
+        Ok(p) => p.name,
+        Err(e) => {
+            return Err(e);
+        }
+    };
+
     let g = match database::create_game(
         player0_id,
         player1_id,
@@ -88,6 +110,10 @@ pub fn create_game(player0_id: i32, player1_id: i32) -> Result<Game, Error> {
         Some(second_player_id),
         Some(cur_tile.to_id()),
         Some(first_player_id),
+        player0_name,
+        player1_name,
+        player0_color,
+        player1_color,
     ) {
         Ok(g) => g,
         Err(e) => {
