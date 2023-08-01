@@ -140,8 +140,8 @@ pub fn last_n(n: i32) -> i32 {
 
 fn remaining_meeple_values(num: usize) -> i32 {
     match num {
-        0 => -100,
-        1 => -60,
+        0 => -120,
+        1 => -80,
         2 => -40,
         3 => -30,
         4 => -20,
@@ -384,7 +384,7 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
 
     for player in 0..2 {
         for road in &roads[player] {
-            let mut complete_prob = 100;
+            let mut complete_prob = 80;
             for tile in &road.tiles {
                 let y0 = tile.pos.0;
                 let x0 = tile.pos.1;
@@ -522,7 +522,7 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                 }
             }
 
-            let result = road.point * 5 + (meeple_value * complete_prob / 100);
+            let result = road.point * 2 + (meeple_value * complete_prob / 100);
             results[player] += result;
         }
     }
