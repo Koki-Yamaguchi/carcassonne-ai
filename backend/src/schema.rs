@@ -20,6 +20,10 @@ diesel::table! {
         ended_at -> Nullable<Timestamp>,
         current_player_id -> Nullable<Int4>,
         current_tile_id -> Nullable<Int4>,
+        player0_name -> Text,
+        player1_name -> Text,
+        player0_color -> Int4,
+        player1_color -> Int4,
     }
 }
 

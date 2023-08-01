@@ -51,7 +51,7 @@ const frameStyle = (frame: Color) => {
           v-for="pos in tile.meepleablePositions(meepleablePositions)"
           :key="pos.idx"
           class="empty"
-          @click="$emit('placeMeeple', pos.idx)"
+          @click.once="$emit('placeMeeple', pos.idx)"
           :style="{
             position: 'absolute',
             left: `${tileSize / 2 + (pos.x * tileSize) / 2 - spotRadius}px`,

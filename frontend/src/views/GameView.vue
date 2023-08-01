@@ -42,6 +42,9 @@ const replayMove = ref<number>(TILE_TOTAL_COUNT * 2 - 1);
 const meepleColor = ref<Color>("yellow");
 const AIMeepleColor = ref<Color>("red");
 const AIThinking = ref<boolean>(false);
+const player0Name = ref<string>("");
+const player1Name = ref<string>("");
+const isMyGame = ref<boolean>(false);
 
 const useMeeple = (
   meeples: Set<number>,
@@ -344,9 +347,9 @@ const processAIMove = async () => {
 
 const winner = computed(() => {
   if (player0Point.value > player1Point.value) {
-    return player.value ? player.value.name : "";
+    return player0Name;
   } else if (player0Point.value < player1Point.value) {
-    return "AI";
+    return player1Name;
   } else {
     return "tie";
   }
@@ -424,10 +427,13 @@ onMounted(async () => {
   game.value = await api.getGame(gameID);
 
   player.value = await api.getPlayer(store.userID);
-  meepleColor.value = player.value ? player.value.meepleColor : "yellow";
-  if (meepleColor.value === "red") {
-    AIMeepleColor.value = "yellow";
-  }
+
+  meepleColor.value = game.value.player0Color;
+  AIMeepleColor.value = game.value.player1Color;
+  player0Name.value = game.value.player0Name;
+  player1Name.value = game.value.player1Name;
+
+  isMyGame.value = player.value.id === game.value.player0ID;
 
   await updateSituation(gameID);
 
@@ -490,7 +496,7 @@ const boardStyle = computed(() => {
         <div class="flex flex-col justify-center">
           <button
             class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
-            v-if="placingPosition.y !== -1 && placingTile !== null"
+            v-if="isMyGame && placingPosition.y !== -1 && placingTile !== null"
             @click="confirm"
           >
             Confirm
@@ -535,14 +541,14 @@ const boardStyle = computed(() => {
   </div>
   <div class="infos flex flex-wrap">
     <PlayerInfo
-      :name="player ? player.name : ''"
+      :name="player0Name"
       :point="player0Point"
       :meepleNumber="player0Meeples.size"
       :meepleColor="meepleColor"
       :tileSrc="placingTileSrc()"
     />
     <PlayerInfo
-      :name="'AI'"
+      :name="player1Name"
       :point="player1Point"
       :meepleNumber="player1Meeples.size"
       :meepleColor="AIMeepleColor"

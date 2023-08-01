@@ -12,7 +12,15 @@ const createGame = async () => {
 
   const player0ID = player.id;
   const player1ID = 1;
-  const game = await api.createGame(player0ID, player1ID);
+
+  const player0Color = player.meepleColor;
+  const player1Color = player0Color === "red" ? "yellow" : "red";
+  const game = await api.createGame(
+    player0ID,
+    player1ID,
+    player0Color,
+    player1Color
+  );
   router.push(`/games/${game.id}`);
 };
 </script>

@@ -1,0 +1,13 @@
+ALTER TABLE game ADD COLUMN player0_name TEXT NOT NULL;
+ALTER TABLE game ADD COLUMN player1_name TEXT NOT NULL;
+
+ALTER TABLE game ADD COLUMN player0_color INT DEFAULT 0 NOT NULL;
+ALTER TABLE game
+  ADD CONSTRAINT fk_player0_color
+  FOREIGN KEY(player0_color)
+  REFERENCES color(id);
+ALTER TABLE game ADD COLUMN player1_color INT DEFAULT 0 NOT NULL;
+ALTER TABLE game
+  ADD CONSTRAINT fk_player1_color
+  FOREIGN KEY(player1_color)
+  REFERENCES color(id);

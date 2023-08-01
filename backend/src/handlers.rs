@@ -38,12 +38,14 @@ pub struct WaitAIMove {
 #[serde(crate = "rocket::serde")]
 pub struct CreateGame {
     pub player0_id: i32,
+    pub player0_color: i32,
     pub player1_id: i32,
+    pub player1_color: i32,
 }
 
 #[get("/players?<user>", format = "application/json")]
 pub fn get_player(user: String) -> (Status, (ContentType, String)) {
-    match database::get_player(user) {
+    match database::get_player_by_uid(user) {
         Ok(player) => (Status::Ok, (ContentType::JSON, to_string(&player).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
@@ -95,7 +97,12 @@ pub fn get_game(game_id: i32) -> (Status, (ContentType, String)) {
 
 #[post("/games/create", format = "application/json", data = "<params>")]
 pub fn create_game(params: Json<CreateGame>) -> (Status, (ContentType, String)) {
-    match game::create_game(params.player0_id, params.player1_id) {
+    match game::create_game(
+        params.player0_id,
+        params.player1_id,
+        params.player0_color,
+        params.player1_color,
+    ) {
         Ok(game) => (Status::Ok, (ContentType::JSON, to_string(&game).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
