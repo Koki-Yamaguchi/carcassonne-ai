@@ -181,8 +181,8 @@ const confirm = async () => {
   );
 
   meepleablePositions.value = res.meepleablePositions;
-
   placingTile.value = null;
+  placeablePositions.value = [];
 
   if (
     meepleablePositions.value.length === 0 ||
@@ -355,7 +355,10 @@ const winner = computed(() => {
   }
 });
 
-const updateSituation = async (gameID: number, moveID?: number): boolean => {
+const updateSituation = async (
+  gameID: number,
+  moveID?: number
+): Promise<boolean> => {
   const api = new API();
   const board = await api.getBoard(
     gameID,
@@ -470,6 +473,7 @@ onMounted(async () => {
 
   if (afterTileMove) {
     placingTile.value = null;
+    placeablePositions.value = [];
     if (
       meepleablePositions.value.length === 0 ||
       player0Meeples.value.size === 0
@@ -507,8 +511,7 @@ const boardStyle = computed(() => {
           <p class="flex flex-col justify-center mr-3">AI must place</p>
         </div>
         <div v-else class="flex flex-col justify-center mr-3">
-          <p v-if="placingTile">You must place</p>
-          <p v-else>You can place a meeple</p>
+          <p>You must place</p>
         </div>
         <div class="flex flex-col justify-center min-w-[30px] mr-3">
           <img
