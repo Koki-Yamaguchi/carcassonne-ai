@@ -347,9 +347,9 @@ const processAIMove = async () => {
 
 const winner = computed(() => {
   if (player0Point.value > player1Point.value) {
-    return player0Name;
+    return player0Name.value;
   } else if (player0Point.value < player1Point.value) {
-    return player1Name;
+    return player1Name.value;
   } else {
     return "tie";
   }
