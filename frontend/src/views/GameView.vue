@@ -355,7 +355,7 @@ const winner = computed(() => {
   }
 });
 
-const updateSituation = async (gameID: number, moveID?: number) => {
+const updateSituation = async (gameID: number, moveID?: number): boolean => {
   const api = new API();
   const board = await api.getBoard(
     gameID,
@@ -385,29 +385,41 @@ const updateSituation = async (gameID: number, moveID?: number) => {
 
   const moves = await api.getMoves(gameID, moveID);
 
-  tileCount.value = moves.length / 2;
-  if (moves.length === 2) {
-    return;
-  }
+  const afterTileMove = moves.length % 2 === 1;
+
+  tileCount.value = Math.floor(moves.length / 2);
 
   // frame tiles from last 1 or 2 tile moves
-  for (let i = moves.length - 4; i < moves.length; i += 2) {
-    const tileMove = moves[i] as TileMove;
-    const tilePosY = tileMove.pos.y + Math.floor(boardSize / 2);
-    const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
-    if (tileMove.playerID === player.value?.id) {
-      tiles.value[tilePosY][tilePosX]?.addFrame(meepleColor.value);
-      player0LastTilePos.value = { y: tilePosY, x: tilePosX };
-    } else {
-      tiles.value[tilePosY][tilePosX]?.addFrame(AIMeepleColor.value);
-      player1LastTilePos.value = { y: tilePosY, x: tilePosX };
+  for (let i = moves.length - 1; i >= 2 && i >= moves.length - 4; i--) {
+    if (i % 2 === 0) {
+      const tileMove = moves[i] as TileMove;
+      const tilePosY = tileMove.pos.y + Math.floor(boardSize / 2);
+      const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
+      if (tileMove.playerID === player.value?.id) {
+        tiles.value[tilePosY][tilePosX]?.addFrame(meepleColor.value);
+        player0LastTilePos.value = { y: tilePosY, x: tilePosX };
+      } else {
+        tiles.value[tilePosY][tilePosX]?.addFrame(AIMeepleColor.value);
+        player1LastTilePos.value = { y: tilePosY, x: tilePosX };
+      }
     }
+  }
+
+  if (afterTileMove) {
+    meepleablePositions.value = board.meepleablePositions;
+    const lastTileMove = moves[moves.length - 1] as TileMove;
+    placingPosition.value = {
+      y: lastTileMove.pos.y + Math.floor(boardSize / 2),
+      x: lastTileMove.pos.x + Math.floor(boardSize / 2),
+    };
   }
 
   if (tileCount.value === TILE_TOTAL_COUNT) {
     finished.value = true;
     placeablePositions.value = [];
   }
+
+  return afterTileMove;
 };
 
 const goPrev = () => {
@@ -435,7 +447,7 @@ onMounted(async () => {
 
   isMyGame.value = player.value.id === game.value.player0ID;
 
-  await updateSituation(gameID);
+  const afterTileMove = await updateSituation(gameID);
 
   if (finished.value) {
     return;
@@ -455,6 +467,16 @@ onMounted(async () => {
   }
 
   placeablePositions.value = getPlaceablePositions(placingTile.value);
+
+  if (afterTileMove) {
+    placingTile.value = null;
+    if (
+      meepleablePositions.value.length === 0 ||
+      player0Meeples.value.size === 0
+    ) {
+      skip();
+    }
+  }
 });
 
 const currentTile = () => {
@@ -481,9 +503,13 @@ const boardStyle = computed(() => {
       class="bg-orange-100 rounded text-orange-900 px-4 py-3 shadow-md flex justify-between"
     >
       <div class="flex">
-        <p class="flex flex-col justify-center mr-3">
-          {{ AIThinking ? "AI" : "You" }} must place
-        </p>
+        <div v-if="AIThinking">
+          <p class="flex flex-col justify-center mr-3">AI must place</p>
+        </div>
+        <div v-else class="flex flex-col justify-center mr-3">
+          <p v-if="placingTile">You must place</p>
+          <p v-else>You can place a meeple</p>
+        </div>
         <div class="flex flex-col justify-center min-w-[30px] mr-3">
           <img
             class="min-h-[30px]"

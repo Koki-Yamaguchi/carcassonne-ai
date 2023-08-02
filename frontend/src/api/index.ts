@@ -332,6 +332,7 @@ export class API {
       const board: Board = {
         player0Point: res.data.player0_point,
         player1Point: res.data.player1_point,
+        meepleablePositions: res.data.meepleable_positions,
         tiles: res.data.tiles.map((row: any) => {
           return row.map((tile: any) => {
             const meepleColor =
