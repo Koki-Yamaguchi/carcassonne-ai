@@ -463,12 +463,18 @@ pub fn get_board(game_id: Option<i32>, move_id: Option<i32>) -> Result<Board, Er
         }
     };
 
-    let (player0_point, player1_point, b) = match calculate(&moves, moves.len() == 144) {
-        Ok(s) => (s.player0_point, s.player1_point, s.board),
-        Err(e) => {
-            return Err(e);
-        }
-    };
+    let (player0_point, player1_point, b, meepleable_positions) =
+        match calculate(&moves, moves.len() == 144) {
+            Ok(s) => (
+                s.player0_point,
+                s.player1_point,
+                s.board,
+                s.meepleable_positions,
+            ),
+            Err(e) => {
+                return Err(e);
+            }
+        };
 
     let board_size = 20 * 2 + 1;
     let mut tiles = vec![
@@ -503,5 +509,6 @@ pub fn get_board(game_id: Option<i32>, move_id: Option<i32>) -> Result<Board, Er
         player0_point,
         player1_point,
         tiles,
+        meepleable_positions,
     })
 }

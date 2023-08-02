@@ -15,4 +15,5 @@ pub struct Board {
     pub player0_point: i32,
     pub player1_point: i32,
     pub tiles: Vec<Vec<BoardTile>>,
+    pub meepleable_positions: Vec<i32>,
 }
