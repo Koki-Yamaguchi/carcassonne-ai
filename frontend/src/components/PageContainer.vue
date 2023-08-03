@@ -9,7 +9,7 @@ const router = useRouter();
 <template>
   <div class="bg-gray-200 w-full h-14 flex justify-between px-4">
     <div class="flex flex-col justify-center text-lg" @click="router.push('/')">
-      <div>Carcassonne AI</div>
+      <div>Top Carcassonner</div>
     </div>
     <div
       v-if="!store.authenticated"

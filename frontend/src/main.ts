@@ -10,8 +10,8 @@ const app = createApp(App);
 app.use(router);
 
 const firebaseConfig = {
-  apiKey: "",
-  projectId: "",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
 };
 initializeApp(firebaseConfig);
 
