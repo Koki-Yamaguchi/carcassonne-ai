@@ -18,7 +18,7 @@ jobs:
           echo "VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}" >> .env.production
         working-directory: ./frontend
       - name: build
-        run: npm run build
+        run: npm install && npm run build
         working-directory: ./frontend
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
@@ -26,3 +26,4 @@ jobs:
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_CARCASSONNE_C28B5 }}'
           channelId: live
           projectId: '${{ secrets.VITE_FIREBASE_PROJECT_ID }}'
+          entrypoint: ./frontend
