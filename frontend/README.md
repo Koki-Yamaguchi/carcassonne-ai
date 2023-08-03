@@ -1,2 +1,2 @@
-# Carcassonne AI frontend
+# Top Carcassonner frontend
 
