@@ -21,7 +21,7 @@ import {
 export class API {
   base_url: string;
   constructor() {
-    this.base_url = "http://0.0.0.0:8000";
+    this.base_url = import.meta.env.VITE_API_BASE_URL;
   }
 
   async getPlayer(userID: string): Promise<Player> {
