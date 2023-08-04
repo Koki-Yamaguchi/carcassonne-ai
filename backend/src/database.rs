@@ -138,12 +138,13 @@ pub fn update_player(pid: i32, nam: String, m_color: i32) -> Result<player::Play
 
 pub fn get_games(player_id: Option<i32>) -> Result<Vec<game::Game>, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
-    use self::schema::game::dsl::{game as g, player0_id, player1_id};
+    use self::schema::game::dsl::{created_at, game as g, player0_id, player1_id};
 
     match player_id {
         Some(pid) => {
             match g
                 .filter(player0_id.eq(pid).or(player1_id.eq(pid)))
+                .order(created_at.desc())
                 .load::<game::Game>(conn)
             {
                 Ok(gm) => {
