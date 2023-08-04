@@ -91,13 +91,31 @@ export class API {
     }
   }
 
-  async getGames() {
+  async getGames(playerID: number): Promise<Game[]> {
     try {
-      const res = await axios.get(`${this.base_url}/games?player=1`);
-      const games = res.data;
+      const res = await axios.get(`${this.base_url}/games?player=${playerID}`);
+      console.log({ res });
+      const games: Game[] = res.data.map((g: any) => {
+        return {
+          id: g.id,
+          player0ID: g.player0_id,
+          player1ID: g.player1_id,
+          player0Point: g.player0_point,
+          player1Point: g.player1_point,
+          currentPlayerID: g.current_player_id,
+          nextPlayerID: g.next_player_id,
+          currentTileID: g.current_tile_id,
+          nextTileID: g.next_tile_id,
+          player0Name: g.player0_name,
+          player1Name: g.player1_name,
+          player0Color: colorIDToColor(g.player0_color),
+          player1Color: colorIDToColor(g.player1_color),
+        };
+      });
       return games;
     } catch (e) {
       console.log({ e });
+      throw e;
     }
   }
 
