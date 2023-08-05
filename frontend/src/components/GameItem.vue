@@ -60,7 +60,7 @@ onMounted(() => {
         class="shadow bg-green-200 hover:bg-green-400 focus:shadow-outline focus:outline-none text-gray-700 w-20 rounded text-sm"
         @click="router.push(`/games/${game.id}`)"
       >
-        {{ finished ? "Replay" : "Continue" }}
+        {{ finished ? "Replay" : "Resume" }}
       </button>
     </div>
   </div>
