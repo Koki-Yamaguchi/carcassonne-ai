@@ -407,7 +407,7 @@ const updateSituation = async (
       const tileMove = moves[i] as TileMove;
       const tilePosY = tileMove.pos.y + Math.floor(boardSize / 2);
       const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
-      if (tileMove.playerID === player.value?.id) {
+      if (tileMove.playerID === game.value?.player0ID) {
         tiles.value[tilePosY][tilePosX]?.addFrame(meepleColor.value);
         player0LastTilePos.value = { y: tilePosY, x: tilePosX };
       } else {
