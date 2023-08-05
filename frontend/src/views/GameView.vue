@@ -45,6 +45,7 @@ const AIThinking = ref<boolean>(false);
 const player0Name = ref<string>("");
 const player1Name = ref<string>("");
 const isMyGame = ref<boolean>(false);
+const handlingPlaceMeeple = ref<boolean>(false);
 
 const useMeeple = (
   meeples: Set<number>,
@@ -235,6 +236,12 @@ const handlePlaceMeeple = async (pos: number) => {
     return;
   }
 
+  // prevent clicks on more than one meeple spots
+  if (handlingPlaceMeeple.value) {
+    return;
+  }
+  handlingPlaceMeeple.value = true;
+
   let meepleID = -1;
   if (pos !== -1) {
     meepleID = useMeeple(player0Meeples.value, {
@@ -278,6 +285,8 @@ const handlePlaceMeeple = async (pos: number) => {
   placingPosition.value = { y: -1, x: -1 };
   placeablePositions.value = [];
   meepleablePositions.value = [];
+
+  handlingPlaceMeeple.value = false;
 
   if (res.currentTileID === -1) {
     await finishGame(game.value.id);
@@ -398,7 +407,7 @@ const updateSituation = async (
       const tileMove = moves[i] as TileMove;
       const tilePosY = tileMove.pos.y + Math.floor(boardSize / 2);
       const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
-      if (tileMove.playerID === player.value?.id) {
+      if (tileMove.playerID === game.value?.player0ID) {
         tiles.value[tilePosY][tilePosX]?.addFrame(meepleColor.value);
         player0LastTilePos.value = { y: tilePosY, x: tilePosX };
       } else {
