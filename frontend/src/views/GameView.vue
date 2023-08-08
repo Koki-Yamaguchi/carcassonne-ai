@@ -11,11 +11,12 @@ import {
   Player,
   DiscardMove,
 } from "../types";
-import { Color, Tile } from "../tiles";
+import { Color, Tile, TileKind } from "../tiles";
 import GameBoard from "../components/GameBoard.vue";
 import { newTile, idToTileKind, boardSize, getInitialBoard } from "../tiles";
 import PlayerInfo from "../components/PlayerInfo.vue";
 import SpinnerIcon from "../components/SpinnerIcon.vue";
+import TrashIcon from "../components/TrashIcon.vue";
 import WoodImg from "../assets/img/background-wood.png";
 import { store } from "../store";
 
@@ -49,6 +50,8 @@ const player1Name = ref<string>("");
 const isMyGame = ref<boolean>(false);
 const handlingPlaceMeeple = ref<boolean>(false);
 const mustDiscard = ref<boolean>(false);
+const discardedTileKinds = ref<TileKind[]>([]);
+const showDiscardedTiles = ref<boolean>(false);
 
 const useMeeple = (
   meeples: Set<number>,
@@ -345,7 +348,8 @@ const processAIMove = async () => {
     const discardMove = moves[moves.length - 1] as DiscardMove;
 
     tileCount.value++;
-    alert(`AI discarded tile ${discardMove.tile}`);
+    discardedTileKinds.value.push(discardMove.tile);
+    alert(`AI discarded a tile.`);
     await processAIMove();
   } else {
     const tileMove = moves[moves.length - 2] as TileMove;
@@ -452,6 +456,13 @@ const updateSituation = async (gameID: number, moveID?: number) => {
     }
   }
 
+  discardedTileKinds.value = moves
+    .filter((mv) => !("rot" in mv) && "tile" in mv)
+    .map((mv) => {
+      const dm = mv as DiscardMove;
+      return dm.tile;
+    });
+
   if (afterTileMove) {
     meepleablePositions.value = board.meepleablePositions;
     const lastTileMove = moves[moves.length - 1] as TileMove;
@@ -487,6 +498,8 @@ const discard = async () => {
     player.value.id,
     currentTileID.value
   );
+
+  discardedTileKinds.value.push(idToTileKind(currentTileID.value));
 
   currentTileID.value = res.currentTileID;
   nextTileID.value = res.nextTileID;
@@ -589,7 +602,7 @@ const boardStyle = computed(() => {
 <template>
   <div v-if="!finished">
     <div
-      class="bg-orange-100 rounded text-orange-900 px-4 py-3 shadow-md flex justify-between"
+      class="bg-gray-100 rounded text-gray-900 text-sm px-4 py-3 shadow-md flex justify-between"
     >
       <div class="flex">
         <div v-if="AIThinking">
@@ -611,21 +624,21 @@ const boardStyle = computed(() => {
         <SpinnerIcon v-if="AIThinking" />
         <div class="flex flex-col justify-center">
           <button
-            class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
+            class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
             v-if="isMyGame && placingPosition.y !== -1 && placingTile !== null"
             @click="confirm"
           >
             Confirm
           </button>
           <button
-            class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
+            class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
             v-else-if="isMyGame && meepleablePositions.length !== 0"
             @click="skip"
           >
             Skip
           </button>
           <button
-            class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
+            class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
             v-else-if="mustDiscard"
             @click="discard()"
           >
@@ -633,13 +646,34 @@ const boardStyle = computed(() => {
           </button>
         </div>
       </div>
-      <div class="flex flex-col justify-center">
-        {{ Math.max(TILE_TOTAL_COUNT - tileCount - 2, 0) }} / 72
+      <div class="flex">
+        <div class="flex flex-col justify-center">
+          {{ Math.max(TILE_TOTAL_COUNT - tileCount - 2, 0) }}/72
+        </div>
+        <div class="flex flex-col justify-center ml-2 relative">
+          <TrashIcon @click="showDiscardedTiles = !showDiscardedTiles" />
+          <div
+            v-if="showDiscardedTiles"
+            class="absolute top-10 right-0 w-36 bg-gray-100 p-4 rounded-2xl shadow-md"
+          >
+            <p>Discarded</p>
+            <div v-if="discardedTileKinds.length > 0" class="mt-2 flex gap-2">
+              <img
+                v-for="(discardedTileKind, idx) in discardedTileKinds"
+                :src="newTile(0, discardedTileKind, null, -1, -1).src"
+                class="min-h-[30px]"
+                width="30"
+                height="30"
+                :key="idx"
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
   <div v-else>
-    <div class="bg-orange-100 rounded text-orange-900 px-4 py-3 shadow-md">
+    <div class="bg-gray-100 rounded text-gray-900 px-4 py-3 shadow-md">
       <div v-if="placingPosition.x === -1 && tileCount === TILE_TOTAL_COUNT">
         <p v-if="winner !== 'tie'" class="flex flex-col justify-center mr-3">
           {{ winner }} wins!
@@ -648,20 +682,20 @@ const boardStyle = computed(() => {
       </div>
       <div class="flex gap-2">
         <button
-          class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
+          class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
           @click="goBeginning"
         >
           Go to Beginning
         </button>
         <button
-          class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
+          class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
           @click="goPrev"
           :disabled="replayMove <= 1"
         >
           Previous
         </button>
         <button
-          class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
+          class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
           @click="goNext"
           :disabled="replayMove >= maxReplayMove"
         >
