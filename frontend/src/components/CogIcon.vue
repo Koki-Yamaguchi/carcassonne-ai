@@ -1,3 +1,4 @@
+<!-- from https://www.tailwindtoolbox.com/icons -->
 <template>
   <svg
     class="h-8 w-8 text-gray-500"

@@ -14,6 +14,7 @@ import {
   Move,
   TileMove,
   MeepleMove,
+  DiscardMove,
   Board,
   Player,
 } from "../types";
@@ -248,6 +249,32 @@ export class API {
     }
   }
 
+  async createDiscardMove(
+    gameID: number,
+    playerID: number,
+    tileID: number
+  ): Promise<MeepleMoveResult> {
+    try {
+      const res = await axios.post(`${this.base_url}/discard-moves/create`, {
+        game_id: gameID,
+        player_id: playerID,
+        tile_id: tileID,
+      });
+      console.log({ res });
+      const meepleMoveResult: MeepleMoveResult = {
+        completeEvents: [],
+        currentPlayerID: res.data.current_player_id,
+        nextPlayerID: res.data.next_player_id,
+        currentTileID: res.data.current_tile_id,
+        nextTileID: res.data.next_tile_id,
+      };
+      return meepleMoveResult;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
   async waitAIMove(gameID: number): Promise<MeepleMoveResult> {
     try {
       const res = await axios.post(`${this.base_url}/wait-ai-move`, {
@@ -282,8 +309,8 @@ export class API {
         `${this.base_url}/moves?game=${gameID}` + (moveID ? `&m=${moveID}` : "")
       );
       console.log({ res });
-      const moves = res.data.map((mv: any, idx: number) => {
-        if (idx % 2 === 0) {
+      const moves = res.data.map((mv: any) => {
+        if (mv.TMove) {
           const tm: TileMove = {
             playerID: mv.TMove.player_id,
             ord: mv.TMove.ord,
@@ -292,7 +319,7 @@ export class API {
             rot: mv.TMove.rot,
           };
           return tm;
-        } else {
+        } else if (mv.MMove) {
           const mm: MeepleMove = {
             playerID: mv.MMove.player_id,
             ord: mv.MMove.ord,
@@ -300,6 +327,13 @@ export class API {
             pos: mv.MMove.meeple_pos,
           };
           return mm;
+        } else {
+          const dm: DiscardMove = {
+            playerID: mv.DMove.player_id,
+            ord: mv.DMove.ord,
+            tile: mv.DMove.tile,
+          };
+          return dm;
         }
       });
       return moves;

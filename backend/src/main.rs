@@ -14,11 +14,11 @@ use handlers::get_board;
 use handlers::get_final_events;
 use handlers::get_moves;
 use handlers::get_player;
-use handlers::update_player;
 use handlers::health;
+use handlers::update_player;
 use handlers::wait_ai_move;
+use handlers::{create_discard_move, create_meeple_move, create_tile_move};
 use handlers::{create_game, get_game, get_games};
-use handlers::{create_meeple_move, create_tile_move};
 
 use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Header;
@@ -59,6 +59,7 @@ fn rocket() -> _ {
             create_player,
             create_tile_move,
             create_meeple_move,
+            create_discard_move,
             wait_ai_move,
             get_moves,
             get_final_events,

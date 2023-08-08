@@ -1932,6 +1932,9 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                     }
                 }
             }
+            Move::DMove(_m) => {
+                // do nothing
+            }
             Move::InvalidMove => {}
         }
     }

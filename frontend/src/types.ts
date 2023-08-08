@@ -62,7 +62,13 @@ export interface MeepleMove {
   pos: number;
 }
 
-export type Move = TileMove | MeepleMove;
+export interface DiscardMove {
+  playerID: number;
+  ord: number;
+  tile: TileKind;
+}
+
+export type Move = TileMove | MeepleMove | DiscardMove;
 
 export interface Board {
   player0Point: number;

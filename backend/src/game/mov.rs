@@ -1,4 +1,4 @@
-use self::Move::{InvalidMove, MMove, TMove};
+use self::Move::{DMove, InvalidMove, MMove, TMove};
 use super::tile::Tile;
 use rocket::serde::Serialize;
 
@@ -26,9 +26,19 @@ pub struct MeepleMove {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(crate = "rocket::serde")]
+pub struct DiscardMove {
+    pub ord: i32,
+    pub game_id: i32,
+    pub player_id: i32,
+    pub tile: Tile,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(crate = "rocket::serde")]
 pub enum Move {
     TMove(TileMove),
     MMove(MeepleMove),
+    DMove(DiscardMove),
     InvalidMove,
 }
 
@@ -37,6 +47,7 @@ impl Move {
         match self {
             MMove(m) => m.ord,
             TMove(m) => m.ord,
+            DMove(m) => m.ord,
             InvalidMove => 0,
         }
     }
