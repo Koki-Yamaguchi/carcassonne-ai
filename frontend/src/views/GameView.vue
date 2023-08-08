@@ -561,10 +561,10 @@ onMounted(async () => {
     ) {
       skip();
     }
-  }
-
-  if (currentTileID.value !== -1 && placeablePositions.value.length === 0) {
-    mustDiscard.value = true;
+  } else {
+    if (currentTileID.value !== -1 && placeablePositions.value.length === 0) {
+      mustDiscard.value = true;
+    }
   }
 });
 

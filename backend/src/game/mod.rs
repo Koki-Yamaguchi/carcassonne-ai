@@ -13,14 +13,13 @@ use rocket::serde::Serialize;
 
 use crate::database;
 use crate::error::{bad_request_error, Error};
-use crate::game::mov::DiscardMove;
 use crate::game::tile::to_tile;
 
 use self::board::{Board, BoardTile};
 use self::calculate::calculate;
 use self::tile::{remaining_tiles, tiles};
 use mov::Move::*;
-use mov::{MeepleMove, TileMove};
+use mov::{DiscardMove, MeepleMove, TileMove};
 use rand::Rng;
 use tile::Tile::*;
 
@@ -457,16 +456,7 @@ pub fn wait_ai_move(game_id: i32) -> Result<MeepleMoveResult, Error> {
 
             meeple_move_result
         }
-        None => {
-            let r = match create_discard_move(game.id, 1, placing_tile) {
-                Ok(res) => res,
-                Err(e) => {
-                    return Err(e);
-                }
-            };
-
-            Ok(r)
-        }
+        None => create_discard_move(game.id, 1, placing_tile),
     }
 }
 
