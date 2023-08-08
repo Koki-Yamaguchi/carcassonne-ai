@@ -13,6 +13,7 @@ use rocket::serde::Serialize;
 
 use crate::database;
 use crate::error::{bad_request_error, Error};
+use crate::game::mov::DiscardMove;
 use crate::game::tile::to_tile;
 
 use self::board::{Board, BoardTile};
@@ -268,6 +269,9 @@ pub fn create_meeple_move(
             mov::Move::TMove(tm) => {
                 out_tiles.push(tm.tile.clone());
             }
+            mov::Move::DMove(dm) => {
+                out_tiles.push(dm.tile.clone());
+            }
             _ => {}
         }
     }
@@ -314,6 +318,97 @@ pub fn create_meeple_move(
     })
 }
 
+pub fn create_discard_move(
+    game_id: i32,
+    player_id: i32,
+    tile: tile::Tile,
+) -> Result<MeepleMoveResult, Error> {
+    let mut rng = rand::thread_rng();
+
+    let gm = match database::get_game(game_id) {
+        Ok(game) => game,
+        Err(e) => {
+            return Err(e);
+        }
+    };
+
+    let mut moves = match database::list_moves(game_id, None) {
+        Ok(mvs) => mvs,
+        Err(e) => {
+            return Err(e);
+        }
+    };
+    assert!(moves.len() != 0);
+
+    let ord = moves.last().unwrap().ord() + 1;
+
+    let mv = DMove(DiscardMove {
+        ord,
+        game_id,
+        player_id,
+        tile,
+    });
+    moves.push(mv.clone());
+
+    match database::create_move(mv) {
+        Err(e) => return Err(e),
+        _ => {}
+    }
+
+    let mut out_tiles = vec![];
+    match gm.next_tile_id {
+        Some(tid) => {
+            if tid != -1 {
+                out_tiles.push(to_tile(tid))
+            }
+        }
+        None => {}
+    }
+    for mv in moves {
+        match mv {
+            mov::Move::TMove(tm) => {
+                out_tiles.push(tm.tile.clone());
+            }
+            mov::Move::DMove(dm) => {
+                out_tiles.push(dm.tile.clone());
+            }
+            _ => {}
+        }
+    }
+    let remaining_tiles = tile::remaining_tiles(out_tiles.clone());
+
+    let draw_tile = if remaining_tiles.len() == 0 {
+        Invalid
+    } else {
+        remaining_tiles[rng.gen_range(0..remaining_tiles.len())]
+    };
+
+    // TODO: what if thre's no tile to draw on the second last turn?
+
+    match database::update_game(
+        game_id,
+        gm.next_tile_id.unwrap(),
+        gm.next_player_id.unwrap(),
+        gm.player0_point,
+        gm.player1_point,
+        draw_tile.to_id(),
+        gm.current_player_id.unwrap(),
+    ) {
+        Err(e) => {
+            return Err(e);
+        }
+        Ok(_) => {}
+    }
+
+    Ok(MeepleMoveResult {
+        complete_events: vec![],
+        next_tile_id: gm.next_tile_id.unwrap(),
+        next_player_id: gm.next_player_id.unwrap(),
+        current_tile_id: draw_tile.to_id(),
+        current_player_id: gm.current_player_id.unwrap(),
+    })
+}
+
 pub fn wait_ai_move(game_id: i32) -> Result<MeepleMoveResult, Error> {
     let game = match database::get_game(game_id) {
         Ok(gm) => gm,
@@ -331,34 +426,48 @@ pub fn wait_ai_move(game_id: i32) -> Result<MeepleMoveResult, Error> {
     assert!(moves.len() != 0);
 
     let placing_tile = tile::to_tile(game.current_tile_id.unwrap());
-    let (tile_move, meeple_move): (TileMove, MeepleMove) = calculate_next_move::calculate_next_move(
+
+    match calculate_next_move::calculate_next_move(
         &moves,
         game.id,
         game.player0_id,
         game.player0_id,
         1,
         placing_tile,
-    );
+    ) {
+        Some((tile_move, meeple_move)) => {
+            let r = match create_tile_move(game.id, 1, placing_tile, tile_move.rot, tile_move.pos) {
+                Ok(res) => res,
+                Err(e) => {
+                    return Err(e);
+                }
+            };
+            assert!(
+                meeple_move.meeple_id == -1
+                    || r.meepleable_positions.contains(&meeple_move.meeple_pos)
+            );
 
-    let r = match create_tile_move(game.id, 1, placing_tile, tile_move.rot, tile_move.pos) {
-        Ok(res) => res,
-        Err(e) => {
-            return Err(e);
+            let meeple_move_result = create_meeple_move(
+                game.id,
+                1,
+                meeple_move.meeple_id,
+                meeple_move.tile_pos,
+                meeple_move.meeple_pos,
+            );
+
+            meeple_move_result
         }
-    };
-    assert!(
-        meeple_move.meeple_id == -1 || r.meepleable_positions.contains(&meeple_move.meeple_pos)
-    );
+        None => {
+            let r = match create_discard_move(game.id, 1, placing_tile) {
+                Ok(res) => res,
+                Err(e) => {
+                    return Err(e);
+                }
+            };
 
-    let meeple_move_result = create_meeple_move(
-        game.id,
-        1,
-        meeple_move.meeple_id,
-        meeple_move.tile_pos,
-        meeple_move.meeple_pos,
-    );
-
-    meeple_move_result
+            Ok(r)
+        }
+    }
 }
 
 pub fn get_game(game_id: i32) -> Result<Game, Error> {
@@ -463,18 +572,17 @@ pub fn get_board(game_id: Option<i32>, move_id: Option<i32>) -> Result<Board, Er
         }
     };
 
-    let (player0_point, player1_point, b, meepleable_positions) =
-        match calculate(&moves, moves.len() == 144) {
-            Ok(s) => (
-                s.player0_point,
-                s.player1_point,
-                s.board,
-                s.meepleable_positions,
-            ),
-            Err(e) => {
-                return Err(e);
-            }
-        };
+    let (player0_point, player1_point, b, meepleable_positions) = match calculate(&moves, false) {
+        Ok(s) => (
+            s.player0_point,
+            s.player1_point,
+            s.board,
+            s.meepleable_positions,
+        ),
+        Err(e) => {
+            return Err(e);
+        }
+    };
 
     let board_size = 20 * 2 + 1;
     let mut tiles = vec![

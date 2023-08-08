@@ -9,6 +9,7 @@ import {
   TileMove,
   MeepleMove,
   Player,
+  DiscardMove,
 } from "../types";
 import { Color, Tile } from "../tiles";
 import GameBoard from "../components/GameBoard.vue";
@@ -38,7 +39,8 @@ const player1LastTilePos = ref<TilePosition>({ y: -1, x: -1 });
 const meepledPositions = ref<Map<number, TilePosition>>(new Map());
 const finished = ref<boolean>(false);
 const tileCount = ref<number>(1);
-const replayMove = ref<number>(TILE_TOTAL_COUNT * 2 - 1);
+const replayMove = ref<number>(0);
+const maxReplayMove = ref<number>(0);
 const meepleColor = ref<Color>("yellow");
 const AIMeepleColor = ref<Color>("red");
 const AIThinking = ref<boolean>(false);
@@ -46,6 +48,7 @@ const player0Name = ref<string>("");
 const player1Name = ref<string>("");
 const isMyGame = ref<boolean>(false);
 const handlingPlaceMeeple = ref<boolean>(false);
+const mustDiscard = ref<boolean>(false);
 
 const useMeeple = (
   meeples: Set<number>,
@@ -225,8 +228,14 @@ const processCompleteEvents = (completeEvents: CompleteEvent[]) => {
 
 const finishGame = async (gameID: number) => {
   const api = new API();
+
   const finalEvents = await api.getFinalEevnts(gameID);
   processCompleteEvents(finalEvents.completeEvents);
+
+  const moves = await api.getMoves(gameID);
+  maxReplayMove.value = moves.length - 1;
+  replayMove.value = moves.length - 1;
+
   finished.value = true;
   placeablePositions.value = [];
 };
@@ -295,16 +304,25 @@ const handlePlaceMeeple = async (pos: number) => {
   currentTileID.value = res.currentTileID;
   nextTileID.value = res.nextTileID;
 
-  placingTile.value = newTile(0, idToTileKind(res.nextTileID), null, -1, -1);
-  placeablePositions.value = getPlaceablePositions(placingTile.value);
+  if (res.nextTileID !== -1) {
+    placingTile.value = newTile(0, idToTileKind(res.nextTileID), null, -1, -1);
+    placeablePositions.value = getPlaceablePositions(placingTile.value);
+  }
 
   await processAIMove();
 
-  placeablePositions.value = getPlaceablePositions(placingTile.value);
+  if (res.nextTileID !== -1) {
+    placingTile.value = newTile(0, idToTileKind(res.nextTileID), null, -1, -1);
+    placeablePositions.value = getPlaceablePositions(placingTile.value);
+  }
 
   if (currentTileID.value === -1) {
     await finishGame(game.value.id);
     return;
+  }
+
+  if (currentTileID.value !== -1 && placeablePositions.value.length === 0) {
+    mustDiscard.value = true;
   }
 };
 
@@ -319,39 +337,55 @@ const processAIMove = async () => {
 
   const moves = await api.getMoves(game.value.id);
 
-  const tileMove = moves[moves.length - 2] as TileMove;
-  const meepleMove = moves[moves.length - 1] as MeepleMove;
-  const tile = newTile(tileMove.rot, tileMove.tile, null, -1, -1);
-  const tilePosY = tileMove.pos.y + Math.floor(boardSize / 2);
-  const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
+  // discard move
+  if (
+    "tile" in moves[moves.length - 1] &&
+    !("rot" in moves[moves.length - 1])
+  ) {
+    const discardMove = moves[moves.length - 1] as DiscardMove;
 
-  if (meepleMove.meepleID !== -1) {
-    tile.placeMeeple(meepleMove.pos, AIMeepleColor.value, meepleMove.meepleID);
-    useMeeple(
-      player1Meeples.value,
-      { y: tilePosY, x: tilePosX },
-      meepleMove.meepleID
-    );
+    tileCount.value++;
+    alert(`AI discarded tile ${discardMove.tile}`);
+    await processAIMove();
+  } else {
+    const tileMove = moves[moves.length - 2] as TileMove;
+    const meepleMove = moves[moves.length - 1] as MeepleMove;
+    const tile = newTile(tileMove.rot, tileMove.tile, null, -1, -1);
+    const tilePosY = tileMove.pos.y + Math.floor(boardSize / 2);
+    const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
+
+    if (meepleMove.meepleID !== -1) {
+      tile.placeMeeple(
+        meepleMove.pos,
+        AIMeepleColor.value,
+        meepleMove.meepleID
+      );
+      useMeeple(
+        player1Meeples.value,
+        { y: tilePosY, x: tilePosX },
+        meepleMove.meepleID
+      );
+    }
+
+    tiles.value[tilePosY][tilePosX] = tile;
+
+    if (player1LastTilePos.value.y !== -1) {
+      tiles.value[player1LastTilePos.value.y][
+        player1LastTilePos.value.x
+      ]?.addFrame(null);
+    }
+    tiles.value[tilePosY][tilePosX]?.addFrame(AIMeepleColor.value);
+    player1LastTilePos.value = { y: tilePosY, x: tilePosX };
+
+    processCompleteEvents(res.completeEvents);
+
+    tileCount.value++;
+
+    currentTileID.value = res.currentTileID;
+    nextTileID.value = -1; // invisible yet
+
+    AIThinking.value = false;
   }
-
-  tiles.value[tilePosY][tilePosX] = tile;
-
-  if (player1LastTilePos.value.y !== -1) {
-    tiles.value[player1LastTilePos.value.y][
-      player1LastTilePos.value.x
-    ]?.addFrame(null);
-  }
-  tiles.value[tilePosY][tilePosX]?.addFrame(AIMeepleColor.value);
-  player1LastTilePos.value = { y: tilePosY, x: tilePosX };
-
-  processCompleteEvents(res.completeEvents);
-
-  tileCount.value++;
-
-  currentTileID.value = res.currentTileID;
-  nextTileID.value = -1; // invisible yet
-
-  AIThinking.value = false;
 };
 
 const winner = computed(() => {
@@ -364,10 +398,7 @@ const winner = computed(() => {
   }
 });
 
-const updateSituation = async (
-  gameID: number,
-  moveID?: number
-): Promise<boolean> => {
+const updateSituation = async (gameID: number, moveID?: number) => {
   const api = new API();
   const board = await api.getBoard(
     gameID,
@@ -397,23 +428,27 @@ const updateSituation = async (
 
   const moves = await api.getMoves(gameID, moveID);
 
-  const afterTileMove = moves.length % 2 === 1;
+  const afterTileMove = "rot" in moves[moves.length - 1];
 
-  tileCount.value = Math.floor(moves.length / 2);
+  tileCount.value = moves.filter((m) => !("meepleID" in m)).length;
 
   // frame tiles from last 1 or 2 tile moves
-  for (let i = moves.length - 1; i >= 2 && i >= moves.length - 4; i--) {
-    if (i % 2 === 0) {
-      const tileMove = moves[i] as TileMove;
-      const tilePosY = tileMove.pos.y + Math.floor(boardSize / 2);
-      const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
-      if (tileMove.playerID === game.value?.player0ID) {
-        tiles.value[tilePosY][tilePosX]?.addFrame(meepleColor.value);
-        player0LastTilePos.value = { y: tilePosY, x: tilePosX };
-      } else {
-        tiles.value[tilePosY][tilePosX]?.addFrame(AIMeepleColor.value);
-        player1LastTilePos.value = { y: tilePosY, x: tilePosX };
-      }
+  let count = 0;
+  for (let i = moves.length - 1; i >= 2 && count < 2; i--) {
+    // not tile move
+    if (!("rot" in moves[i])) {
+      continue;
+    }
+    count++;
+    const tileMove = moves[i] as TileMove;
+    const tilePosY = tileMove.pos.y + Math.floor(boardSize / 2);
+    const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
+    if (tileMove.playerID === game.value?.player0ID) {
+      tiles.value[tilePosY][tilePosX]?.addFrame(meepleColor.value);
+      player0LastTilePos.value = { y: tilePosY, x: tilePosX };
+    } else {
+      tiles.value[tilePosY][tilePosX]?.addFrame(AIMeepleColor.value);
+      player1LastTilePos.value = { y: tilePosY, x: tilePosX };
     }
   }
 
@@ -424,22 +459,59 @@ const updateSituation = async (
       y: lastTileMove.pos.y + Math.floor(boardSize / 2),
       x: lastTileMove.pos.x + Math.floor(boardSize / 2),
     };
+  } else {
+    meepleablePositions.value = [];
+    placingPosition.value = { y: -1, x: -1 };
   }
 
-  if (tileCount.value === TILE_TOTAL_COUNT) {
-    finished.value = true;
-    placeablePositions.value = [];
+  if (
+    game.value &&
+    placingPosition.value.x === -1 &&
+    tileCount.value === TILE_TOTAL_COUNT
+  ) {
+    await finishGame(game.value.id);
   }
 
   return afterTileMove;
 };
 
+const discard = async () => {
+  if (!game.value || !player.value || !currentTileID.value) {
+    return;
+  }
+
+  const api = new API();
+
+  const res = await api.createDiscardMove(
+    game.value?.id,
+    player.value.id,
+    currentTileID.value
+  );
+
+  currentTileID.value = res.currentTileID;
+  nextTileID.value = res.nextTileID;
+
+  tileCount.value++;
+
+  const placingTileKind = idToTileKind(currentTileID.value);
+  placingTile.value = newTile(0, placingTileKind, null, -1, -1);
+  placeablePositions.value = getPlaceablePositions(placingTile.value);
+
+  if (currentTileID.value === -1 || placeablePositions.value.length !== 0) {
+    mustDiscard.value = false;
+  }
+};
+
+const goBeginning = () => {
+  replayMove.value = 1;
+  updateSituation(game.value?.id as number, replayMove.value);
+};
 const goPrev = () => {
-  replayMove.value -= 2;
+  replayMove.value = Math.max(replayMove.value - 1, 1);
   updateSituation(game.value?.id as number, replayMove.value);
 };
 const goNext = () => {
-  replayMove.value += 2;
+  replayMove.value = Math.min(replayMove.value + 1, maxReplayMove.value);
   updateSituation(game.value?.id as number, replayMove.value);
 };
 
@@ -490,6 +562,10 @@ onMounted(async () => {
       skip();
     }
   }
+
+  if (currentTileID.value !== -1 && placeablePositions.value.length === 0) {
+    mustDiscard.value = true;
+  }
 });
 
 const currentTile = () => {
@@ -499,7 +575,7 @@ const currentTile = () => {
 };
 const placingTileSrc = () => {
   const tileID = AIThinking.value ? nextTileID.value : currentTileID.value;
-  if (tileID !== null) {
+  if (tileID !== null && tileID !== -1) {
     const t = newTile(0, idToTileKind(tileID), null, -1, -1);
     return t.src;
   }
@@ -520,10 +596,12 @@ const boardStyle = computed(() => {
           <p class="flex flex-col justify-center mr-3">AI must place</p>
         </div>
         <div v-else class="flex flex-col justify-center mr-3">
-          <p>You must place</p>
+          <p v-if="mustDiscard">You must discard</p>
+          <p v-else>You must place</p>
         </div>
         <div class="flex flex-col justify-center min-w-[30px] mr-3">
           <img
+            v-if="currentTile()"
             class="min-h-[30px]"
             width="30"
             height="30"
@@ -541,10 +619,17 @@ const boardStyle = computed(() => {
           </button>
           <button
             class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
-            v-else-if="meepleablePositions.length !== 0"
+            v-else-if="isMyGame && meepleablePositions.length !== 0"
             @click="skip"
           >
             Skip
+          </button>
+          <button
+            class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
+            v-else-if="mustDiscard"
+            @click="discard()"
+          >
+            Discard
           </button>
         </div>
       </div>
@@ -555,7 +640,7 @@ const boardStyle = computed(() => {
   </div>
   <div v-else>
     <div class="bg-orange-100 rounded text-orange-900 px-4 py-3 shadow-md">
-      <div v-if="tileCount === TILE_TOTAL_COUNT">
+      <div v-if="placingPosition.x === -1 && tileCount === TILE_TOTAL_COUNT">
         <p v-if="winner !== 'tie'" class="flex flex-col justify-center mr-3">
           {{ winner }} wins!
         </p>
@@ -564,13 +649,21 @@ const boardStyle = computed(() => {
       <div class="flex gap-2">
         <button
           class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
+          @click="goBeginning"
+        >
+          Go to Beginning
+        </button>
+        <button
+          class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
           @click="goPrev"
+          :disabled="replayMove <= 1"
         >
           Previous
         </button>
         <button
           class="bg-orange-400 hover:bg-orange-300 text-white rounded px-4 py-2"
           @click="goNext"
+          :disabled="replayMove >= maxReplayMove"
         >
           Next
         </button>

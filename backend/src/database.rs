@@ -304,6 +304,17 @@ pub fn create_move(mv: mov::Move) -> Result<mov::Move, Error> {
             tile_pos_x: m.tile_pos.1,
             meeple_pos: m.meeple_pos,
         },
+        mov::Move::DMove(m) => InsertMove {
+            ord: m.ord,
+            game_id: m.game_id,
+            player_id: m.player_id,
+            tile_id: m.tile.to_id(),
+            meeple_id: -1,
+            rot: -1,
+            tile_pos_y: -1,
+            tile_pos_x: -1,
+            meeple_pos: -1,
+        },
         mov::Move::InvalidMove => {
             return Ok(mov::Move::InvalidMove);
         }
@@ -323,6 +334,14 @@ pub fn create_move(mv: mov::Move) -> Result<mov::Move, Error> {
 }
 
 fn to_move(qm: QueryMove) -> mov::Move {
+    if qm.tile_id != -1 && qm.rot == -1 {
+        return mov::Move::DMove(mov::DiscardMove {
+            ord: qm.ord,
+            game_id: qm.game_id,
+            player_id: qm.player_id,
+            tile: tile::to_tile(qm.tile_id),
+        });
+    }
     match (qm.tile_id, qm.meeple_id) {
         (-1, _) => mov::Move::MMove(mov::MeepleMove {
             ord: qm.ord,

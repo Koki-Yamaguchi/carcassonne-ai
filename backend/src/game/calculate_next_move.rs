@@ -13,7 +13,7 @@ pub fn calculate_next_move(
     _player1_id: i32,
     player_id: i32,
     next_tile: Tile,
-) -> (TileMove, MeepleMove) {
+) -> Option<(TileMove, MeepleMove)> {
     let mut mvs = moves.clone();
 
     let mut tile = TileItem {
@@ -51,6 +51,7 @@ pub fn calculate_next_move(
         tile_pos: (-1, -1),
         meeple_pos: -1,
     };
+    let mut updated = false;
     for pos in board.keys() {
         match checked.get(pos) {
             Some(_) => {
@@ -161,6 +162,7 @@ pub fn calculate_next_move(
                         max_val = val;
                         tile_move = tmove.clone();
                         meeple_move = mmove.clone();
+                        updated = true;
                     }
 
                     mvs.pop();
@@ -170,5 +172,9 @@ pub fn calculate_next_move(
         }
     }
 
-    (tile_move, meeple_move)
+    if !updated {
+        return None;
+    }
+
+    Some((tile_move, meeple_move))
 }

@@ -30,6 +30,14 @@ pub struct CreateMeepleMove {
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
+pub struct CreateDiscardMove {
+    pub game_id: i32,
+    pub player_id: i32,
+    pub tile_id: i32,
+}
+
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
 pub struct WaitAIMove {
     pub game_id: i32,
 }
@@ -130,6 +138,22 @@ pub fn create_meeple_move(params: Json<CreateMeepleMove>) -> (Status, (ContentTy
         params.meeple_id,
         (params.tile_pos_y, params.tile_pos_x),
         params.pos,
+    ) {
+        Ok(res) => (Status::Ok, (ContentType::JSON, to_string(&res).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[post(
+    "/discard-moves/create",
+    format = "application/json",
+    data = "<params>"
+)]
+pub fn create_discard_move(params: Json<CreateDiscardMove>) -> (Status, (ContentType, String)) {
+    match game::create_discard_move(
+        params.game_id,
+        params.player_id,
+        tile::to_tile(params.tile_id),
     ) {
         Ok(res) => (Status::Ok, (ContentType::JSON, to_string(&res).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
