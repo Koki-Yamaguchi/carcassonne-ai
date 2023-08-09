@@ -19,6 +19,7 @@ import SpinnerIcon from "../components/SpinnerIcon.vue";
 import TrashIcon from "../components/TrashIcon.vue";
 import WoodImg from "../assets/img/background-wood.png";
 import { store } from "../store";
+import { translate } from "../locales/translate";
 
 const TILE_TOTAL_COUNT = 72;
 const game = ref<Game | null>(null);
@@ -605,12 +606,14 @@ const boardStyle = computed(() => {
       class="bg-gray-100 rounded text-gray-900 text-sm px-4 py-3 shadow-md flex justify-between"
     >
       <div class="flex">
-        <div v-if="AIThinking">
-          <p class="flex flex-col justify-center mr-3">AI must place</p>
+        <div v-if="AIThinking" class="flex flex-col justify-center mr-3">
+          <p>
+            {{ translate("ai_must_place") }}
+          </p>
         </div>
         <div v-else class="flex flex-col justify-center mr-3">
-          <p v-if="mustDiscard">You must discard</p>
-          <p v-else>You must place</p>
+          <p v-if="mustDiscard">{{ translate("you_must_discard") }}</p>
+          <p v-else>{{ translate("you_must_place") }}</p>
         </div>
         <div class="flex flex-col justify-center min-w-[30px] mr-3">
           <img
@@ -628,21 +631,21 @@ const boardStyle = computed(() => {
             v-if="isMyGame && placingPosition.y !== -1 && placingTile !== null"
             @click="confirm"
           >
-            Confirm
+            {{ translate("confirm") }}
           </button>
           <button
             class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
             v-else-if="isMyGame && meepleablePositions.length !== 0"
             @click="skip"
           >
-            Skip
+            {{ translate("skip") }}
           </button>
           <button
             class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
             v-else-if="mustDiscard"
             @click="discard()"
           >
-            Discard
+            {{ translate("discard") }}
           </button>
         </div>
       </div>
@@ -656,7 +659,7 @@ const boardStyle = computed(() => {
             v-if="showDiscardedTiles"
             class="absolute top-10 right-0 w-36 bg-gray-100 p-4 rounded-2xl shadow-md"
           >
-            <p>Discarded</p>
+            <p>{{ translate("discarded") }}</p>
             <div v-if="discardedTileKinds.length > 0" class="mt-2 flex gap-2">
               <img
                 v-for="(discardedTileKind, idx) in discardedTileKinds"
@@ -676,30 +679,30 @@ const boardStyle = computed(() => {
     <div class="bg-gray-100 rounded text-gray-900 px-4 py-3 shadow-md">
       <div v-if="placingPosition.x === -1 && tileCount === TILE_TOTAL_COUNT">
         <p v-if="winner !== 'tie'" class="flex flex-col justify-center mr-3">
-          {{ winner }} wins!
+          {{ winner }} {{ translate("wins") }}
         </p>
-        <p v-else>tie!</p>
+        <p v-else>{{ translate("tie") }}</p>
       </div>
       <div class="flex gap-2">
         <button
           class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
           @click="goBeginning"
         >
-          Go to Beginning
+          {{ translate("go_to_beginning") }}
         </button>
         <button
           class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
           @click="goPrev"
           :disabled="replayMove <= 1"
         >
-          Previous
+          {{ translate("previous") }}
         </button>
         <button
           class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
           @click="goNext"
           :disabled="replayMove >= maxReplayMove"
         >
-          Next
+          {{ translate("next") }}
         </button>
       </div>
     </div>

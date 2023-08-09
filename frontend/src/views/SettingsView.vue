@@ -6,6 +6,7 @@ import { API } from "../api";
 import { store } from "../store";
 import { colorToColorID } from "../tiles";
 import { Player } from "../types";
+import { translate } from "../locales/translate";
 
 const router = useRouter();
 
@@ -48,7 +49,7 @@ onMounted(async () => {
             class="block text-gray-500 md:text-right mb-1 md:mb-0 pr-4"
             for="inline-full-name"
           >
-            Name
+            {{ translate("name") }}
           </label>
         </div>
         <div class="md:w-2/3">
@@ -64,7 +65,7 @@ onMounted(async () => {
       <div class="md:flex md:items-center mb-6">
         <div class="md:w-1/3">
           <label class="block text-gray-500 md:text-right mb-1 md:mb-0 pr-4">
-            Meeple Color
+            {{ translate("meeple_color") }}
           </label>
         </div>
         <div class="md:w-2/3">
@@ -72,11 +73,11 @@ onMounted(async () => {
             class="bg-gray-200 border-2 rounded w-full py-2 px-4 text-gray-700 focus:outline-none focus:bg-white focus:border-green-300"
             v-model="color"
           >
-            <option value="0">Red</option>
-            <option value="1">Yellow</option>
-            <option value="2">Green</option>
-            <option value="3">Black</option>
-            <option value="4">Blue</option>
+            <option value="0">{{ translate("red") }}</option>
+            <option value="1">{{ translate("yellow") }}</option>
+            <option value="2">{{ translate("green") }}</option>
+            <option value="3">{{ translate("black") }}</option>
+            <option value="4">{{ translate("blue") }}</option>
           </select>
         </div>
       </div>
@@ -88,11 +89,13 @@ onMounted(async () => {
             type="button"
             @click="update"
           >
-            Update
+            {{ translate("update") }}
           </button>
         </div>
       </div>
     </form>
-    <div class="mt-4 underline" @click="signout">Sign Out</div>
+    <div class="mt-4 underline" @click="signout">
+      {{ translate("sign_out") }}
+    </div>
   </div>
 </template>

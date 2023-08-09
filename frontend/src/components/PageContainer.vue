@@ -2,6 +2,7 @@
 import { useRouter } from "vue-router";
 import { store } from "../store";
 import CogIcon from "./CogIcon.vue";
+import { translate } from "../locales/translate";
 
 const router = useRouter();
 </script>
@@ -16,7 +17,7 @@ const router = useRouter();
       class="flex flex-col justify-center text-lg"
       @click="router.push('/signin')"
     >
-      <div>Sign In</div>
+      <div>{{ translate("sign_in") }}</div>
     </div>
     <div
       v-else

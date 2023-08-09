@@ -5,6 +5,7 @@ import { store } from "../store";
 import { Game, Player } from "../types";
 import { onMounted, ref } from "vue";
 import GameItems from "../components/GameItems.vue";
+import { translate } from "../locales/translate";
 
 const router = useRouter();
 const player = ref<Player | null>(null);
@@ -42,7 +43,7 @@ onMounted(async () => {
         class="mt-4 bg-gray-500 hover:bg-gray-400 text-[#eeeeee] rounded px-4 py-2"
         @click="createGame"
       >
-        Play Now!
+        {{ translate("play_now") }}
       </button>
     </div>
     <GameItems :games="games" />
