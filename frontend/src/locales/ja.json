@@ -21,7 +21,7 @@
   "failed_to_sign_in_message": "ログインに失敗しました。再度お試しください。",
   "ai_must_place": "AI がタイルを配置しています",
   "you_must_place": "あなたの手番です",
-  "you_must_discard": "タイルが配置できません",
+  "you_must_discard": "あなたの手番です",
   "confirm": "確定",
   "discard": "除外する",
   "skip": "スキップ",
@@ -30,5 +30,6 @@
   "tie": "引き分け！",
   "go_to_beginning": "最初から",
   "previous": "一手戻る",
-  "next": "一手進む"
+  "next": "一手進む",
+  "language": "言語"
 }

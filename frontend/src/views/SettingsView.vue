@@ -12,6 +12,7 @@ const router = useRouter();
 
 const player = ref<Player | null>(null);
 const name = ref<string>("");
+const lang = ref<string>("");
 const color = ref<number>(-1);
 
 const update = async () => {
@@ -21,6 +22,9 @@ const update = async () => {
     name.value,
     color.value
   );
+
+  store.setLanguage(lang.value);
+  localStorage.setItem("language", lang.value);
 
   router.push("/");
 };
@@ -37,6 +41,20 @@ onMounted(async () => {
   player.value = await api.getPlayer(store.userID);
   name.value = player.value.name;
   color.value = colorToColorID(player.value.meepleColor);
+
+  if (store.language !== "") {
+    if (store.language === "ja") {
+      lang.value = "ja";
+    } else {
+      lang.value = "en";
+    }
+  } else {
+    if (window.navigator.language === "ja") {
+      lang.value = "ja";
+    } else {
+      lang.value = "en";
+    }
+  }
 });
 </script>
 
@@ -78,6 +96,22 @@ onMounted(async () => {
             <option value="2">{{ translate("green") }}</option>
             <option value="3">{{ translate("black") }}</option>
             <option value="4">{{ translate("blue") }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="md:flex md:items-center mb-6">
+        <div class="md:w-1/3">
+          <label class="block text-gray-500 md:text-right mb-1 md:mb-0 pr-4">
+            {{ translate("language") }}
+          </label>
+        </div>
+        <div class="md:w-2/3">
+          <select
+            class="bg-gray-200 border-2 rounded w-full py-2 px-4 text-gray-700 focus:outline-none focus:bg-white focus:border-green-300"
+            v-model="lang"
+          >
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
           </select>
         </div>
       </div>

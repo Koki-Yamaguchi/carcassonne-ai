@@ -53,6 +53,10 @@ const getCurrentUser = () => {
 };
 
 router.beforeEach(async (to) => {
+  const lang = localStorage.getItem("language");
+  if (lang) {
+    store.setLanguage(lang);
+  }
   const currentUser = (await getCurrentUser()) as any;
   if (to.path !== "/signin" && to.path !== "/signup") {
     if (currentUser) {
