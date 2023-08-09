@@ -3,6 +3,7 @@ import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { ref } from "vue";
 import { API } from "../api";
 import { useRouter } from "vue-router";
+import { translate } from "../locales/translate";
 
 const router = useRouter();
 
@@ -35,7 +36,7 @@ const signup = async () => {
             class="block text-gray-500 md:text-right mb-1 md:mb-0 pr-4"
             for="inline-full-name"
           >
-            Name
+            {{ translate("name") }}
           </label>
         </div>
         <div class="md:w-2/3">
@@ -53,7 +54,7 @@ const signup = async () => {
             class="block text-gray-500 md:text-right mb-1 md:mb-0 pr-4"
             for="inline-password"
           >
-            Email
+            {{ translate("email") }}
           </label>
         </div>
         <div class="md:w-2/3">
@@ -70,7 +71,7 @@ const signup = async () => {
             class="block text-gray-500 md:text-right mb-1 md:mb-0 pr-4"
             for="inline-password"
           >
-            Password
+            {{ translate("password") }}
           </label>
         </div>
         <div class="md:w-2/3">
@@ -90,13 +91,13 @@ const signup = async () => {
             type="button"
             @click="signup"
           >
-            Sign Up
+            {{ translate("sign_up") }}
           </button>
         </div>
       </div>
     </form>
     <div class="mt-4 underline" @click="router.push('/signin')">
-      Sign In Here
+      {{ translate("sign_in_here") }}
     </div>
   </div>
 </template>

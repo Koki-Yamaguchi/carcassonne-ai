@@ -2,6 +2,7 @@
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import { translate } from "../locales/translate";
 
 const router = useRouter();
 
@@ -15,7 +16,7 @@ const signin = async () => {
     await signInWithEmailAndPassword(auth, email.value, password.value);
     router.push(`/`);
   } catch (e) {
-    error.value = "Failed to sign in. Please try again.";
+    error.value = translate("failed_to_sign_in_message");
   }
 };
 </script>
@@ -29,7 +30,7 @@ const signin = async () => {
             class="block text-gray-500 md:text-right mb-1 md:mb-0 pr-4"
             for="inline-email"
           >
-            Email
+            {{ translate("email") }}
           </label>
         </div>
         <div class="md:w-2/3">
@@ -46,7 +47,7 @@ const signin = async () => {
             class="block text-gray-500 md:text-right mb-1 md:mb-0 pr-4"
             for="inline-password"
           >
-            Password
+            {{ translate("password") }}
           </label>
         </div>
         <div class="md:w-2/3">
@@ -69,13 +70,13 @@ const signin = async () => {
             type="button"
             @click="signin"
           >
-            Sign In
+            {{ translate("sign_in") }}
           </button>
         </div>
       </div>
     </form>
     <div class="mt-4 underline" @click="router.push('/signup')">
-      Sign Up Here
+      {{ translate("sign_up_here") }}
     </div>
   </div>
 </template>

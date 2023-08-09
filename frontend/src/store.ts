@@ -10,4 +10,9 @@ export const store = reactive({
   setAuthenticated(authenticated: boolean) {
     this.authenticated = authenticated;
   },
+
+  language: "",
+  setLanguage(language: string) {
+    this.language = language;
+  },
 });

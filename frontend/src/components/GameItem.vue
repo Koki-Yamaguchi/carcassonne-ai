@@ -2,6 +2,8 @@
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { Game } from "../types";
+import { translate } from "../locales/translate";
+
 const props = defineProps<{
   game: Game;
 }>();
@@ -60,7 +62,7 @@ onMounted(() => {
         class="shadow bg-green-200 hover:bg-green-400 focus:shadow-outline focus:outline-none text-gray-700 w-20 rounded text-sm"
         @click="router.push(`/games/${game.id}`)"
       >
-        {{ finished ? "Replay" : "Resume" }}
+        {{ finished ? translate("replay") : translate("resume") }}
       </button>
     </div>
   </div>
