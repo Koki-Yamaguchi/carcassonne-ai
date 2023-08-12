@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use super::calculate::calculate;
 use super::calculate::TileItem;
+use super::database;
 use super::evaluate::evaluate;
 use super::mov::{MeepleMove, Move, TileMove};
 use super::tile::Tile;
@@ -52,6 +53,9 @@ pub fn calculate_next_move(
         meeple_pos: -1,
     };
     let mut updated = false;
+
+    // let mut test = vec![];
+
     for pos in board.keys() {
         match checked.get(pos) {
             Some(_) => {
@@ -153,11 +157,24 @@ pub fn calculate_next_move(
                     };
                     mvs.push(Move::MMove(mmove.clone()));
 
+                    /*
+                    // if !(tmove.pos == (-7, 2) && tmove.rot == 4 && mmove.meeple_pos == 0) {
+                    if !(tmove.pos == (-7, 2) && tmove.rot == 4 && mmove.meeple_pos == -1) {
+                        mvs.pop();
+                        continue;
+                    }
+                    */
+
+                    let (res0, res1) = evaluate(&mvs);
+
                     let val = if player_id == player0_id {
-                        evaluate(&mvs)
+                        res0 - res1
                     } else {
-                        -evaluate(&mvs)
+                        res1 - res0
                     };
+
+                    // test.push((tmove.clone(), mmove.clone(), res0, res1, val));
+
                     if val > max_val {
                         max_val = val;
                         tile_move = tmove.clone();
@@ -176,5 +193,35 @@ pub fn calculate_next_move(
         return None;
     }
 
+    /*
+    test.sort_by(|a, b| a.4.cmp(&b.4));
+    for t in test {
+        println!(
+            "m = {:?}, {:?}, res0 = {:?}, res1 = {:?}, val = {:?}",
+            t.0, t.1, t.2, t.3, t.4
+        );
+    }
+    println!("");
+    */
+
     Some((tile_move, meeple_move))
+}
+
+#[test]
+fn calculate_next_move_test() {
+    let game_id = 336;
+    let game = database::get_game(game_id).unwrap();
+    let mut mvs = database::list_moves(game_id, None).unwrap();
+    mvs.pop();
+    mvs.pop();
+    let res = calculate_next_move(
+        &mvs,
+        game_id,
+        game.player0_id,
+        game.player1_id,
+        1,
+        Tile::StartingTile,
+    );
+    println!("res = {:?}", res);
+    assert!(true);
 }
