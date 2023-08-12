@@ -6,6 +6,11 @@ export const store = reactive({
     this.userID = userID;
   },
 
+  authenticating: false,
+  setAuthenticating(authenticating: boolean) {
+    this.authenticating = authenticating;
+  },
+
   authenticated: false,
   setAuthenticated(authenticated: boolean) {
     this.authenticated = authenticated;
