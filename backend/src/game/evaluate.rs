@@ -1,10 +1,12 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
+
+use crate::database;
 
 use super::calculate::calculate;
 use super::calculate::Feature::*;
 use super::calculate::Side::*;
 use super::calculate::TileItem;
-use super::decoder;
 use super::mov;
 use super::mov::Move;
 use super::{tile, tile::Tile};
@@ -121,6 +123,29 @@ pub fn count_fitting_tiles(
     }
 }
 
+pub fn count_fitting_roadends(
+    board: &HashMap<(i32, i32), TileItem>,
+    remaining_tiles: &Vec<Tile>,
+    y: i32,
+    x: i32,
+) -> Option<i32> {
+    let mut roadends = vec![];
+    for t in remaining_tiles {
+        match t {
+            Tile::MonasteryWithRoad
+            | Tile::TripleRoad
+            | Tile::QuadrupleRoad
+            | Tile::CityCapWithCrossroad
+            | Tile::TripleCityWithRoad
+            | Tile::TripleCityWithRoadWithCOA => {
+                roadends.push(t.clone());
+            }
+            _ => {}
+        }
+    }
+    count_fitting_tiles(board, &roadends, Tile::Invalid, y, x)
+}
+
 pub fn last_n(n: i32) -> i32 {
     let naive = match n {
         0 => 0,
@@ -140,18 +165,141 @@ pub fn last_n(n: i32) -> i32 {
 
 fn remaining_meeple_values(num: usize) -> i32 {
     match num {
-        0 => -120,
-        1 => -80,
-        2 => -40,
-        3 => -30,
-        4 => -20,
-        5 => -10,
-        6 => -5,
+        0 => -320,
+        1 => -250,
+        2 => -200,
+        3 => -150,
+        4 => -110,
+        5 => -70,
+        6 => -30,
         _ => 0,
     }
 }
 
-pub fn evaluate(moves: &Vec<Move>) -> i32 {
+fn fill_probability(
+    board: &mut HashMap<(i32, i32), TileItem>,
+    remaining_tiles: &Vec<Tile>,
+    y0: i32,
+    x0: i32,
+    only_roadend: bool,
+) -> i32 {
+    let dy = [0, -1, 0, 1];
+    let dx = [1, 0, -1, 0];
+
+    let n_roads = number_of_roads(board, y0, x0);
+
+    let need_tile_count = if only_roadend && n_roads != 2 {
+        count_fitting_roadends(board, remaining_tiles, y0, x0).unwrap()
+    } else {
+        count_fitting_tiles(board, remaining_tiles, Tile::Invalid, y0, x0).unwrap()
+    };
+    let mut after_need_tile_count = 0;
+    let mut tot = 0;
+    let mut dead = 0;
+    for dir0 in 0..dx.len() {
+        let y1 = y0 + dy[dir0];
+        let x1 = x0 + dx[dir0];
+        match board.get(&(y1, x1)) {
+            Some(_) => {}
+            None => {
+                let adjacent_fitting_tiles =
+                    match list_fitting_tiles(board, remaining_tiles, Tile::Invalid, y1, x1) {
+                        Some(ts) => ts,
+                        None => {
+                            continue;
+                        }
+                    };
+                for adjacent_tile in &adjacent_fitting_tiles {
+                    let mut min = 100;
+                    for rot in 0..4 {
+                        let t = TileItem {
+                            tile: adjacent_tile.clone(),
+                            rot,
+                            id: -1,
+                            feature_starting_id: -1,
+                            meeple_id: None,
+                            meeple_pos: None,
+                        };
+                        if is_fitting(&board, t, y1, x1) {
+                            board.insert((y1, x1), t);
+
+                            let updated_need_tile_count = if only_roadend && n_roads != 2 {
+                                count_fitting_roadends(board, remaining_tiles, y0, x0).unwrap()
+                            } else {
+                                count_fitting_tiles(board, remaining_tiles, *adjacent_tile, y0, x0)
+                                    .unwrap()
+                            };
+                            if min > updated_need_tile_count {
+                                min = updated_need_tile_count;
+                            }
+
+                            board.remove(&(y1, x1));
+                        }
+                    }
+                    if min == 0 {
+                        dead += 1;
+                    }
+                    after_need_tile_count += min;
+                }
+                tot += adjacent_fitting_tiles.len() as i32;
+            }
+        }
+    }
+    let mut fill_prob = last_n(need_tile_count);
+    if tot != 0 {
+        after_need_tile_count /= tot;
+        fill_prob = (fill_prob + last_n(after_need_tile_count)) / 2;
+    }
+    fill_prob = fill_prob * (100 - dead) / 100; // ?
+
+    fill_prob
+}
+
+fn number_of_roads(board: &mut HashMap<(i32, i32), TileItem>, y: i32, x: i32) -> i32 {
+    let mut num = 0;
+    match board.get(&(y, x)) {
+        Some(_) => {
+            assert!(false);
+        }
+        None => {
+            match board.get(&(y, x + 1)) {
+                Some(t) => {
+                    if t.left() == Road {
+                        num += 1;
+                    }
+                }
+                None => {}
+            }
+            match board.get(&(y - 1, x)) {
+                Some(t) => {
+                    if t.bottom() == Road {
+                        num += 1;
+                    }
+                }
+                None => {}
+            }
+            match board.get(&(y, x - 1)) {
+                Some(t) => {
+                    if t.right() == Road {
+                        num += 1;
+                    }
+                }
+                None => {}
+            }
+            match board.get(&(y + 1, x)) {
+                Some(t) => {
+                    if t.top() == Road {
+                        num += 1;
+                    }
+                }
+                None => {}
+            }
+        }
+    }
+    num
+}
+
+pub fn evaluate(moves: &Vec<Move>) -> (i32, i32) {
     let s = match calculate(&moves, false) {
         Ok(s) => s,
         Err(e) => panic!("{:?}", e.detail.msg),
@@ -178,15 +326,10 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
     let mut fields = vec![vec![]; 2];
     let mut results = vec![0; 2];
 
-    let meeple_value = 30;
-
     for t in board.values() {
         let fs = t.features();
         for f in &fs {
             let meeple_ids = mf.get_meeples(f.id as usize);
-            if meeple_ids.len() == 0 {
-                continue;
-            }
             if mf.is_completed(f.id as usize) {
                 continue;
             }
@@ -244,9 +387,11 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
 
     let dy = [0, -1, 0, 1];
     let dx = [1, 0, -1, 0];
+    let meeple_value = 30;
 
     for player in 0..2 {
         for city in &cities[player] {
+            let mut checked = HashSet::<(i32, i32)>::new();
             let mut complete_prob = 100;
             for tile in &city.tiles {
                 let y0 = tile.pos.0;
@@ -296,6 +441,10 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                         match board.get(&(y1, x1)) {
                             Some(_) => {}
                             None => {
+                                if checked.contains(&(y1, x1)) {
+                                    continue;
+                                }
+                                checked.insert((y1, x1));
                                 let need_tile_count = count_fitting_tiles(
                                     &board,
                                     &remaining_tiles,
@@ -306,6 +455,7 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                 .unwrap();
                                 let mut after_need_tile_count = 0;
                                 let mut tot = 0;
+                                let mut dead = 0;
                                 for dir1 in 0..dx.len() {
                                     let y2 = y1 + dy[dir1];
                                     let x2 = x1 + dx[dir1];
@@ -358,6 +508,9 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                                         board.remove(&(y2, x2));
                                                     }
                                                 }
+                                                if min == 0 {
+                                                    dead += 1;
+                                                }
                                                 after_need_tile_count += min;
                                             }
                                             tot += adjacent_fitting_tiles.len() as i32;
@@ -369,6 +522,7 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                                     after_need_tile_count /= tot;
                                     fill_prob = (fill_prob + last_n(after_need_tile_count)) / 2;
                                 }
+                                fill_prob = fill_prob * (100 - dead * 250 / 100) / 100; // ?
                                 complete_prob *= fill_prob;
                                 complete_prob /= 100;
                             }
@@ -377,14 +531,16 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                 }
             }
 
-            let result = city.point * 10 + ((city.point * 10 + meeple_value) * complete_prob / 100);
+            let result =
+                city.point * 10 + ((city.point * 10 + 20 + meeple_value) * complete_prob / 100);
             results[player] += result;
         }
     }
 
     for player in 0..2 {
         for road in &roads[player] {
-            let mut complete_prob = 80;
+            let mut complete_prob = 100;
+            let mut need_fill = vec![];
             for tile in &road.tiles {
                 let y0 = tile.pos.0;
                 let x0 = tile.pos.1;
@@ -441,88 +597,49 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
                         match board.get(&(y1, x1)) {
                             Some(_) => {}
                             None => {
-                                let need_tile_count = count_fitting_tiles(
-                                    &board,
-                                    &remaining_tiles,
-                                    Tile::Invalid,
-                                    y1,
-                                    x1,
-                                )
-                                .unwrap();
-                                let mut after_need_tile_count = 0;
-                                let mut tot = 0;
-                                for dir1 in 0..dx.len() {
-                                    let y2 = y1 + dy[dir1];
-                                    let x2 = x1 + dx[dir1];
-                                    if y2 == y0 && x2 == x0 {
-                                        continue;
-                                    }
-                                    match board.get(&(y2, x2)) {
-                                        Some(_) => {}
-                                        None => {
-                                            let adjacent_fitting_tiles = match list_fitting_tiles(
-                                                &board,
-                                                &remaining_tiles,
-                                                Tile::Invalid,
-                                                y2,
-                                                x2,
-                                            ) {
-                                                Some(ts) => ts,
-                                                None => {
-                                                    continue;
-                                                }
-                                            };
-                                            for adjacent_tile in &adjacent_fitting_tiles {
-                                                let mut min = 100;
-                                                for rot in 0..4 {
-                                                    let t = TileItem {
-                                                        tile: adjacent_tile.clone(),
-                                                        rot,
-                                                        id: -1,
-                                                        feature_starting_id: -1,
-                                                        meeple_id: None,
-                                                        meeple_pos: None,
-                                                    };
-                                                    if is_fitting(&board, t, y2, x2) {
-                                                        board.insert((y2, x2), t);
-
-                                                        let updated_need_tile_count =
-                                                            count_fitting_tiles(
-                                                                &board,
-                                                                &remaining_tiles,
-                                                                *adjacent_tile,
-                                                                y1,
-                                                                x1,
-                                                            )
-                                                            .unwrap();
-
-                                                        if min > updated_need_tile_count {
-                                                            min = updated_need_tile_count;
-                                                        }
-
-                                                        board.remove(&(y2, x2));
-                                                    }
-                                                }
-                                                after_need_tile_count += min
-                                            }
-                                            tot += adjacent_fitting_tiles.len() as i32;
-                                        }
-                                    }
-                                }
-                                let mut fill_prob = last_n(need_tile_count);
-                                if tot != 0 {
-                                    after_need_tile_count /= tot;
-                                    fill_prob = (fill_prob + last_n(after_need_tile_count)) / 2;
-                                }
-                                complete_prob *= fill_prob;
-                                complete_prob /= 100;
+                                need_fill.push((y1, x1));
                             }
                         }
                     }
                 }
             }
 
-            let result = road.point * 2 + (meeple_value * complete_prob / 100);
+            assert!(need_fill.len() <= 2);
+            if need_fill.len() == 2 {
+                if need_fill[0].0 == need_fill[1].0 && need_fill[0].1 == need_fill[1].1 {
+                    // ring road
+                    let y0 = need_fill[0].0;
+                    let x0 = need_fill[0].1;
+                    complete_prob *= fill_probability(&mut board, &remaining_tiles, y0, x0, false);
+                    complete_prob /= 100;
+                } else if (need_fill[0].0 == need_fill[1].0
+                    && i32::abs(need_fill[0].1 - need_fill[1].1) == 1)
+                    || (need_fill[0].1 == need_fill[1].1
+                        && i32::abs(need_fill[0].0 - need_fill[1].0) == 1)
+                {
+                    // could be ring road
+                    for (y0, x0) in &need_fill {
+                        complete_prob *=
+                            fill_probability(&mut board, &remaining_tiles, *y0, *x0, false);
+                        complete_prob /= 100;
+                    }
+                } else {
+                    // probably need two road ends
+                    for (y0, x0) in &need_fill {
+                        complete_prob *=
+                            fill_probability(&mut board, &remaining_tiles, *y0, *x0, true);
+                        complete_prob /= 100;
+                    }
+                }
+            } else {
+                // need one road end
+                let y0 = need_fill[0].0;
+                let x0 = need_fill[0].1;
+                complete_prob *= fill_probability(&mut board, &remaining_tiles, y0, x0, true);
+                complete_prob /= 100;
+            }
+
+            let result = road.point * 10 + (meeple_value * complete_prob / 100);
             results[player] += result;
         }
     }
@@ -654,12 +771,15 @@ pub fn evaluate(moves: &Vec<Move>) -> i32 {
     results[0] += remaining_meeple_values(s.player0_remaining_meeples.len());
     results[1] += remaining_meeple_values(s.player1_remaining_meeples.len());
 
-    return results[0] - results[1];
+    return (results[0], results[1]);
 }
 
 #[test]
 fn evaluate_test() {
-    let mvs = decoder::decode("src/data/379255560.json".to_string());
-    let mvs = mvs[..58].to_vec();
+    let game_id = 335;
+    let mut mvs = database::list_moves(game_id, None).unwrap();
+    mvs.pop();
+    mvs.pop();
     evaluate(&mvs);
+    assert!(true)
 }
