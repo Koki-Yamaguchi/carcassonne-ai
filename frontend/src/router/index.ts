@@ -57,7 +57,9 @@ router.beforeEach(async (to) => {
   if (lang) {
     store.setLanguage(lang);
   }
+  store.setAuthenticating(true);
   const currentUser = (await getCurrentUser()) as any;
+  store.setAuthenticating(false);
   if (to.path !== "/signin" && to.path !== "/signup") {
     if (currentUser) {
       store.setAuthenticated(true);
