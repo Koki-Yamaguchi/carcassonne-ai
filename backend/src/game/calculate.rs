@@ -1818,6 +1818,9 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                             if mergeable_features.is_done(f.id as usize) {
                                 continue;
                             }
+                            if f.feature == FieldFeature {
+                                continue;
+                            }
                             if mergeable_features.is_completed(f.id as usize) {
                                 let sz = mergeable_features.size(f.id as usize);
                                 let meeple_ids = mergeable_features.get_meeples(f.id as usize);
@@ -1964,7 +1967,7 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                 continue;
             }
 
-            if mergeable_features.is_completed(f.id as usize) {
+            if f.feature != FieldFeature && mergeable_features.is_completed(f.id as usize) {
                 continue;
             }
             if mergeable_features.is_done(f.id as usize) {
@@ -3555,6 +3558,46 @@ fn calculate_test_for_field() {
             assert_eq!(res.complete_events[7].point, 12);
             assert_eq!(res.player0_point, 37);
             assert_eq!(res.player1_point, 48);
+        }
+        Err(e) => {
+            panic!("Error: {:?}", e.detail);
+        }
+    }
+}
+
+#[test]
+fn falculate_test_closed_field() {
+    let mut mvs = vec![];
+    add_move(&mut mvs, Tile::StartingTile, 0, (0, 0), -1, -1);
+    add_move(&mut mvs, Tile::StartingTile, 2, (-1, 0), -1, -1);
+    add_move(&mut mvs, Tile::Curve, 3, (-1, -1), 0, 2);
+    add_move(&mut mvs, Tile::Curve, 2, (0, -1), -1, -1);
+    add_move(&mut mvs, Tile::Curve, 0, (-1, 1), -1, -1);
+    add_move(&mut mvs, Tile::Curve, 1, (0, 1), -1, -1);
+    let status = calculate(&mvs, false);
+    match status {
+        Ok(mut res) => {
+            res.complete_events.sort();
+            for e in &res.complete_events {
+                println!("{:?}", e);
+            }
+            assert_eq!(res.complete_events.len(), 0);
+        }
+        Err(e) => {
+            panic!("Error: {:?}", e.detail);
+        }
+    }
+    let status = calculate(&mvs, true);
+    match status {
+        Ok(mut res) => {
+            res.complete_events.sort();
+            for e in &res.complete_events {
+                println!("{:?}", e);
+            }
+            assert_eq!(res.complete_events.len(), 1);
+            assert_eq!(res.complete_events[0].point, 3);
+            assert_eq!(res.complete_events[0].feature, FieldFeature);
+            assert_eq!(res.complete_events[0].meeple_ids, vec![0]);
         }
         Err(e) => {
             panic!("Error: {:?}", e.detail);
