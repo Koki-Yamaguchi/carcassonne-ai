@@ -31,6 +31,15 @@ const isOpen = ref<boolean>(false);
           :class="isOpen ? '' : 'hidden'"
         >
           <div
+            @click="
+              isOpen = false;
+              router.push('/competitive');
+            "
+            class="p-2 md:p-0"
+          >
+            {{ translate("competitive_mode") }}
+          </div>
+          <div
             class="p-2 md:p-0"
             v-if="store.authenticated"
             @click="

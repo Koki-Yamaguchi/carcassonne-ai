@@ -33,5 +33,8 @@
   "next": "一手進む",
   "language": "言語",
   "contacts_or_bug_reports": "お問合せ・バグ報告",
-  "profile": "プロフィール"
+  "profile": "プロフィール",
+  "competitive_mode": "競技モード",
+  "competitive_mode_description": "競技モードでは AI との対戦ごとにあなたのレーティングが変動します。ランキング上位を目指して対戦してみましょう！",
+  "play_rated_match": "競技モードでプレーする"
 }

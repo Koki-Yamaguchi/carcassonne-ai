@@ -33,5 +33,8 @@
   "next": "Next",
   "language": "Language",
   "contacts_or_bug_reports": "Contacts or Bug Reports",
-  "profile": "Profile"
+  "profile": "Profile",
+  "competitive_mode": "Competitive Mode",
+  "competitive_mode_description": "In the competitive mode, each match against AI affects your rating. Do your best to get to the top of the ranking!",
+  "play_rated_match": "Play rated match!"
 }
