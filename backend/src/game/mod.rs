@@ -5,6 +5,7 @@ pub mod decoder;
 pub mod evaluate;
 pub mod mergeable_feature;
 pub mod mov;
+pub mod rating;
 pub mod solver;
 pub mod tile;
 
@@ -23,7 +24,7 @@ use mov::{DiscardMove, MeepleMove, TileMove};
 use rand::Rng;
 use tile::Tile::*;
 
-#[derive(Serialize, Queryable, Clone)]
+#[derive(Serialize, Queryable, Clone, Debug)]
 #[serde(crate = "rocket::serde")]
 #[diesel(table_name = schema::game)]
 pub struct Game {

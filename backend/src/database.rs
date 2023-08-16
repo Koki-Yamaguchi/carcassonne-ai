@@ -155,7 +155,7 @@ pub fn get_games(player_id: Option<i32>) -> Result<Vec<game::Game>, Error> {
                 }
             }
         }
-        None => match g.load::<game::Game>(conn) {
+        None => match g.order(created_at.desc()).load::<game::Game>(conn) {
             Ok(gm) => {
                 return Ok(gm);
             }
