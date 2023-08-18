@@ -176,8 +176,18 @@ pub fn create_tile_move(
         }
     };
     assert!(moves.len() != 0);
+    let last_move = moves.last().unwrap();
 
-    let ord = moves.last().unwrap().ord() + 1;
+    match last_move {
+        TMove(_) => {
+            return Err(bad_request_error(
+                "move before a tile move must not be a tile move".to_string(),
+            ))
+        }
+        _ => {}
+    }
+
+    let ord = last_move.ord() + 1;
 
     let mv = TMove(TileMove {
         ord,
@@ -229,8 +239,18 @@ pub fn create_meeple_move(
         }
     };
     assert!(moves.len() != 0);
+    let last_move = moves.last().unwrap();
 
-    let ord = moves.last().unwrap().ord() + 1;
+    match last_move {
+        TMove(_) => {}
+        _ => {
+            return Err(bad_request_error(
+                "move before a meeple move must be a tile move".to_string(),
+            ))
+        }
+    }
+
+    let ord = last_move.ord() + 1;
 
     let mv = MMove(MeepleMove {
         ord,
@@ -241,11 +261,6 @@ pub fn create_meeple_move(
         meeple_pos,
     });
     moves.push(mv.clone());
-
-    match database::create_move(mv) {
-        Err(e) => return Err(e),
-        _ => {}
-    }
 
     let mut complete_events = vec![];
 
@@ -265,6 +280,11 @@ pub fn create_meeple_move(
             return Err(e);
         }
     };
+
+    match database::create_move(mv) {
+        Err(e) => return Err(e),
+        _ => {}
+    }
 
     let mut out_tiles = vec![];
     match gm.next_tile_id {
