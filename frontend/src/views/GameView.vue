@@ -240,6 +240,8 @@ const finishGame = async (gameID: number) => {
   maxReplayMove.value = moves.length - 1;
   replayMove.value = moves.length - 1;
 
+  game.value = await api.getGame(gameID);
+
   finished.value = true;
   placeablePositions.value = [];
 };
@@ -394,12 +396,11 @@ const processAIMove = async () => {
 };
 
 const winner = computed(() => {
-  if (player0Point.value > player1Point.value) {
+  const winnerPlayerID = game.value?.winnerPlayerID;
+  if (winnerPlayerID === game.value?.player0ID) {
     return player0Name.value;
-  } else if (player0Point.value < player1Point.value) {
-    return player1Name.value;
   } else {
-    return "tie";
+    return player1Name.value;
   }
 });
 
@@ -651,7 +652,9 @@ const boardStyle = computed(() => {
       </div>
       <div class="flex">
         <div class="flex flex-col justify-center">
-          {{ Math.max(TILE_TOTAL_COUNT - tileCount - 2, 0) }}/72
+          {{ Math.max(TILE_TOTAL_COUNT - tileCount - 2, 0) }}/{{
+            TILE_TOTAL_COUNT
+          }}
         </div>
         <div class="flex flex-col justify-center ml-2 relative">
           <TrashIcon @click="showDiscardedTiles = !showDiscardedTiles" />
@@ -678,10 +681,9 @@ const boardStyle = computed(() => {
   <div v-else>
     <div class="bg-gray-100 rounded text-gray-900 px-4 py-3 shadow-md">
       <div v-if="placingPosition.x === -1 && tileCount === TILE_TOTAL_COUNT">
-        <p v-if="winner !== 'tie'" class="flex flex-col justify-center mr-3">
+        <p class="flex flex-col justify-center mr-3">
           {{ winner }} {{ translate("wins") }}
         </p>
-        <p v-else>{{ translate("tie") }}</p>
       </div>
       <div class="flex gap-2">
         <button

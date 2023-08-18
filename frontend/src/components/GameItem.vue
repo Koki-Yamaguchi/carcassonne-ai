@@ -17,7 +17,9 @@ const loserPoint = ref<number>(0);
 const finished = ref<boolean>(false);
 
 onMounted(() => {
-  if (props.game.player0Point > props.game.player1Point) {
+  console.log(props.game.winnerPlayerID);
+  console.log(props.game.player0ID);
+  if (props.game.winnerPlayerID === props.game.player0ID) {
     winnerName.value = props.game.player0Name;
     winnerPoint.value = props.game.player0Point;
     loserName.value = props.game.player1Name;

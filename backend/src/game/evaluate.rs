@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-use crate::database;
-
 use super::calculate::calculate;
 use super::calculate::Feature::*;
 use super::calculate::Side::*;
@@ -777,6 +775,7 @@ pub fn evaluate(moves: &Vec<Move>) -> (i32, i32) {
 #[test]
 fn evaluate_test() {
     let game_id = 335;
+    use super::database;
     let mut mvs = database::list_moves(game_id, None).unwrap();
     mvs.pop();
     mvs.pop();

@@ -35,8 +35,31 @@ export class API {
         userID: res.data.user_id,
         email: res.data.email,
         meepleColor: colorIDToColor(res.data.meeple_color),
+        rating: res.data.rating,
       };
       return p;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async getPlayers(): Promise<Player[]> {
+    try {
+      const res = await axios.get(`${this.base_url}/players`);
+      console.log({ res });
+      const players = res.data.map((v: any) => {
+        const player: Player = {
+          id: v.id,
+          name: v.name,
+          userID: "",
+          email: "",
+          meepleColor: colorIDToColor(v.meeple_color),
+          rating: v.rating,
+        };
+        return player;
+      });
+      return players;
     } catch (e) {
       console.log({ e });
       throw e;
@@ -92,9 +115,15 @@ export class API {
     }
   }
 
-  async getGames(playerID: number): Promise<Game[]> {
+  async getGames(
+    playerID: number,
+    isRated: boolean,
+    limit: number
+  ): Promise<Game[]> {
     try {
-      const res = await axios.get(`${this.base_url}/games?player=${playerID}`);
+      const res = await axios.get(
+        `${this.base_url}/games?player=${playerID}&is_rated=${isRated}&limit=${limit}`
+      );
       console.log({ res });
       const games: Game[] = res.data.map((g: any) => {
         return {
@@ -111,6 +140,7 @@ export class API {
           player1Name: g.player1_name,
           player0Color: colorIDToColor(g.player0_color),
           player1Color: colorIDToColor(g.player1_color),
+          winnerPlayerID: g.winner_player_id,
         };
       });
       return games;
@@ -138,6 +168,7 @@ export class API {
         player1Name: res.data.player1_name,
         player0Color: colorIDToColor(res.data.player0_color),
         player1Color: colorIDToColor(res.data.player1_color),
+        winnerPlayerID: res.data.winner_player_id,
       };
       return game;
     } catch (e) {
@@ -150,7 +181,8 @@ export class API {
     player0ID: number,
     player1ID: number,
     player0Color: Color,
-    player1Color: Color
+    player1Color: Color,
+    isRated: boolean
   ): Promise<Game> {
     try {
       const res = await axios.post(`${this.base_url}/games/create`, {
@@ -158,6 +190,7 @@ export class API {
         player1_id: player1ID,
         player0_color: colorToColorID(player0Color),
         player1_color: colorToColorID(player1Color),
+        is_rated: isRated,
       });
       const game: Game = {
         id: res.data.id,
@@ -173,6 +206,7 @@ export class API {
         player1Name: res.data.player1_name,
         player0Color: colorIDToColor(res.data.player0_color),
         player1Color: colorIDToColor(res.data.player1_color),
+        winnerPlayerID: res.data.winner_player_id,
       };
       return game;
     } catch (e) {

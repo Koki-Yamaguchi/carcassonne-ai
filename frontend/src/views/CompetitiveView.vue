@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { API } from "./../api";
+import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { API } from "../api";
+import GameItems from "../components/GameItems.vue";
+import PlayerRanking from "../components/PlayerRanking.vue";
+import { translate } from "../locales/translate";
 import { store } from "../store";
 import { Game, Player } from "../types";
-import { onMounted, ref } from "vue";
-import GameItems from "../components/GameItems.vue";
-import { translate } from "../locales/translate";
 
 const router = useRouter();
 const player = ref<Player | null>(null);
+const players = ref<Player[]>([]);
 const games = ref<Game[]>([]);
 
 const createGame = async () => {
@@ -25,7 +27,7 @@ const createGame = async () => {
     player1ID,
     player0Color,
     player1Color,
-    false
+    true
   );
   router.push(`/games/${game.id}`);
 };
@@ -36,31 +38,32 @@ const seeMore = async () => {
   }
   router.push({
     path: "/games",
-    query: { player: player.value.id, is_rated: "false" },
+    query: { player: player.value.id, is_rated: "true" },
   });
 };
+
 onMounted(async () => {
   const api = new API();
   player.value = await api.getPlayer(store.userID);
-  games.value = await api.getGames(player.value.id, false, 5);
+  players.value = await api.getPlayers();
+  games.value = await api.getGames(player.value.id, true, 5);
 });
 </script>
-
 <template>
   <div class="p-6">
-    <p class="text-sm text-gray-700">{{ translate("description") }}</p>
-    <p class="mt-6">{{ translate("normal_mode") }}</p>
+    <p>{{ translate("competitive_mode") }}</p>
     <p class="text-sm text-gray-700">
-      {{ translate("normal_mode_description") }}
+      {{ translate("competitive_mode_description") }}
     </p>
     <div class="flex flex-col items-center">
       <button
-        class="bg-gray-500 hover:bg-gray-400 text-[#eeeeee] rounded px-4 py-2 mt-2"
+        class="mt-4 bg-gray-500 hover:bg-gray-400 text-[#eeeeee] rounded px-4 py-2"
         @click="createGame"
       >
-        {{ translate("play_now") }}
+        {{ translate("play_rated_match") }}
       </button>
     </div>
+    <PlayerRanking :players="players" />
     <GameItems class="mt-4" :games="games" />
     <div
       @click="seeMore"

@@ -6,6 +6,7 @@ export interface Player {
   email: string;
   userID: string;
   meepleColor: Color;
+  rating?: number;
 }
 
 export interface Game {
@@ -22,6 +23,7 @@ export interface Game {
   nextPlayerID: number;
   currentTileID: number;
   nextTileID: number;
+  winnerPlayerID: number;
 }
 
 export interface TilePosition {
