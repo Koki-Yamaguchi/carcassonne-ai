@@ -24,28 +24,49 @@ const createGame = async () => {
     player0ID,
     player1ID,
     player0Color,
-    player1Color
+    player1Color,
+    false
   );
   router.push(`/games/${game.id}`);
 };
 
+const seeMore = async () => {
+  if (!player.value) {
+    return;
+  }
+  router.push({
+    path: "/games",
+    query: { player: player.value.id, is_rated: "false" },
+  });
+};
 onMounted(async () => {
   const api = new API();
   player.value = await api.getPlayer(store.userID);
-  games.value = await api.getGames(player.value.id);
+  games.value = await api.getGames(player.value.id, false, 5);
 });
 </script>
 
 <template>
-  <div>
+  <div class="p-6">
+    <p class="text-sm text-gray-700">{{ translate("description") }}</p>
+    <p class="mt-6">{{ translate("normal_mode") }}</p>
+    <p class="text-sm text-gray-700">
+      {{ translate("normal_mode_description") }}
+    </p>
     <div class="flex flex-col items-center">
       <button
-        class="mt-4 bg-gray-500 hover:bg-gray-400 text-[#eeeeee] rounded px-4 py-2"
+        class="bg-gray-500 hover:bg-gray-400 text-[#eeeeee] rounded px-4 py-2 mt-2"
         @click="createGame"
       >
         {{ translate("play_now") }}
       </button>
     </div>
-    <GameItems :games="games" />
+    <GameItems class="mt-4" :games="games" />
+    <div
+      @click="seeMore"
+      class="text-gray-500 underline text-xs text-right mt-2 mr-2"
+    >
+      {{ translate("see_more") }}
+    </div>
   </div>
 </template>

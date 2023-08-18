@@ -27,7 +27,6 @@
   "skip": "Skip",
   "discarded": "Discarded",
   "wins": "wins!",
-  "tie": "tie!",
   "go_to_beginning": "Go to Beginning",
   "previous": "Previous",
   "next": "Next",
@@ -36,5 +35,12 @@
   "profile": "Profile",
   "competitive_mode": "Competitive Mode",
   "competitive_mode_description": "In the competitive mode, each match against AI affects your rating. Do your best to get to the top of the ranking!",
-  "play_rated_match": "Play rated match!"
+  "normal_mode": "Normal Mode",
+  "normal_mode_description": "In the normal mode, you can simply enjoy a match against AI. Game results do not affect your rating.",
+  "play_rated_match": "Play rated match!",
+  "rating": "Rating",
+  "ranking": "Ranking (Top 10)",
+  "your_rated_games": "Your Rated Games",
+  "see_more": "See More",
+  "description": "Top Carcassonner is a platfrom where you can play Carcassonne against AI."
 }

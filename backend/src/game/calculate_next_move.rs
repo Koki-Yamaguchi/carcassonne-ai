@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use super::calculate::calculate;
 use super::calculate::TileItem;
-use super::database;
 use super::evaluate::evaluate;
 use super::mov::{MeepleMove, Move, TileMove};
 use super::tile::Tile;
@@ -209,6 +208,8 @@ pub fn calculate_next_move(
 
 #[test]
 fn calculate_next_move_test() {
+    use super::database;
+
     let game_id = 336;
     let game = database::get_game(game_id).unwrap();
     let mut mvs = database::list_moves(game_id, None).unwrap();

@@ -27,7 +27,6 @@
   "skip": "スキップ",
   "discarded": "除外タイル",
   "wins": "の勝利！",
-  "tie": "引き分け！",
   "go_to_beginning": "最初から",
   "previous": "一手戻る",
   "next": "一手進む",
@@ -36,5 +35,12 @@
   "profile": "プロフィール",
   "competitive_mode": "競技モード",
   "competitive_mode_description": "競技モードでは AI との対戦ごとにあなたのレーティングが変動します。ランキング上位を目指して対戦してみましょう！",
-  "play_rated_match": "競技モードでプレーする"
+  "normal_mode": "通常モード",
+  "normal_mode_description": "通常モードでは AI と自由に対戦することができます。対戦結果によるレーティングの変動はありません。",
+  "play_rated_match": "競技モードでプレーする",
+  "rating": "レーティング",
+  "ranking": "ランキング (Top 10)",
+  "your_rated_games": "過去のゲーム",
+  "see_more": "すべて見る",
+  "description": "Top Carcassonner は AI とカルカソンヌの対戦ができるプラットフォームです。"
 }

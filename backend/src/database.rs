@@ -17,6 +17,7 @@ struct NewPlayer {
     email: String,
     user_id: String,
     meeple_color: i32,
+    rating: Option<i32>,
 }
 
 #[derive(Insertable)]
@@ -34,6 +35,13 @@ struct NewGame {
     player1_name: String,
     player0_color: i32,
     player1_color: i32,
+    is_rated: bool,
+    before_player0_rating: Option<i32>,
+    before_player1_rating: Option<i32>,
+    after_player0_rating: Option<i32>,
+    after_player1_rating: Option<i32>,
+    first_player_id: Option<i32>,
+    winner_player_id: Option<i32>,
 }
 
 #[derive(Insertable)]
@@ -81,6 +89,26 @@ pub fn get_player(pid: i32) -> Result<player::Player, Error> {
     }
 }
 
+pub fn get_players() -> Result<Vec<player::Player>, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    use self::schema::player::dsl::{id, player as p, rating};
+
+    match p
+        .filter(rating.is_not_null())
+        .filter(id.ne(1)) // not AI
+        .order(rating.desc())
+        .limit(10)
+        .load::<player::Player>(conn)
+    {
+        Ok(ps) => {
+            return Ok(ps);
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
 pub fn get_player_by_uid(uid: String) -> Result<player::Player, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     use self::schema::player::dsl::{player as p, user_id};
@@ -110,6 +138,7 @@ pub fn create_player(
         email,
         user_id,
         meeple_color,
+        rating: None,
     };
     match diesel::insert_into(schema::player::table)
         .values(&new_player)
@@ -120,11 +149,16 @@ pub fn create_player(
     }
 }
 
-pub fn update_player(pid: i32, nam: String, m_color: i32) -> Result<player::Player, Error> {
-    use self::schema::player::dsl::{meeple_color, name, player};
+pub fn update_player(
+    pid: i32,
+    nam: String,
+    m_color: i32,
+    rat: Option<i32>,
+) -> Result<player::Player, Error> {
+    use self::schema::player::dsl::{meeple_color, name, player, rating};
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     match diesel::update(player.find(pid))
-        .set((name.eq(nam), meeple_color.eq(m_color)))
+        .set((name.eq(nam), meeple_color.eq(m_color), rating.eq(rat)))
         .get_result(conn)
     {
         Ok(gm) => {
@@ -136,15 +170,29 @@ pub fn update_player(pid: i32, nam: String, m_color: i32) -> Result<player::Play
     }
 }
 
-pub fn get_games(player_id: Option<i32>) -> Result<Vec<game::Game>, Error> {
+pub fn get_games(
+    player_id: Option<i32>,
+    input_is_rated: Option<bool>,
+    input_limit: Option<i32>,
+) -> Result<Vec<game::Game>, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
-    use self::schema::game::dsl::{created_at, game as g, player0_id, player1_id};
+    use self::schema::game::dsl::{created_at, game as g, is_rated, player0_id, player1_id};
+    let is_rtd = match input_is_rated {
+        Some(i) => i,
+        None => false,
+    };
+    let lmt = match input_limit {
+        Some(l) => l,
+        None => 100,
+    };
 
     match player_id {
         Some(pid) => {
             match g
                 .filter(player0_id.eq(pid).or(player1_id.eq(pid)))
+                .filter(is_rated.eq(is_rtd))
                 .order(created_at.desc())
+                .limit(lmt as i64)
                 .load::<game::Game>(conn)
             {
                 Ok(gm) => {
@@ -155,7 +203,12 @@ pub fn get_games(player_id: Option<i32>) -> Result<Vec<game::Game>, Error> {
                 }
             }
         }
-        None => match g.order(created_at.desc()).load::<game::Game>(conn) {
+        None => match g
+            .filter(is_rated.eq(is_rtd))
+            .order(created_at.desc())
+            .limit(lmt as i64)
+            .load::<game::Game>(conn)
+        {
             Ok(gm) => {
                 return Ok(gm);
             }
@@ -193,6 +246,8 @@ pub fn create_game(
     player1_name: String,
     player0_color: i32,
     player1_color: i32,
+    is_rated: bool,
+    first_player_id: Option<i32>,
 ) -> Result<game::Game, Error> {
     let new_game = NewGame {
         player0_id,
@@ -207,6 +262,13 @@ pub fn create_game(
         player1_name,
         player0_color,
         player1_color,
+        is_rated,
+        before_player0_rating: None,
+        before_player1_rating: None,
+        after_player0_rating: None,
+        after_player1_rating: None,
+        first_player_id,
+        winner_player_id: None,
     };
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     match diesel::insert_into(schema::game::table)
@@ -230,10 +292,17 @@ pub fn update_game(
     p1_point: i32,
     cur_tid: i32,
     cur_pid: i32,
+    b_rating0: Option<i32>,
+    b_rating1: Option<i32>,
+    a_rating0: Option<i32>,
+    a_rating1: Option<i32>,
+    first_pid: Option<i32>,
+    winner_pid: Option<i32>,
 ) -> Result<game::Game, Error> {
     use self::schema::game::dsl::{
-        current_player_id, current_tile_id, game, next_player_id, next_tile_id, player0_point,
-        player1_point,
+        after_player0_rating, after_player1_rating, before_player0_rating, before_player1_rating,
+        current_player_id, current_tile_id, first_player_id, game, next_player_id, next_tile_id,
+        player0_point, player1_point, winner_player_id,
     };
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     match diesel::update(game.find(gmid))
@@ -244,6 +313,12 @@ pub fn update_game(
             next_player_id.eq(next_pid),
             current_tile_id.eq(cur_tid),
             current_player_id.eq(cur_pid),
+            before_player0_rating.eq(b_rating0),
+            before_player1_rating.eq(b_rating1),
+            after_player0_rating.eq(a_rating0),
+            after_player1_rating.eq(a_rating1),
+            first_player_id.eq(first_pid),
+            winner_player_id.eq(winner_pid),
         ))
         .get_result(conn)
     {

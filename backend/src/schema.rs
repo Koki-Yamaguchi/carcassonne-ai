@@ -24,6 +24,13 @@ diesel::table! {
         player1_name -> Text,
         player0_color -> Int4,
         player1_color -> Int4,
+        is_rated -> Bool,
+        before_player0_rating -> Nullable<Int4>,
+        before_player1_rating -> Nullable<Int4>,
+        after_player0_rating -> Nullable<Int4>,
+        after_player1_rating -> Nullable<Int4>,
+        first_player_id -> Nullable<Int4>,
+        winner_player_id -> Nullable<Int4>,
     }
 }
 
@@ -50,6 +57,7 @@ diesel::table! {
         email -> Text,
         user_id -> Text,
         meeple_color -> Int4,
+        rating -> Nullable<Int4>,
     }
 }
 

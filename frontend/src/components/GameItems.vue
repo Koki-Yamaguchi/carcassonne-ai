@@ -8,7 +8,7 @@ defineProps<{
 }>();
 </script>
 <template>
-  <div class="mx-4 my-4">
+  <div class="">
     {{ translate("your_games") }}
     <ul>
       <li v-for="game in games" :key="game.id" class="mt-2">
