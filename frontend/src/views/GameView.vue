@@ -53,6 +53,7 @@ const handlingPlaceMeeple = ref<boolean>(false);
 const mustDiscard = ref<boolean>(false);
 const discardedTileKinds = ref<TileKind[]>([]);
 const showDiscardedTiles = ref<boolean>(false);
+const confirming = ref<boolean>(false);
 
 const useMeeple = (
   meeples: Set<number>,
@@ -170,10 +171,13 @@ const confirm = async () => {
     game.value === null ||
     nextTileID.value === null ||
     currentTileID.value === null ||
-    placingTile.value === null
+    placingTile.value === null ||
+    confirming.value
   ) {
     return;
   }
+
+  confirming.value = true;
 
   tiles.value[placingPosition.value.y][placingPosition.value.x] =
     placingTile.value;
@@ -188,7 +192,9 @@ const confirm = async () => {
     placingPosition.value.x - Math.floor(boardSize / 2)
   );
 
-  meepleablePositions.value = res.meepleablePositions;
+  if (player0Meeples.value.size !== 0) {
+    meepleablePositions.value = res.meepleablePositions;
+  }
   placingTile.value = null;
   placeablePositions.value = [];
 
@@ -196,12 +202,14 @@ const confirm = async () => {
     meepleablePositions.value.length === 0 ||
     player0Meeples.value.size === 0
   ) {
-    skip();
+    await skip();
   }
+
+  confirming.value = false;
 };
 
-const skip = () => {
-  handlePlaceMeeple(-1);
+const skip = async () => {
+  await handlePlaceMeeple(-1);
 };
 
 const processCompleteEvents = (completeEvents: CompleteEvent[]) => {
@@ -630,21 +638,23 @@ const boardStyle = computed(() => {
           <button
             class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
             v-if="isMyGame && placingPosition.y !== -1 && placingTile !== null"
-            @click="confirm"
+            @click.once="confirm"
+            :disabled="confirming"
           >
             {{ translate("confirm") }}
           </button>
           <button
             class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
             v-else-if="isMyGame && meepleablePositions.length !== 0"
-            @click="skip"
+            @click.once="skip"
+            :disabled="handlingPlaceMeeple"
           >
             {{ translate("skip") }}
           </button>
           <button
             class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
             v-else-if="mustDiscard"
-            @click="discard()"
+            @click.once="discard()"
           >
             {{ translate("discard") }}
           </button>
