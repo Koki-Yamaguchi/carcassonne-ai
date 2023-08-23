@@ -9,9 +9,11 @@ const route = useRoute();
 const games = ref<Game[]>([]);
 
 onMounted(async () => {
-  const playerID = parseInt(route.query.player as string, 10);
+  const playerID = route.query.player
+    ? parseInt(route.query.player as string, 10)
+    : null;
   const isRated = (route.query.is_rated as string) === "true";
-  const limit = 500;
+  const limit = 100;
 
   const api = new API();
   games.value = await api.getGames(playerID, isRated, limit);
