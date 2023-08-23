@@ -48,6 +48,17 @@ const router = createRouter({
       component: CompetitiveView,
     },
   ],
+  scrollBehavior(_, __, savedPosition) {
+    if (savedPosition) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(savedPosition);
+        }, 200); // scroll after data is fetched and rendered
+      });
+    } else {
+      return { top: 0 };
+    }
+  },
 });
 
 const getCurrentUser = () => {

@@ -116,14 +116,16 @@ export class API {
   }
 
   async getGames(
-    playerID: number,
+    playerID: number | null,
     isRated: boolean,
     limit: number
   ): Promise<Game[]> {
     try {
-      const res = await axios.get(
-        `${this.base_url}/games?player=${playerID}&is_rated=${isRated}&limit=${limit}`
-      );
+      let url = `${this.base_url}/games?is_rated=${isRated}&limit=${limit}`;
+      if (playerID) {
+        url = `${url}&player=${playerID}`;
+      }
+      const res = await axios.get(url);
       console.log({ res });
       const games: Game[] = res.data.map((g: any) => {
         return {
