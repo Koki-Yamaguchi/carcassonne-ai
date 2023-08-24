@@ -9,11 +9,17 @@ pub mod rating;
 pub mod solver;
 pub mod tile;
 
+use core::time;
+use std::thread;
+
 use diesel::prelude::*;
 use rocket::serde::Serialize;
+use rocket::tokio::sync::broadcast::Sender;
+use rocket::State;
 
 use crate::database::{self, get_player, update_player};
 use crate::error::{bad_request_error, Error};
+use crate::event::{self, UpdateEvent};
 use crate::game::rating::calculate_rating;
 use crate::game::tile::to_tile;
 
@@ -452,7 +458,20 @@ pub fn create_discard_move(
     })
 }
 
-pub fn wait_ai_move(game_id: i32) -> Result<MeepleMoveResult, Error> {
+pub fn update_test(
+    game_id: i32,
+    ord: i32,
+    queue: &State<Sender<event::UpdateEvent>>,
+) -> Result<i32, Error> {
+    thread::sleep(time::Duration::from_millis(10000));
+    let _ = queue.send(UpdateEvent { game_id, ord });
+    Ok(game_id)
+}
+
+pub fn wait_ai_move(
+    game_id: i32,
+    _queue: &State<Sender<event::UpdateEvent>>,
+) -> Result<MeepleMoveResult, Error> {
     let game = match database::get_game(game_id) {
         Ok(gm) => gm,
         Err(e) => {

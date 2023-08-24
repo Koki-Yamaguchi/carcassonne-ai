@@ -25,6 +25,41 @@ export class API {
     this.base_url = import.meta.env.VITE_API_BASE_URL;
   }
 
+  async sendEvent(gid: number, ord: number) {
+    try {
+      const res = await axios.post(`${this.base_url}/send-event`, {
+        game_id: Number(gid),
+        ord: Number(ord),
+      });
+      console.log({ res });
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+  async send(gid: number, ord: number) {
+    try {
+      const res = axios.post(`${this.base_url}/update-test`, {
+        game_id: Number(gid),
+        ord: Number(ord),
+      });
+      console.log({ res });
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async events(gid: number, f: (event: any) => void) {
+    try {
+      const evtSource = new EventSource(`${this.base_url}/events?game=${gid}`);
+      evtSource.onmessage = f;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
   async getPlayer(userID: string): Promise<Player> {
     try {
       const res = await axios.get(`${this.base_url}/players?user=${userID}`);

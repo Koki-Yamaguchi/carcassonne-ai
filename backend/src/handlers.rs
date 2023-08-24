@@ -1,7 +1,12 @@
 use rocket::http::{ContentType, Status};
+use rocket::response::stream::{Event, EventStream};
 use rocket::serde::{json::to_string, json::Json, Deserialize};
+use rocket::tokio::select;
+use rocket::tokio::sync::broadcast::{error::RecvError, Sender};
+use rocket::{Shutdown, State};
 
 use crate::database;
+use crate::event;
 use crate::game;
 use crate::game::tile;
 use crate::player;
@@ -182,8 +187,11 @@ pub fn create_discard_move(params: Json<CreateDiscardMove>) -> (Status, (Content
 }
 
 #[post("/wait-ai-move", format = "application/json", data = "<params>")]
-pub fn wait_ai_move(params: Json<WaitAIMove>) -> (Status, (ContentType, String)) {
-    match game::wait_ai_move(params.game_id) {
+pub fn wait_ai_move(
+    params: Json<WaitAIMove>,
+    queue: &State<Sender<event::UpdateEvent>>,
+) -> (Status, (ContentType, String)) {
+    match game::wait_ai_move(params.game_id, queue) {
         Ok(res) => (Status::Ok, (ContentType::JSON, to_string(&res).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
@@ -219,4 +227,52 @@ pub fn all_options() {}
 #[get("/health", format = "application/json")]
 pub fn health() -> (Status, (ContentType, String)) {
     (Status::Ok, (ContentType::JSON, "".to_string()))
+}
+
+#[get("/events?<game>")]
+pub async fn events(
+    game: Option<i32>,
+    queue: &State<Sender<event::UpdateEvent>>,
+    mut end: Shutdown,
+) -> EventStream![] {
+    let game_id = game.unwrap();
+    let mut rx = queue.subscribe();
+    EventStream! {
+        loop {
+            let msg = select! {
+                msg = rx.recv() => match msg {
+                    Ok(msg) => msg,
+                    Err(RecvError::Closed) => break,
+                    Err(RecvError::Lagged(_)) => continue,
+                },
+                _ = &mut end => break,
+            };
+            if msg.game_id == game_id {
+                yield Event::json(&msg);
+            }
+        }
+    }
+}
+
+#[post("/update-test", format = "application/json", data = "<params>")]
+pub async fn update_test(
+    params: Json<event::UpdateEvent>,
+    queue: &State<Sender<event::UpdateEvent>>,
+) -> (Status, (ContentType, String)) {
+    match game::update_test(params.game_id, params.ord, queue) {
+        Ok(r) => (Status::Ok, (ContentType::JSON, to_string(&r).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[post("/send-event", format = "application/json", data = "<params>")]
+pub async fn send_event(
+    params: Json<event::UpdateEvent>,
+    queue: &State<Sender<event::UpdateEvent>>,
+) {
+    println!("send event");
+    let _ = queue.send(event::UpdateEvent {
+        ord: params.ord,
+        game_id: params.game_id,
+    });
 }
