@@ -45,6 +45,7 @@ pub fn search(
     player0_id: i32,
     player1_id: i32,
     depth: i32,
+    second_player_id: i32,
 ) -> (Vec<Win>, i32) {
     let mut moves = mvs.clone();
     let next_tile = ordered_tiles.first().unwrap();
@@ -126,8 +127,10 @@ pub fn search(
                     Ok(s) => {
                         let winner = if s.player0_point > s.player1_point {
                             player0_id
-                        } else {
+                        } else if s.player0_point < s.player1_point {
                             player1_id
+                        } else {
+                            second_player_id
                         };
                         let w = Win {
                             pos: tileable_position.pos,
@@ -154,6 +157,7 @@ pub fn search(
                     player0_id,
                     player1_id,
                     depth + 1,
+                    second_player_id,
                 );
 
                 if winner == player_id {
@@ -183,11 +187,17 @@ pub fn search(
 }
 
 #[allow(dead_code)]
-pub fn solve(moves: &Vec<Move>, game_id: i32, next_tile: Tile) -> ((TileMove, MeepleMove), bool) {
+pub fn solve(
+    moves: &Vec<Move>,
+    game_id: i32,
+    player0_id: i32,
+    player1_id: i32,
+    next_tile: Tile,
+) -> ((TileMove, MeepleMove), bool) {
     // check who is playing
     assert!(moves.len() >= 4);
-    let player0_id = moves[0].player_id();
-    let player1_id = moves[2].player_id();
+    let second_player_id = moves[0].player_id();
+
     let last_move = moves.last().unwrap();
     let next_player_id = match last_move {
         Move::TMove(_) => {
@@ -267,6 +277,7 @@ pub fn solve(moves: &Vec<Move>, game_id: i32, next_tile: Tile) -> ((TileMove, Me
             player0_id,
             player1_id,
             0,
+            second_player_id,
         );
 
         for win in wins {
@@ -329,7 +340,7 @@ pub fn solve(moves: &Vec<Move>, game_id: i32, next_tile: Tile) -> ((TileMove, Me
                 ord: mm.ord,
                 game_id: mm.game_id,
                 player_id: mm.player_id,
-                meeple_id: if mm.meeple_pos == -1 { -1 } else { meeple_id },
+                meeple_id: if key.3 == -1 { -1 } else { meeple_id },
                 tile_pos: (key.0, key.1),
                 meeple_pos: key.3,
             };
@@ -397,8 +408,8 @@ fn solve_test0() {
     mvs.pop();
     mvs.pop();
 
-    let ((tm, mm), win) = solve(&mvs, -1, Tile::VerticalSeparator);
-    assert!(win);
+    let ((tm, mm), winnable) = solve(&mvs, -1, 0, 1, Tile::VerticalSeparator);
+    assert!(winnable);
     assert_eq!(tm.pos, (-5, 7));
     assert_eq!(tm.rot, 2);
     assert_eq!(mm.meeple_pos, 1);

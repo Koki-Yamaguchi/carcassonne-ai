@@ -474,7 +474,7 @@ pub fn wait_ai_move(game_id: i32) -> Result<MeepleMoveResult, Error> {
         &moves,
         game.id,
         game.player0_id,
-        game.player0_id,
+        game.player1_id,
         1,
         placing_tile,
     ) {

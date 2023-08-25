@@ -4,17 +4,36 @@ use super::calculate::calculate;
 use super::calculate::TileItem;
 use super::evaluate::evaluate;
 use super::mov::{MeepleMove, Move, TileMove};
+use super::solver::solve;
 use super::tile::Tile;
 
 pub fn calculate_next_move(
     moves: &Vec<Move>,
     game_id: i32,
     player0_id: i32,
-    _player1_id: i32,
+    player1_id: i32,
     player_id: i32,
     next_tile: Tile,
 ) -> Option<(TileMove, MeepleMove)> {
     let mut mvs = moves.clone();
+
+    let mut tile_count = 0;
+    for mv in &mvs {
+        match mv {
+            Move::TMove(_) | Move::DMove(_) => {
+                tile_count += 1;
+            }
+            _ => {}
+        }
+    }
+    if tile_count >= 72 - 2 {
+        let ((tm, mm), winnable) = solve(&mvs, game_id, player0_id, player1_id, next_tile);
+        println!("tm, mm, winnable = {:?}, {:?}, {:?}", tm, mm, winnable);
+        if winnable {
+            return Some((tm, mm));
+        }
+        // lose 100% or failed to calculate the results fast enough, so just play as usual
+    }
 
     let mut tile = TileItem {
         id: next_tile.to_id(),
@@ -51,10 +70,10 @@ pub fn calculate_next_move(
         tile_pos: (-1, -1),
         meeple_pos: -1,
     };
-    let mut updated = false;
 
     // let mut test = vec![];
 
+    let mut updated = false;
     for pos in board.keys() {
         match checked.get(pos) {
             Some(_) => {
@@ -209,8 +228,7 @@ pub fn calculate_next_move(
 #[test]
 fn calculate_next_move_test() {
     use super::database;
-
-    let game_id = 336;
+    let game_id = 442;
     let game = database::get_game(game_id).unwrap();
     let mut mvs = database::list_moves(game_id, None).unwrap();
     mvs.pop();
@@ -221,7 +239,7 @@ fn calculate_next_move_test() {
         game.player0_id,
         game.player1_id,
         1,
-        Tile::StartingTile,
+        Tile::CityCap,
     );
     println!("res = {:?}", res);
     assert!(true);
