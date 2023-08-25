@@ -37,15 +37,17 @@ pub fn next_permutation<T: std::cmp::Ord>(arr: &mut [T]) -> bool {
 
 #[allow(dead_code)]
 pub fn search(
+    game_id: i32,
     mvs: &Vec<Move>,
     ordered_tiles: Vec<Tile>,
     player_id: i32,
     other_player_id: i32,
     player0_id: i32,
     player1_id: i32,
-) -> Vec<Win> {
+    depth: i32,
+    second_player_id: i32,
+) -> (Vec<Win>, i32) {
     let mut moves = mvs.clone();
-
     let next_tile = ordered_tiles.first().unwrap();
 
     // O(n log n)
@@ -54,12 +56,29 @@ pub fn search(
     let next_ordered_tiles = ordered_tiles[1..].to_vec();
 
     let mut wins = vec![];
+    let mut win = false;
 
     // FIXME: meepleable_positions must be calculated more efficiently
     for tileable_position in &tileable_positions {
+        if (*next_tile == Tile::Monastery
+            || *next_tile == Tile::QuadrupleRoad
+            || *next_tile == Tile::QuadrupleCityWithCOA)
+            && tileable_position.rot != 1
+        {
+            continue;
+        }
+        if (*next_tile == Tile::VerticalSeparator
+            || *next_tile == Tile::Connector
+            || *next_tile == Tile::ConnectorWithCOA
+            || *next_tile == Tile::Straight)
+            && (tileable_position.rot == 3 || tileable_position.rot == 4)
+        {
+            continue;
+        }
+
         moves.push(TMove(TileMove {
             ord: -1,
-            game_id: -1,
+            game_id,
             player_id,
             tile: *next_tile,
             rot: tileable_position.rot,
@@ -96,7 +115,7 @@ pub fn search(
 
             moves.push(MMove(MeepleMove {
                 ord: -1,
-                game_id: -1,
+                game_id,
                 player_id,
                 meeple_id,
                 tile_pos: tileable_position.pos,
@@ -106,61 +125,120 @@ pub fn search(
             if next_ordered_tiles.len() == 0 {
                 match calculate(&moves, true) {
                     Ok(s) => {
-                        wins.push(Win {
+                        let winner = if s.player0_point > s.player1_point {
+                            player0_id
+                        } else if s.player0_point < s.player1_point {
+                            player1_id
+                        } else {
+                            second_player_id
+                        };
+                        let w = Win {
                             pos: tileable_position.pos,
                             rot: tileable_position.rot,
                             meeple_pos: *meepleable_position,
-                            win_player_id: if s.player0_point > s.player1_point {
-                                player0_id
-                            } else {
-                                player1_id
-                            },
-                        });
+                            win_player_id: winner,
+                        };
+                        wins.push(w);
+                        if winner == player_id {
+                            win = true;
+                        }
                     }
                     Err(e) => {
                         panic!("{}", e.detail.msg);
                     }
                 }
             } else {
-                let mut lose = false;
-                let results = search(
+                let (_res, winner) = search(
+                    game_id,
                     &moves,
                     next_ordered_tiles.clone(),
                     other_player_id,
                     player_id,
                     player0_id,
                     player1_id,
+                    depth + 1,
+                    second_player_id,
                 );
-                for res in results {
-                    lose = lose || res.win_player_id == other_player_id
-                }
 
+                if winner == player_id {
+                    win = true;
+                }
                 wins.push(Win {
                     pos: tileable_position.pos,
                     rot: tileable_position.rot,
                     meeple_pos: *meepleable_position,
-                    win_player_id: if lose { other_player_id } else { player_id },
+                    win_player_id: winner,
                 });
             }
             moves.pop(); // pop meeple move
-        }
 
+            if win && depth != 0 {
+                break;
+            }
+        }
         moves.pop(); // pop tile move
+
+        if win && depth != 0 {
+            break;
+        }
     }
 
-    wins
+    (wins, if win { player_id } else { other_player_id })
 }
 
 #[allow(dead_code)]
 pub fn solve(
     moves: &Vec<Move>,
     game_id: i32,
-    player_id: i32,
-    other_player_id: i32,
     player0_id: i32,
     player1_id: i32,
     next_tile: Tile,
-) -> (TileMove, MeepleMove) {
+) -> ((TileMove, MeepleMove), bool) {
+    // check who is playing
+    assert!(moves.len() >= 4);
+    let second_player_id = moves[0].player_id();
+
+    let last_move = moves.last().unwrap();
+    let next_player_id = match last_move {
+        Move::TMove(_) => {
+            panic!("can't solve because the last move is tile move");
+        }
+        Move::MMove(mm) => {
+            if player0_id == mm.player_id {
+                player1_id
+            } else {
+                player0_id
+            }
+        }
+        Move::DMove(dm) => dm.player_id,
+        _ => {
+            panic!("the last move is invalid");
+        }
+    };
+    let other_player_id = if next_player_id == player0_id {
+        player1_id
+    } else {
+        player0_id
+    };
+
+    let remaining_meeples = match calculate(moves, false) {
+        Ok(s) => {
+            if next_player_id == player0_id {
+                s.player0_remaining_meeples
+            } else {
+                s.player1_remaining_meeples
+            }
+        }
+        Err(e) => panic!("{:?}", e.detail.msg),
+    };
+    let meeple_id = if remaining_meeples.len() > 0 {
+        *remaining_meeples.iter().next().unwrap()
+    } else {
+        -1
+    };
+
+    let last_ord = moves.last().unwrap().ord();
+
     // check what remaining tiles are
     let mut out_tiles = vec![next_tile];
     for mv in moves {
@@ -177,7 +255,7 @@ pub fn solve(
     let remaining_tiles_num = remaining_tiles.len();
     let mut remaining_tiles_idx: Vec<usize> = (0..remaining_tiles_num).collect();
 
-    let mut order_count = 0;
+    // let mut order_count = 0;
     let mut win_count = HashMap::<(i32, i32, i32, i32), i32>::new();
     let mut total_wins = vec![];
 
@@ -190,23 +268,26 @@ pub fn solve(
         let mut ordered_tiles = vec![next_tile];
         ordered_tiles.append(&mut ordered_remaining_tiles);
 
-        let wins = search(
+        let (wins, _) = search(
+            game_id,
             &moves,
             ordered_tiles,
-            player_id,
+            next_player_id,
             other_player_id,
             player0_id,
             player1_id,
+            0,
+            second_player_id,
         );
 
         for win in wins {
-            if win.win_player_id != player_id {
+            if win.win_player_id != next_player_id {
                 continue;
             }
             total_wins.push(win);
         }
 
-        order_count += 1;
+        // order_count += 1;
 
         if !next_permutation(&mut remaining_tiles_idx) {
             break;
@@ -222,37 +303,66 @@ pub fn solve(
             .and_modify(|v| *v += 1);
     }
 
+    let mut tm = TileMove {
+        ord: last_ord + 1,
+        game_id,
+        player_id: next_player_id,
+        tile: next_tile,
+        rot: 0,
+        pos: (-1, -1),
+    };
+    let mut mm = MeepleMove {
+        ord: last_ord + 2,
+        game_id,
+        player_id: next_player_id,
+        meeple_id: -1,
+        tile_pos: (-1, -1),
+        meeple_pos: -1,
+    };
+
+    if win_count.len() == 0 {
+        return ((tm, mm), false);
+    }
+
+    let mut max_count = -1;
+    for (key, value) in win_count {
+        if value > max_count {
+            max_count = value;
+            tm = TileMove {
+                ord: tm.ord,
+                game_id: tm.game_id,
+                player_id: tm.player_id,
+                tile: tm.tile,
+                rot: key.2,
+                pos: (key.0, key.1),
+            };
+            mm = MeepleMove {
+                ord: mm.ord,
+                game_id: mm.game_id,
+                player_id: mm.player_id,
+                meeple_id: if key.3 == -1 { -1 } else { meeple_id },
+                tile_pos: (key.0, key.1),
+                meeple_pos: key.3,
+            };
+        }
+    }
+
+    /*
     println!("====== Winnable Moves ======");
     for (key, value) in win_count {
         println!(
-            "position ({}, {}), rotated {} times, meeple on feature {} (win probablity {}%)",
+            "position ({}, {}), rotated {} times, meeple on feature {} (win probability {}%)",
             key.1,
             -key.0,
-            key.2,
+            key.2 % 4,
             key.3,
             value as f64 * 100.0 / order_count as f64
         );
     }
     println!();
+    */
 
-    (
-        TileMove {
-            ord: 0,
-            game_id,
-            player_id: player_id,
-            tile: next_tile,
-            rot: 0,
-            pos: (-1, -1),
-        },
-        MeepleMove {
-            ord: 1,
-            game_id,
-            player_id: player_id,
-            meeple_id: -1,
-            tile_pos: (-1, -1),
-            meeple_pos: -1,
-        },
-    )
+    ((tm, mm), true)
 }
 
 #[allow(dead_code)]
@@ -285,122 +395,38 @@ fn add_move(
 
 #[test]
 fn solve_test0() {
-    // solve the last 3 tiles in https://boardgamearena.com/table?table=367130620
-    // first player's id is 0
-    let mut mvs = vec![];
-    add_move(&mut mvs, 1, Tile::StartingTile, 0, (0, 0), -1, -1);
-    add_move(&mut mvs, 0, Tile::TripleRoad, 1, (0, 1), 0, 4);
-    add_move(&mut mvs, 1, Tile::Straight, 0, (-1, 1), 7, 1);
-    add_move(&mut mvs, 0, Tile::CityCap, 2, (-1, 0), 1, 0);
-    add_move(&mut mvs, 1, Tile::Triangle, 0, (-1, -1), 8, 0);
-    add_move(&mut mvs, 0, Tile::Separator, 1, (-1, 2), 1, 0);
-    add_move(&mut mvs, 1, Tile::TripleRoad, 3, (-2, 1), -1, -1);
-    add_move(&mut mvs, 0, Tile::Separator, 0, (-1, 3), 2, 0);
-    add_move(&mut mvs, 1, Tile::Monastery, 0, (0, 2), 7, 0);
-    add_move(&mut mvs, 0, Tile::StartingTile, 2, (-2, 2), 1, 0);
-    add_move(&mut mvs, 1, Tile::Straight, 0, (1, 1), 9, 2);
-    add_move(&mut mvs, 0, Tile::VerticalSeparator, 0, (-1, 4), 1, 0);
-    add_move(&mut mvs, 1, Tile::CityCapWithCrossroad, 0, (0, 4), 10, 0);
-    add_move(&mut mvs, 0, Tile::TriangleWithRoad, 2, (-2, 3), 3, 2);
-    add_move(&mut mvs, 1, Tile::TripleCity, 3, (-2, -1), -1, -1);
-    add_move(&mut mvs, 0, Tile::Left, 3, (0, -1), 4, 0);
-    add_move(&mut mvs, 1, Tile::Curve, 3, (0, 3), -1, -1);
-    add_move(&mut mvs, 0, Tile::Left, 1, (0, -2), -1, -1);
-    add_move(&mut mvs, 1, Tile::Curve, 2, (-1, 5), -1, -1);
-    add_move(&mut mvs, 0, Tile::CityCap, 2, (1, -2), 4, 0);
-    add_move(&mut mvs, 1, Tile::StartingTile, 1, (-2, 5), -1, -1);
-    add_move(&mut mvs, 0, Tile::Straight, 1, (-3, 2), -1, -1);
-    add_move(&mut mvs, 1, Tile::Left, 0, (-3, 5), 10, 0);
-    add_move(&mut mvs, 0, Tile::Curve, 2, (-3, 4), -1, -1);
-    add_move(
-        &mut mvs,
-        1,
-        Tile::TriangleWithRoadWithCOA,
-        1,
-        (-1, -2),
-        -1,
-        -1,
-    );
-    add_move(&mut mvs, 0, Tile::Straight, 1, (-1, -3), -1, -1);
-    add_move(&mut mvs, 1, Tile::CityCap, 3, (-2, 6), 11, 0);
-    add_move(&mut mvs, 0, Tile::Triangle, 3, (-2, 4), -1, -1);
-    add_move(&mut mvs, 1, Tile::CityCap, 2, (-4, 5), 11, 1);
-    add_move(&mut mvs, 0, Tile::TripleCity, 0, (-2, -3), 1, 0);
-    add_move(&mut mvs, 1, Tile::ConnectorWithCOA, 0, (-5, 5), -1, -1);
-    add_move(&mut mvs, 0, Tile::TriangleWithRoad, 0, (-3, 1), -1, -1);
-    add_move(&mut mvs, 1, Tile::QuadrupleRoad, 0, (2, 1), 10, 1);
-    add_move(&mut mvs, 0, Tile::ConnectorWithCOA, 0, (-5, 4), 2, 1);
-    add_move(&mut mvs, 1, Tile::TripleRoad, 1, (-3, 3), 10, 4);
-    add_move(
-        &mut mvs,
-        0,
-        Tile::TripleCityWithRoadWithCOA,
-        2,
-        (1, 4),
-        3,
-        2,
-    );
-    add_move(&mut mvs, 1, Tile::TripleRoad, 0, (-4, 3), 10, 2);
-    add_move(&mut mvs, 0, Tile::Straight, 1, (-1, 6), 3, 1);
-    add_move(&mut mvs, 1, Tile::StartingTile, 1, (1, 3), 12, 0);
-    add_move(&mut mvs, 0, Tile::TriangleWithCOA, 0, (-5, 6), -1, -1);
-    add_move(&mut mvs, 1, Tile::TripleCity, 1, (2, 4), -1, -1);
-    add_move(&mut mvs, 0, Tile::Monastery, 0, (-2, 7), -1, -1);
-    add_move(&mut mvs, 1, Tile::Curve, 0, (-4, 4), -1, -1);
-    add_move(&mut mvs, 0, Tile::CityCapWithCrossroad, 2, (-6, 6), -1, -1);
-    add_move(&mut mvs, 1, Tile::Right, 3, (1, 5), -1, -1);
-    add_move(&mut mvs, 0, Tile::MonasteryWithRoad, 2, (1, -1), -1, -1);
-    add_move(&mut mvs, 1, Tile::CityCap, 2, (1, 2), -1, -1);
-    add_move(&mut mvs, 0, Tile::CityCapWithCrossroad, 0, (2, -2), 0, 1);
-    add_move(&mut mvs, 1, Tile::Monastery, 0, (1, 0), 7, 0);
-    add_move(&mut mvs, 0, Tile::Straight, 1, (2, -1), 4, 1);
-    add_move(&mut mvs, 1, Tile::Connector, 1, (3, 4), -1, -1);
-    add_move(&mut mvs, 0, Tile::TriangleWithCOA, 2, (3, 5), -1, -1);
-    add_move(&mut mvs, 1, Tile::Straight, 1, (2, 0), -1, -1);
-    add_move(&mut mvs, 0, Tile::TripleCityWithRoad, 0, (4, 5), 4, 0);
-    add_move(&mut mvs, 1, Tile::Curve, 3, (0, 6), -1, -1);
-    add_move(&mut mvs, 0, Tile::MonasteryWithRoad, 2, (2, 3), 5, 2);
-    add_move(&mut mvs, 1, Tile::VerticalSeparator, 1, (2, 5), 7, 0);
-    add_move(
-        &mut mvs,
-        0,
-        Tile::TriangleWithRoadWithCOA,
-        3,
-        (3, 6),
-        -1,
-        -1,
-    );
-    add_move(&mut mvs, 1, Tile::TripleCityWithCOA, 1, (-3, -1), -1, -1);
-    add_move(&mut mvs, 0, Tile::Straight, 1, (0, 7), -1, -1);
-    add_move(&mut mvs, 1, Tile::Right, 2, (-3, -2), -1, -1);
-    add_move(&mut mvs, 0, Tile::Curve, 1, (1, 6), 5, 1);
-    add_move(&mut mvs, 1, Tile::Monastery, 0, (3, 3), -1, -1);
-    add_move(&mut mvs, 0, Tile::Curve, 0, (0, 5), -1, -1);
-    add_move(&mut mvs, 1, Tile::QuadrupleCityWithCOA, 0, (-3, 0), -1, -1);
-    add_move(&mut mvs, 0, Tile::Triangle, 1, (-5, 3), -1, -1);
-    add_move(&mut mvs, 1, Tile::Right, 3, (-6, 4), 13, 0);
-    add_move(
-        &mut mvs,
-        0,
-        Tile::TripleCityWithRoadWithCOA,
-        1,
-        (4, 4),
-        -1,
-        -1,
-    );
-    add_move(&mut mvs, 1, Tile::Curve, 3, (4, 3), -1, -1);
+    // this test works, but it takes about 40 sec only for this test.
+    // actual game here: https://boardgamearena.com/table?table=367130620
+    /*
+    use super::decoder;
+    let mut mvs = decoder::decode("src/data/367130620.json".to_string());
 
-    let status = calculate(&mvs, true);
-    match status {
-        Ok(res) => {
-            assert_eq!(res.player0_point, 91);
-            assert_eq!(res.player1_point, 90);
-        }
-        Err(e) => {
-            panic!("Error: {:?}", e.detail);
-        }
+    mvs.pop();
+    mvs.pop();
+    mvs.pop();
+    mvs.pop();
+    mvs.pop();
+    mvs.pop();
+
+    let ((tm, mm), winnable) = solve(&mvs, -1, 0, 1, Tile::VerticalSeparator);
+    assert!(winnable);
+    assert_eq!(tm.pos, (-5, 7));
+    assert_eq!(tm.rot, 2);
+    assert_eq!(mm.meeple_pos, 1);
+
+    mvs.push(TMove(tm));
+    mvs.push(MMove(mm));
+
+    match calculate(&mvs, false) {
+        Ok(_) => {}
+        Err(e) => panic!("{:?}", e.detail.msg),
     }
+    */
+}
 
-    // FIXME: commented out because this currently takes too long (like 30 min)
-    // solve(&mvs, -1, 0, 1, 0, 1, Tile::VerticalSeparator);
+#[allow(dead_code)]
+fn solve_test1() {
+    // let mut mvs = decoder::decode("src/data/318762179.json".to_string());
+
+    // solver for 5 moves is never fast enough yet
 }
