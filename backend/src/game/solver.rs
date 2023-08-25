@@ -246,6 +246,9 @@ pub fn solve(
             Move::TMove(tm) => {
                 out_tiles.push(tm.tile.clone());
             }
+            Move::DMove(dm) => {
+                out_tiles.push(dm.tile.clone());
+            }
             _ => {}
         }
     }
