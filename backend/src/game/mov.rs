@@ -51,4 +51,12 @@ impl Move {
             InvalidMove => 0,
         }
     }
+    pub fn player_id(&self) -> i32 {
+        match self {
+            MMove(m) => m.player_id,
+            TMove(m) => m.player_id,
+            DMove(m) => m.player_id,
+            InvalidMove => 0,
+        }
+    }
 }

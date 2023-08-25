@@ -172,6 +172,21 @@ pub fn decode(file_path: String) -> Vec<Move> {
         None => {}
     }
 
+    // add empty meeple move if there is no playPartisan packet in the end
+    match moves.last().unwrap() {
+        Move::TMove(t) => {
+            moves.push(Move::MMove(MeepleMove {
+                ord,
+                game_id,
+                player_id,
+                meeple_id: -1,
+                tile_pos: t.pos,
+                meeple_pos: -1,
+            }));
+        }
+        _ => {}
+    }
+
     moves
 }
 

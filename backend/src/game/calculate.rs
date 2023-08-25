@@ -1766,14 +1766,14 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                         // FIXME
                         if !player0_remaining_meeples.contains(&m.meeple_id) {
                             return Err(moves_invalid_error(format!(
-                                "meeple {} is alrealy on the board",
+                                "meeple {} is already on the board",
                                 m.meeple_id
                             )));
                         }
                     } else {
                         if !player1_remaining_meeples.contains(&m.meeple_id) {
                             return Err(moves_invalid_error(format!(
-                                "meeple {} is alrealy on the board",
+                                "meeple {} is already on the board",
                                 m.meeple_id
                             )));
                         }
@@ -2060,7 +2060,7 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
 pub fn calculate_tileable_positions(moves: &Vec<Move>, t: Tile) -> Vec<TileablePosition> {
     let board = match calculate(&moves, false) {
         Ok(s) => s.board,
-        Err(_) => HashMap::new(),
+        Err(e) => panic!("{:?}", e.detail.msg),
     };
 
     let mut tile = TileItem {
@@ -2072,16 +2072,16 @@ pub fn calculate_tileable_positions(moves: &Vec<Move>, t: Tile) -> Vec<TileableP
         meeple_pos: None,
     };
 
-    let mut checked = HashMap::new();
+    let mut checked: HashMap<(i32, i32), bool> = HashMap::new();
     let mut tileable_positions = vec![];
     for (y, x) in board.keys() {
-        match checked.get(&(y, x)) {
+        match checked.get(&(*y, *x)) {
             Some(_) => {
                 continue;
             }
             None => {}
         }
-        checked.insert((y, x), true);
+        checked.insert((*y, *x), true);
 
         let dy = [0, -1, 0, 1];
         let dx = [1, 0, -1, 0];
@@ -2094,6 +2094,14 @@ pub fn calculate_tileable_positions(moves: &Vec<Move>, t: Tile) -> Vec<TileableP
                 }
                 None => {}
             }
+            match checked.get(&(ny, nx)) {
+                Some(_) => {
+                    continue;
+                }
+                None => {}
+            }
+            checked.insert((ny, nx), true);
+
             for rot in vec![1, 2, 3, 4] {
                 tile.rotate();
 
@@ -3489,6 +3497,9 @@ fn calculate_test1() {
 
 #[test]
 fn calculate_test_for_field() {
+    // this calculation for the field also fails (red's field on the top is scored as 6, but it must be 3)
+    // let mut mvs = decoder::decode("src/data/388947581.json".to_string());
+
     // actual game here: https://boardgamearena.com/table?table=367130620
     let mut mvs = vec![];
     add_move(&mut mvs, Tile::StartingTile, 0, (0, 0), -1, -1);
