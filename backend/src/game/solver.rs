@@ -328,9 +328,9 @@ pub fn solve(
     }
 
     let mut max_count = -1;
-    for (key, value) in win_count {
-        if value > max_count {
-            max_count = value;
+    for (key, value) in &win_count {
+        if *value > max_count {
+            max_count = *value;
             tm = TileMove {
                 ord: tm.ord,
                 game_id: tm.game_id,
@@ -352,14 +352,14 @@ pub fn solve(
 
     /*
     println!("====== Winnable Moves ======");
-    for (key, value) in win_count {
+    for (key, value) in &win_count {
         println!(
             "position ({}, {}), rotated {} times, meeple on feature {} (win probability {}%)",
             key.1,
             -key.0,
             key.2 % 4,
             key.3,
-            value as f64 * 100.0 / order_count as f64
+            *value as f64 * 100.0 / order_count as f64
         );
     }
     println!();
@@ -427,9 +427,23 @@ fn solve_test0() {
     */
 }
 
-#[allow(dead_code)]
+#[test]
 fn solve_test1() {
-    // let mut mvs = decoder::decode("src/data/318762179.json".to_string());
+    // solve 5 moves, not fast enough
+    // actual game here: https://boardgamearena.com/table?table=318762179
+    /*
+    use super::decoder;
+    let mut mvs = decoder::decode("src/data/318762179.json".to_string());
 
-    // solver for 5 moves is never fast enough yet
+    for _ in 0..10 {
+        mvs.pop();
+    }
+
+    let ((tm, mm), winnable) = solve(&mvs, -1, 0, 1, Tile::Left);
+
+    assert!(winnable);
+    assert_eq!(tm.pos, (-2, -1));
+    assert_eq!(tm.rot, 1);
+    assert_eq!(mm.meeple_pos, -1);
+    */
 }
