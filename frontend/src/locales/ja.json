@@ -20,8 +20,8 @@
   "sign_up_here": "新規登録",
   "failed_to_sign_in_message": "ログインに失敗しました。再度お試しください。",
   "ai_must_place": "AI がタイルを配置しています",
-  "you_must_place": "あなたの手番です",
-  "you_must_discard": "あなたの手番です",
+  "must_place": "の手番です",
+  "must_discard": "の手番です",
   "confirm": "確定",
   "discard": "除外する",
   "skip": "スキップ",
@@ -43,5 +43,6 @@
   "your_rated_games": "過去のゲーム",
   "see_more": "すべて見る",
   "description": "Top Carcassonner は AI とカルカソンヌの対戦ができるプラットフォームです。",
-  "calculating_final_points": "最終得点を計算しています..."
+  "calculating_final_points": "最終得点を計算しています...",
+  "you": "あなた"
 }

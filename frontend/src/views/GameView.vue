@@ -642,8 +642,11 @@ onMounted(async () => {
           </p>
         </div>
         <div v-else class="flex flex-col justify-center mr-3">
-          <p v-if="mustDiscard">{{ translate("you_must_discard") }}</p>
-          <p v-else>{{ translate("you_must_place") }}</p>
+          <p>
+            {{ isMyGame ? translate("you") : game?.player0Name
+            }}<span v-if="mustDiscard">{{ translate("must_discard") }}</span>
+            <span v-else>{{ translate("must_place") }}</span>
+          </p>
         </div>
         <div class="flex flex-col justify-center min-w-[30px] mr-3">
           <img
