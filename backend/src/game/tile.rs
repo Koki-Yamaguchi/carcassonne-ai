@@ -94,6 +94,40 @@ pub fn to_tile(id: i32) -> Tile {
     }
 }
 
+#[allow(dead_code)]
+pub fn discard_test_tiles() -> Vec<Tile> {
+    let mut tiles = vec![];
+    for _ in 0..15 {
+        tiles.push(Tile::Monastery);
+    }
+    for _ in 0..2 {
+        tiles.push(Tile::QuadrupleRoad);
+    }
+    tiles
+}
+#[allow(dead_code)]
+pub fn discard_test_remaining_tiles(out_tiles: Vec<Tile>) -> Vec<Tile> {
+    let mut map = HashMap::new();
+    for al in &tiles() {
+        map.entry(*al).or_insert(0);
+    }
+    map.entry(Tile::StartingTile).or_insert(0);
+    for ot in &out_tiles {
+        map.entry(*ot).and_modify(|v| *v += 1);
+    }
+    let mut tiles = vec![];
+    for _ in 0..1 - *map.get(&Tile::StartingTile).unwrap() {
+        tiles.push(Tile::StartingTile);
+    }
+    for _ in 0..15 - *map.get(&Tile::Monastery).unwrap() {
+        tiles.push(Tile::Monastery);
+    }
+    for _ in 0..2 - *map.get(&Tile::QuadrupleRoad).unwrap() {
+        tiles.push(Tile::QuadrupleRoad);
+    }
+    tiles
+}
+
 pub fn tiles() -> Vec<Tile> {
     let mut tiles = vec![];
     for _ in 0..3 {

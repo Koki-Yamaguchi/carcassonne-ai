@@ -2,13 +2,13 @@
 import { Tile, Color } from "../tiles";
 import { lyingMeepleSrc, standingMeepleSrc } from "../meeples";
 
+type State = "meepling" | "normal" | "placing" | "shadow" | "empty";
+
 defineProps<{
   tile: Tile | null;
-  placeable: boolean;
-  placing: boolean;
-  meepling: boolean;
-  meepleablePositions: number[];
-  onClick: () => void;
+  state: State;
+  meepleablePositions?: number[];
+  onClick?: () => void;
 }>();
 defineEmits<{
   (e: "placeMeeple", pos: number): void;
@@ -30,71 +30,87 @@ const frameStyle = (frame: Color) => {
 </script>
 
 <template>
-  <div v-if="tile" :style="boxStyle" class="box">
+  <div
+    v-if="state === 'meepling' && tile !== null && meepleablePositions"
+    class="box"
+    :style="boxStyle"
+  >
     <img
-      v-if="placing"
-      class="placing"
-      :style="{ transform: `rotate(${tile.direction * 90}deg)` }"
+      :style="{
+        transform: `rotate(${tile.direction * 90}deg)`,
+        ...frameStyle(tile.frame),
+      }"
       :src="tile.src"
-      @click="onClick"
     />
-    <div v-else>
-      <img
+    <div class="meeple-spots">
+      <div
+        v-for="pos in tile.meepleablePositions(meepleablePositions)"
+        :key="pos.idx"
+        class="empty-spot"
+        @click.once="$emit('placeMeeple', pos.idx)"
         :style="{
-          transform: `rotate(${tile.direction * 90}deg)`,
-          ...frameStyle(tile.frame),
+          position: 'absolute',
+          left: `${tileSize / 2 + (pos.x * tileSize) / 2 - spotRadius}px`,
+          top: `${tileSize / 2 - (pos.y * tileSize) / 2 - spotRadius}px`,
+          border: `${spotRadius}px solid ${spotColor}`,
+          opacity: 0.7,
         }"
-        :src="tile.src"
-      />
-      <div v-if="meepling" class="meeple-spots">
-        <div
-          v-for="pos in tile.meepleablePositions(meepleablePositions)"
-          :key="pos.idx"
-          class="empty"
-          @click.once="$emit('placeMeeple', pos.idx)"
-          :style="{
-            position: 'absolute',
-            left: `${tileSize / 2 + (pos.x * tileSize) / 2 - spotRadius}px`,
-            top: `${tileSize / 2 - (pos.y * tileSize) / 2 - spotRadius}px`,
-            border: `${spotRadius}px solid ${spotColor}`,
-            opacity: 0.7,
-          }"
-        ></div>
-      </div>
-      <div v-else>
-        <div
-          v-for="pos in tile.meepleablePositions([
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-          ])"
-          :key="pos.idx"
-        >
-          <img
-            v-if="tile.meepledPosition === pos.idx"
-            class="meeple"
-            :style="{
-              position: 'absolute',
-              left: `${tileSize / 2 + (pos.x * tileSize) / 2 - 10}px`,
-              top: `${tileSize / 2 - (pos.y * tileSize) / 2 - 10}px`,
-            }"
-            :src="
-              pos.isField
-                ? lyingMeepleSrc(tile.meepleColor)
-                : standingMeepleSrc(tile.meepleColor)
-            "
-          />
-        </div>
-      </div>
+      ></div>
     </div>
   </div>
   <div
-    v-else-if="placeable"
+    v-else-if="state === 'normal' && tile !== null"
+    class="box"
     :style="boxStyle"
-    class="box placeable"
+  >
+    <img
+      :style="{
+        transform: `rotate(${tile.direction * 90}deg)`,
+        ...frameStyle(tile.frame),
+      }"
+      :src="tile.src"
+    />
+    <div
+      v-for="pos in tile.meepleablePositions([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])"
+      :key="pos.idx"
+    >
+      <img
+        v-if="tile.meepledPosition === pos.idx"
+        class="meeple"
+        :style="{
+          position: 'absolute',
+          left: `${tileSize / 2 + (pos.x * tileSize) / 2 - 10}px`,
+          top: `${tileSize / 2 - (pos.y * tileSize) / 2 - 10}px`,
+        }"
+        :src="
+          pos.isField
+            ? lyingMeepleSrc(tile.meepleColor)
+            : standingMeepleSrc(tile.meepleColor)
+        "
+      />
+    </div>
+  </div>
+  <div
+    v-else-if="state === 'placing' && tile !== null"
+    class="placing"
+    :style="boxStyle"
+  >
+    <img
+      :style="{
+        transform: `rotate(${tile.direction * 90}deg)`,
+        ...frameStyle(tile.frame),
+      }"
+      :src="tile.src"
+      @click="onClick"
+    />
+  </div>
+  <div
+    v-else-if="state === 'shadow'"
+    class="shadow"
+    :style="boxStyle"
     @click="onClick"
   ></div>
-  <div v-else :style="boxStyle" class="box">
-    <!-- empty -->
-  </div>
+  <div v-else-if="state === 'empty'" :style="boxStyle"></div>
 </template>
 
 <style scoped>
@@ -104,14 +120,14 @@ const frameStyle = (frame: Color) => {
 img {
   width: 100%;
 }
-.placeable {
+.shadow {
   border-color: rgba(0, 0, 0, 0.3);
   background-color: rgba(0, 0, 0, 0.3);
 }
-img.placing {
+.placing > img {
   opacity: 0.5;
 }
-.empty {
+.empty-spot {
   border-radius: 50%;
   cursor: pointer;
 }

@@ -9,17 +9,11 @@ pub mod rating;
 pub mod solver;
 pub mod tile;
 
-use core::time;
-use std::thread;
-
 use diesel::prelude::*;
 use rocket::serde::Serialize;
-use rocket::tokio::sync::broadcast::Sender;
-use rocket::State;
 
 use crate::database::{self, get_player, update_player};
 use crate::error::{bad_request_error, Error};
-use crate::event::{self, UpdateEvent};
 use crate::game::rating::calculate_rating;
 use crate::game::tile::to_tile;
 
@@ -189,6 +183,13 @@ pub fn create_tile_move(
             return Err(bad_request_error(
                 "move before a tile move must not be a tile move".to_string(),
             ))
+        }
+        MMove(mm) => {
+            if mm.player_id == player_id {
+                return Err(bad_request_error(
+                    "player of the previous meeple move must not be the same player who is going to play".to_string(),
+                ));
+            }
         }
         _ => {}
     }
@@ -458,20 +459,7 @@ pub fn create_discard_move(
     })
 }
 
-pub fn update_test(
-    game_id: i32,
-    ord: i32,
-    queue: &State<Sender<event::UpdateEvent>>,
-) -> Result<i32, Error> {
-    thread::sleep(time::Duration::from_millis(10000));
-    let _ = queue.send(UpdateEvent { game_id, ord });
-    Ok(game_id)
-}
-
-pub fn wait_ai_move(
-    game_id: i32,
-    _queue: &State<Sender<event::UpdateEvent>>,
-) -> Result<MeepleMoveResult, Error> {
+pub fn wait_ai_move(game_id: i32) -> Result<MeepleMoveResult, Error> {
     let game = match database::get_game(game_id) {
         Ok(gm) => gm,
         Err(e) => {
@@ -719,17 +707,29 @@ pub fn get_board(game_id: Option<i32>, move_id: Option<i32>) -> Result<Board, Er
         }
     };
 
-    let (player0_point, player1_point, b, meepleable_positions) = match calculate(&moves, false) {
-        Ok(s) => (
-            s.player0_point,
-            s.player1_point,
-            s.board,
-            s.meepleable_positions,
-        ),
-        Err(e) => {
-            return Err(e);
-        }
-    };
+    let (player0_point, player1_point, b, meepleable_positions, complete_events) =
+        match calculate(&moves, false) {
+            Ok(s) => {
+                let mut complete_events = vec![];
+                for e in &s.complete_events {
+                    complete_events.push(CompleteEvent {
+                        meeple_ids: e.meeple_ids.clone(),
+                        feature: e.feature.clone().to_string(),
+                        point: e.point,
+                    })
+                }
+                (
+                    s.player0_point,
+                    s.player1_point,
+                    s.board,
+                    s.meepleable_positions,
+                    complete_events,
+                )
+            }
+            Err(e) => {
+                return Err(e);
+            }
+        };
 
     let board_size = 20 * 2 + 1;
     let mut tiles = vec![
@@ -765,5 +765,6 @@ pub fn get_board(game_id: Option<i32>, move_id: Option<i32>) -> Result<Board, Er
         player1_point,
         tiles,
         meepleable_positions,
+        complete_events,
     })
 }

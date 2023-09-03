@@ -1,3 +1,5 @@
+use std::thread;
+
 use rocket::http::{ContentType, Status};
 use rocket::response::stream::{Event, EventStream};
 use rocket::serde::{json::to_string, json::Json, Deserialize};
@@ -187,14 +189,16 @@ pub fn create_discard_move(params: Json<CreateDiscardMove>) -> (Status, (Content
 }
 
 #[post("/wait-ai-move", format = "application/json", data = "<params>")]
-pub fn wait_ai_move(
-    params: Json<WaitAIMove>,
-    queue: &State<Sender<event::UpdateEvent>>,
-) -> (Status, (ContentType, String)) {
-    match game::wait_ai_move(params.game_id, queue) {
-        Ok(res) => (Status::Ok, (ContentType::JSON, to_string(&res).unwrap())),
-        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
-    }
+pub fn wait_ai_move(params: Json<WaitAIMove>, queue: &State<Sender<event::UpdateEvent>>) {
+    let q = queue.inner().clone();
+    thread::spawn(move || match game::wait_ai_move(params.game_id) {
+        Ok(_) => {
+            let _ = q.send(event::UpdateEvent {
+                game_id: params.game_id,
+            });
+        }
+        Err(_) => {}
+    });
 }
 
 #[get("/moves?<game>&<m>", format = "application/json")]
@@ -254,25 +258,9 @@ pub async fn events(
     }
 }
 
-#[post("/update-test", format = "application/json", data = "<params>")]
-pub async fn update_test(
-    params: Json<event::UpdateEvent>,
-    queue: &State<Sender<event::UpdateEvent>>,
-) -> (Status, (ContentType, String)) {
-    match game::update_test(params.game_id, params.ord, queue) {
-        Ok(r) => (Status::Ok, (ContentType::JSON, to_string(&r).unwrap())),
-        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
-    }
-}
-
 #[post("/send-event", format = "application/json", data = "<params>")]
-pub async fn send_event(
-    params: Json<event::UpdateEvent>,
-    queue: &State<Sender<event::UpdateEvent>>,
-) {
-    println!("send event");
+pub fn send_event(params: Json<event::UpdateEvent>, queue: &State<Sender<event::UpdateEvent>>) {
     let _ = queue.send(event::UpdateEvent {
-        ord: params.ord,
         game_id: params.game_id,
     });
 }

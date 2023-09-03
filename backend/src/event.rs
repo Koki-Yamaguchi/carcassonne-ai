@@ -5,5 +5,4 @@ use rocket::serde::{Deserialize, Serialize};
 #[serde(crate = "rocket::serde")]
 pub struct UpdateEvent {
     pub game_id: i32,
-    pub ord: i32,
 }

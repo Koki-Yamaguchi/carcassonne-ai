@@ -20,7 +20,6 @@ use handlers::get_players;
 use handlers::health;
 use handlers::send_event;
 use handlers::update_player;
-use handlers::update_test;
 use handlers::wait_ai_move;
 use handlers::{create_discard_move, create_meeple_move, create_tile_move};
 use handlers::{create_game, get_game, get_games};
@@ -79,7 +78,6 @@ fn rocket() -> _ {
                 all_options,
                 health,
                 events,
-                update_test,
                 send_event,
             ],
         )
