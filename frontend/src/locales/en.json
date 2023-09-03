@@ -20,8 +20,8 @@
   "sign_up_here": "Sign Up Here",
   "failed_to_sign_in_message": "Failed to sign in. Please try again.",
   "ai_must_place": "AI must place",
-  "you_must_place": "You must place",
-  "you_must_discard": "You must discard",
+  "must_place": " must place",
+  "must_discard": " must discard",
   "confirm": "Confirm",
   "discard": "Discard",
   "skip": "Skip",
@@ -43,5 +43,6 @@
   "your_rated_games": "Your Rated Games",
   "see_more": "See More",
   "description": "Top Carcassonner is a platfrom where you can play Carcassonne against AI.",
-  "calculating_final_points": "Calculating final points..."
+  "calculating_final_points": "Calculating final points...",
+  "you": "You"
 }
