@@ -227,10 +227,13 @@ pub fn calculate_next_move(
 
 #[test]
 fn calculate_next_move_test() {
+    /*
     use super::database;
-    let game_id = 442;
+    let game_id = 1775;
     let game = database::get_game(game_id).unwrap();
     let mut mvs = database::list_moves(game_id, None).unwrap();
+    mvs.pop();
+    mvs.pop();
     mvs.pop();
     mvs.pop();
     let res = calculate_next_move(
@@ -239,8 +242,9 @@ fn calculate_next_move_test() {
         game.player0_id,
         game.player1_id,
         1,
-        Tile::CityCap,
+        Tile::Straight,
     );
     println!("res = {:?}", res);
-    assert!(true);
+    assert!(false);
+    */
 }
