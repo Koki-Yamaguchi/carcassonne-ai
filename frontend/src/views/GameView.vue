@@ -156,8 +156,6 @@ const confirm = async () => {
     placingPosition.value.y - Math.floor(boardSize / 2),
     placingPosition.value.x - Math.floor(boardSize / 2)
   );
-
-  confirming.value = false;
 };
 
 const handlePlaceMeeple = async (pos: number) => {
@@ -180,8 +178,6 @@ const handlePlaceMeeple = async (pos: number) => {
     tilePosY,
     tilePosX
   );
-
-  handlingPlaceMeeple.value = false;
 };
 
 const discard = async () => {
@@ -332,6 +328,8 @@ const update = async () => {
     } else if ("rot" in lastMove) {
       await updateTileMove(lastMove as TileMove);
 
+      confirming.value = false;
+
       if (isMyGame.value) {
         placeablePositions.value = [];
         meepleablePositions.value = board.value.meepleablePositions;
@@ -349,6 +347,8 @@ const update = async () => {
         lastMove as MeepleMove,
         moves.value[moves.value.length - 2] as TileMove
       );
+
+      handlingPlaceMeeple.value = false;
 
       if (isMyGame.value) {
         placingPosition.value = null;
@@ -662,18 +662,23 @@ onMounted(async () => {
           <button
             class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
             v-if="
-              isMyGame && placingPosition && meepleablePositions.length === 0
+              isMyGame &&
+              placingPosition &&
+              meepleablePositions.length === 0 &&
+              !confirming
             "
             @click.once="confirm"
-            :disabled="confirming"
           >
             {{ translate("confirm") }}
           </button>
           <button
             class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
-            v-else-if="isMyGame && meepleablePositions.length !== 0"
+            v-else-if="
+              isMyGame &&
+              meepleablePositions.length !== 0 &&
+              !handlingPlaceMeeple
+            "
             @click.once="skip"
-            :disabled="handlingPlaceMeeple"
           >
             {{ translate("skip") }}
           </button>
