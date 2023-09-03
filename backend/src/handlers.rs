@@ -145,28 +145,43 @@ pub fn create_game(params: Json<CreateGame>) -> (Status, (ContentType, String)) 
 }
 
 #[post("/tile-moves/create", format = "application/json", data = "<params>")]
-pub fn create_tile_move(params: Json<CreateTileMove>) -> (Status, (ContentType, String)) {
-    match game::create_tile_move(
+pub fn create_tile_move(
+    params: Json<CreateTileMove>,
+    queue: &State<Sender<event::UpdateEvent>>,
+) -> (Status, (ContentType, String)) {
+    let r = game::create_tile_move(
         params.game_id,
         params.player_id,
         tile::to_tile(params.tile_id),
         params.rot,
         (params.pos_y, params.pos_x),
-    ) {
+    );
+    let _ = queue.send(event::UpdateEvent {
+        game_id: params.game_id,
+    });
+
+    match r {
         Ok(res) => (Status::Ok, (ContentType::JSON, to_string(&res).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
 
 #[post("/meeple-moves/create", format = "application/json", data = "<params>")]
-pub fn create_meeple_move(params: Json<CreateMeepleMove>) -> (Status, (ContentType, String)) {
-    match game::create_meeple_move(
+pub fn create_meeple_move(
+    params: Json<CreateMeepleMove>,
+    queue: &State<Sender<event::UpdateEvent>>,
+) -> (Status, (ContentType, String)) {
+    let r = game::create_meeple_move(
         params.game_id,
         params.player_id,
         params.meeple_id,
         (params.tile_pos_y, params.tile_pos_x),
         params.pos,
-    ) {
+    );
+    let _ = queue.send(event::UpdateEvent {
+        game_id: params.game_id,
+    });
+    match r {
         Ok(res) => (Status::Ok, (ContentType::JSON, to_string(&res).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }

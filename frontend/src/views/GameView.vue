@@ -157,8 +157,6 @@ const confirm = async () => {
     placingPosition.value.x - Math.floor(boardSize / 2)
   );
 
-  await api.sendEvent(game.value.id);
-
   confirming.value = false;
 };
 
@@ -182,8 +180,6 @@ const handlePlaceMeeple = async (pos: number) => {
     tilePosY,
     tilePosX
   );
-
-  api.sendEvent(game.value.id);
 
   handlingPlaceMeeple.value = false;
 };
