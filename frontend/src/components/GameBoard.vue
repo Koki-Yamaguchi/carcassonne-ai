@@ -9,7 +9,7 @@ defineProps<{
   placeablePositions: TilePosition[];
   tiles: (Tile | null)[][];
   placingTile: Tile | null;
-  placingPosition: TilePosition;
+  placingPosition: TilePosition | null;
   meepleablePositions: number[];
 }>();
 const emit = defineEmits<{
@@ -41,53 +41,41 @@ onMounted(() => {
   <div ref="elem">
     <div class="row" v-for="(row, y) in tiles" :key="y">
       <div v-for="(tile, x) in row" :key="x">
-        <!-- placing tile (translucent) -->
         <TileSquare
           v-if="
-            placingTile && placingPosition.y === y && placingPosition.x === x
+            tile !== null &&
+            meepleablePositions.length > 0 &&
+            placingPosition !== null &&
+            placingPosition.y === y &&
+            placingPosition.x === x
           "
-          :onClick="() => $emit('turnTile')"
-          :tile="placingTile"
-          :placeable="false"
-          :placing="true"
-          :meepling="false"
-          :meepleablePositions="[]"
-        />
-        <!-- meepling -->
-        <TileSquare
-          v-else-if="placingPosition.y === y && placingPosition.x === x"
-          @placeMeeple="handlePlaceMeeple"
-          :onClick="() => {}"
+          :state="'meepling'"
           :tile="tile"
-          :placeable="false"
-          :placing="false"
-          :meepling="true"
           :meepleablePositions="meepleablePositions"
+          @placeMeeple="handlePlaceMeeple"
         />
-        <!-- placeable position (shadow) -->
+        <TileSquare v-else-if="tile !== null" :state="'normal'" :tile="tile" />
+        <TileSquare
+          v-else-if="
+            placingPosition !== null &&
+            placingPosition.y === y &&
+            placingPosition.x === x
+          "
+          :state="'placing'"
+          :tile="placingTile"
+          :onClick="() => $emit('turnTile')"
+        />
         <TileSquare
           v-else-if="
             placeablePositions.filter((pos) => {
               return pos.y === y && pos.x === x;
             }).length > 0
           "
-          :onClick="() => $emit('tilePositionSelected', { y, x })"
           :tile="null"
-          :placeable="true"
-          :placing="false"
-          :meepling="false"
-          :meepleablePositions="[]"
+          :state="'shadow'"
+          :onClick="() => $emit('tilePositionSelected', { y, x })"
         />
-        <!-- normal tile or empty -->
-        <TileSquare
-          v-else
-          :onClick="() => {}"
-          :tile="tile"
-          :placeable="false"
-          :placing="false"
-          :meepling="false"
-          :meepleablePositions="[]"
-        />
+        <TileSquare v-else :state="'empty'" :tile="null" />
       </div>
     </div>
   </div>

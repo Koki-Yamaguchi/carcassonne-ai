@@ -77,4 +77,5 @@ export interface Board {
   player1Point: number;
   tiles: Tile[][];
   meepleablePositions: number[];
+  completeEvents: CompleteEvent[];
 }

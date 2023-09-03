@@ -184,6 +184,13 @@ pub fn create_tile_move(
                 "move before a tile move must not be a tile move".to_string(),
             ))
         }
+        MMove(mm) => {
+            if mm.player_id == player_id {
+                return Err(bad_request_error(
+                    "player of the previous meeple move must not be the same player who is going to play".to_string(),
+                ));
+            }
+        }
         _ => {}
     }
 
@@ -700,17 +707,29 @@ pub fn get_board(game_id: Option<i32>, move_id: Option<i32>) -> Result<Board, Er
         }
     };
 
-    let (player0_point, player1_point, b, meepleable_positions) = match calculate(&moves, false) {
-        Ok(s) => (
-            s.player0_point,
-            s.player1_point,
-            s.board,
-            s.meepleable_positions,
-        ),
-        Err(e) => {
-            return Err(e);
-        }
-    };
+    let (player0_point, player1_point, b, meepleable_positions, complete_events) =
+        match calculate(&moves, false) {
+            Ok(s) => {
+                let mut complete_events = vec![];
+                for e in &s.complete_events {
+                    complete_events.push(CompleteEvent {
+                        meeple_ids: e.meeple_ids.clone(),
+                        feature: e.feature.clone().to_string(),
+                        point: e.point,
+                    })
+                }
+                (
+                    s.player0_point,
+                    s.player1_point,
+                    s.board,
+                    s.meepleable_positions,
+                    complete_events,
+                )
+            }
+            Err(e) => {
+                return Err(e);
+            }
+        };
 
     let board_size = 20 * 2 + 1;
     let mut tiles = vec![
@@ -746,5 +765,6 @@ pub fn get_board(game_id: Option<i32>, move_id: Option<i32>) -> Result<Board, Er
         player1_point,
         tiles,
         meepleable_positions,
+        complete_events,
     })
 }

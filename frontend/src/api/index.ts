@@ -25,6 +25,29 @@ export class API {
     this.base_url = import.meta.env.VITE_API_BASE_URL;
   }
 
+  async sendEvent(gameID: number) {
+    try {
+      const res = await axios.post(`${this.base_url}/send-event`, {
+        game_id: Number(gameID),
+      });
+      console.log({ res });
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async join(gid: number, f: (event: any) => void) {
+    try {
+      const evtSource = new EventSource(`${this.base_url}/events?game=${gid}`);
+      evtSource.onmessage = f;
+      return evtSource;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
   async getPlayer(userID: string): Promise<Player> {
     try {
       const res = await axios.get(`${this.base_url}/players?user=${userID}`);
@@ -311,28 +334,12 @@ export class API {
     }
   }
 
-  async waitAIMove(gameID: number): Promise<MeepleMoveResult> {
+  async waitAIMove(gameID: number) {
     try {
       const res = await axios.post(`${this.base_url}/wait-ai-move`, {
         game_id: gameID,
       });
       console.log({ res });
-      const meepleMoveResult: MeepleMoveResult = {
-        completeEvents: res.data.complete_events.map(
-          (e: any): CompleteEvent => {
-            return {
-              meepleIDs: e.meeple_ids,
-              feature: e.feature,
-              point: e.point,
-            };
-          }
-        ),
-        currentPlayerID: res.data.current_player_id,
-        nextPlayerID: res.data.next_player_id,
-        currentTileID: res.data.current_tile_id,
-        nextTileID: res.data.next_tile_id,
-      };
-      return meepleMoveResult;
     } catch (e) {
       console.log({ e });
       throw e;
@@ -440,6 +447,15 @@ export class API {
                 );
           });
         }),
+        completeEvents: res.data.complete_events.map(
+          (e: any): CompleteEvent => {
+            return {
+              meepleIDs: e.meeple_ids,
+              feature: e.feature,
+              point: e.point,
+            };
+          }
+        ),
       };
       return board;
     } catch (e) {

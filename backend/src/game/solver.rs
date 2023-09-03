@@ -172,13 +172,20 @@ pub fn search(
             }
             moves.pop(); // pop meeple move
 
-            if win && depth != 0 {
+            if win
+            /* FIXME: this should be the following: if win && depth != 0
+            temporarily, AI uses solver for last 1 or 2 move, meaning the sequence of the remaining tile is always unique
+            */
+            {
                 break;
             }
         }
         moves.pop(); // pop tile move
 
-        if win && depth != 0 {
+        if win {
+            /* FIXME: this should be the following: if win && depth != 0
+            temporarily, AI uses solver for last 1 or 2 move, meaning the sequence of the remaining tile is always unique
+            */
             break;
         }
     }

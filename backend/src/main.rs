@@ -3,6 +3,7 @@ extern crate rocket;
 
 mod database;
 mod error;
+mod event;
 mod game;
 mod handlers;
 mod player;
@@ -10,19 +11,24 @@ mod schema;
 
 use handlers::all_options;
 use handlers::create_player;
+use handlers::events;
 use handlers::get_board;
 use handlers::get_final_events;
 use handlers::get_moves;
 use handlers::get_player;
 use handlers::get_players;
 use handlers::health;
+use handlers::send_event;
 use handlers::update_player;
 use handlers::wait_ai_move;
 use handlers::{create_discard_move, create_meeple_move, create_tile_move};
 use handlers::{create_game, get_game, get_games};
 
+use event::UpdateEvent;
+
 use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Header;
+use rocket::tokio::sync::broadcast::channel;
 use rocket::{Request, Response};
 
 pub struct CORS;
@@ -49,25 +55,30 @@ impl Fairing for CORS {
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().attach(CORS).mount(
-        "/",
-        routes![
-            get_player,
-            get_players,
-            update_player,
-            get_game,
-            get_games,
-            create_game,
-            create_player,
-            create_tile_move,
-            create_meeple_move,
-            create_discard_move,
-            wait_ai_move,
-            get_moves,
-            get_final_events,
-            get_board,
-            all_options,
-            health,
-        ],
-    )
+    rocket::build()
+        .manage(channel::<UpdateEvent>(1024).0)
+        .attach(CORS)
+        .mount(
+            "/",
+            routes![
+                get_player,
+                get_players,
+                update_player,
+                get_game,
+                get_games,
+                create_game,
+                create_player,
+                create_tile_move,
+                create_meeple_move,
+                create_discard_move,
+                wait_ai_move,
+                get_moves,
+                get_final_events,
+                get_board,
+                all_options,
+                health,
+                events,
+                send_event,
+            ],
+        )
 }

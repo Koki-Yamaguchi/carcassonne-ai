@@ -21,9 +21,6 @@ pub fn calculate_rating(
 
 #[test]
 fn calculate_rating_test() {
-    use super::database;
-    use std::collections::HashMap;
-
     let (ra, rb) = calculate_rating(1500, 1700, true);
     assert_eq!(ra, 1524);
     assert_eq!(rb, 1676);

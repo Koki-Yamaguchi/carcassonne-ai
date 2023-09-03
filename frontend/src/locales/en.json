@@ -42,5 +42,6 @@
   "ranking": "Ranking (Top 10)",
   "your_rated_games": "Your Rated Games",
   "see_more": "See More",
-  "description": "Top Carcassonner is a platfrom where you can play Carcassonne against AI."
+  "description": "Top Carcassonner is a platfrom where you can play Carcassonne against AI.",
+  "calculating_final_points": "Calculating final points..."
 }

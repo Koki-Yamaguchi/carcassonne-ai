@@ -16,4 +16,5 @@ pub struct Board {
     pub player1_point: i32,
     pub tiles: Vec<Vec<BoardTile>>,
     pub meepleable_positions: Vec<i32>,
+    pub complete_events: Vec<super::CompleteEvent>,
 }

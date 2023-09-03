@@ -42,5 +42,6 @@
   "ranking": "ランキング (Top 10)",
   "your_rated_games": "過去のゲーム",
   "see_more": "すべて見る",
-  "description": "Top Carcassonner は AI とカルカソンヌの対戦ができるプラットフォームです。"
+  "description": "Top Carcassonner は AI とカルカソンヌの対戦ができるプラットフォームです。",
+  "calculating_final_points": "最終得点を計算しています..."
 }
