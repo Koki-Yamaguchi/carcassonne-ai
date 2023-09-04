@@ -6,22 +6,17 @@
       "**/.*",
       "**/node_modules/**"
     ],
-    "redirects": [
-      {
-        "source": "https://carcassonne-c28b5.firebaseapp.com/**",
-        "destination": "https://top-carcassonner.com/",
-        "type": 301
-      },
-      {
-        "source": "https//carcassonne-c28b5.firebaseapp.com/",
-        "destination": "https://top-carcassonner.com/",
-        "type": 301
-      }
-    ],
     "rewrites": [
       {
         "source": "**",
         "destination": "/index.html"
+      }
+    ],
+    "redirects": [
+      {
+        "source": "https//carcassonne-c28b5.firebaseapp.com/",
+        "destination": "https://top-carcassonner.com/",
+        "type": 301
       }
     ]
   }
