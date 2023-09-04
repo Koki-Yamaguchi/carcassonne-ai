@@ -55,6 +55,7 @@ impl PartialEq for CompleteEvent {
 }
 impl Eq for CompleteEvent {}
 
+#[derive(Debug)]
 pub struct Status {
     pub meepleable_positions: Vec<i32>,
     pub complete_events: Vec<CompleteEvent>,
@@ -174,6 +175,10 @@ impl TileItem {
     }
     pub fn bottom_features(self) -> Vec<DistinctFeature> {
         self.side_features()[((self.rot + 3) % 4) as usize].clone()
+    }
+    // e.g., features_by_dir[0][1] is equivalent to right_features[1]
+    pub fn features_by_dir(self, dir: usize) -> Vec<DistinctFeature> {
+        self.side_features()[(self.rot as usize + dir) % 4].clone()
     }
     // side_features defined so that they are not influenced by the effect of turn
     fn side_features(self) -> Vec<Vec<DistinctFeature>> {
@@ -1653,50 +1658,49 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                 // place tile
                 board.insert((y, x), current_tile);
 
-                // merge features
-                match board.get(&(y - 1, x)) {
-                    Some(t) => {
-                        assert_eq!(t.bottom_features().len(), current_tile.top_features().len());
-                        merge_features(
-                            &mut mergeable_features,
-                            t.bottom_features(),
-                            current_tile.top_features(),
-                        );
+                // merge cities first (so that the merging fields can see the merging cities as the same city)
+                let dy = [0, -1, 0, 1];
+                let dx = [1, 0, -1, 0];
+                for dir in 0..dy.len() {
+                    let ny = y + dy[dir];
+                    let nx = x + dx[dir];
+                    match board.get(&(ny, nx)) {
+                        Some(t) => {
+                            if current_tile.features_by_dir(dir)[0].feature == CityFeature {
+                                assert_eq!(
+                                    t.features_by_dir((dir + 2) % 4).len(),
+                                    current_tile.features_by_dir(dir).len()
+                                );
+                                merge_features(
+                                    &mut mergeable_features,
+                                    t.features_by_dir((dir + 2) % 4),
+                                    current_tile.features_by_dir(dir),
+                                );
+                            }
+                        }
+                        None => {}
                     }
-                    None => {}
                 }
-                match board.get(&(y + 1, x)) {
-                    Some(t) => {
-                        assert_eq!(t.top_features().len(), current_tile.bottom_features().len());
-                        merge_features(
-                            &mut mergeable_features,
-                            t.top_features(),
-                            current_tile.bottom_features(),
-                        );
+                // merge roads and fields
+                for dir in 0..dy.len() {
+                    let ny = y + dy[dir];
+                    let nx = x + dx[dir];
+                    match board.get(&(ny, nx)) {
+                        Some(t) => {
+                            if current_tile.features_by_dir(dir)[0].feature != CityFeature {
+                                assert_eq!(
+                                    t.features_by_dir((dir + 2) % 4).len(),
+                                    current_tile.features_by_dir(dir).len()
+                                );
+                                merge_features(
+                                    &mut mergeable_features,
+                                    t.features_by_dir((dir + 2) % 4),
+                                    current_tile.features_by_dir(dir),
+                                );
+                            }
+                        }
+                        None => {}
                     }
-                    None => {}
-                }
-                match board.get(&(y, x - 1)) {
-                    Some(t) => {
-                        assert_eq!(t.right_features().len(), current_tile.left_features().len());
-                        merge_features(
-                            &mut mergeable_features,
-                            t.right_features(),
-                            current_tile.left_features(),
-                        );
-                    }
-                    None => {}
-                }
-                match board.get(&(y, x + 1)) {
-                    Some(t) => {
-                        assert_eq!(t.left_features().len(), current_tile.right_features().len());
-                        merge_features(
-                            &mut mergeable_features,
-                            t.left_features(),
-                            current_tile.right_features(),
-                        );
-                    }
-                    None => {}
                 }
 
                 // update meepleable positions
@@ -3496,10 +3500,7 @@ fn calculate_test1() {
 }
 
 #[test]
-fn calculate_test_for_field() {
-    // this calculation for the field also fails (red's field on the top is scored as 6, but it must be 3)
-    // let mut mvs = decoder::decode("src/data/388947581.json".to_string());
-
+fn calculate_test_for_field0() {
     // actual game here: https://boardgamearena.com/table?table=367130620
     let mut mvs = vec![];
     add_move(&mut mvs, Tile::StartingTile, 0, (0, 0), -1, -1);
@@ -3531,21 +3532,21 @@ fn calculate_test_for_field() {
     add_move(&mut mvs, Tile::CityCap, 3, (-2, 6), 11, 0);
     add_move(&mut mvs, Tile::Triangle, 3, (-2, 4), -1, -1);
 
-    /* FIXME: field calculation is not correct
     let status = calculate(&mvs, true);
     match status {
-      Ok(mut res) => {
-        res.complete_events.sort();
-        assert_eq!(res.complete_events.len(), 7);
-        assert_eq!(res.complete_events[6].feature, FieldFeature);
-        assert_eq!(res.complete_events[6].meeple_ids, vec![9]);
-        assert_eq!(res.complete_events[6].point, 12);
-        assert_eq!(res.player0_point, 31);
-        assert_eq!(res.player1_point, 35);
-      }
-      Err(e) => { panic!("Error: {:?}", e.detail); }
+        Ok(mut res) => {
+            res.complete_events.sort();
+            assert_eq!(res.complete_events.len(), 7);
+            assert_eq!(res.complete_events[6].feature, FieldFeature);
+            assert_eq!(res.complete_events[6].meeple_ids, vec![9]);
+            assert_eq!(res.complete_events[6].point, 12);
+            assert_eq!(res.player0_point, 31);
+            assert_eq!(res.player1_point, 35);
+        }
+        Err(e) => {
+            panic!("Error: {:?}", e.detail);
+        }
     }
-    */
 
     add_move(&mut mvs, Tile::CityCap, 2, (-4, 5), 11, 1);
     add_move(&mut mvs, Tile::TripleCity, 0, (-2, -3), 1, 0);
@@ -3555,7 +3556,6 @@ fn calculate_test_for_field() {
     add_move(&mut mvs, Tile::ConnectorWithCOA, 0, (-5, 4), 2, 1);
     add_move(&mut mvs, Tile::TripleRoad, 1, (-3, 3), 10, 4);
 
-    // but field calculation is now correct
     let status = calculate(&mvs, true);
     match status {
         Ok(mut res) => {
@@ -3569,6 +3569,29 @@ fn calculate_test_for_field() {
             assert_eq!(res.complete_events[7].point, 12);
             assert_eq!(res.player0_point, 37);
             assert_eq!(res.player1_point, 48);
+        }
+        Err(e) => {
+            panic!("Error: {:?}", e.detail);
+        }
+    }
+}
+
+#[test]
+fn calculate_test_for_field1() {
+    let mut mvs = decoder::decode("src/data/388947581.json".to_string());
+    for _ in 0..48 {
+        mvs.pop();
+    }
+
+    let status = calculate(&mvs, true);
+    match status {
+        Ok(mut res) => {
+            res.complete_events.sort();
+            assert_eq!(res.complete_events.len(), 10);
+            assert_eq!(res.complete_events[8].feature, FieldFeature);
+            assert_eq!(res.complete_events[8].point, 3);
+            assert_eq!(res.player0_point, 48);
+            assert_eq!(res.player1_point, 42);
         }
         Err(e) => {
             panic!("Error: {:?}", e.detail);

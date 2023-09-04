@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct MergeableFeature {
     par: Vec<usize>,
     rank: Vec<usize>,
