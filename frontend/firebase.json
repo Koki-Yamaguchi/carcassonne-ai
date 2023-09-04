@@ -14,12 +14,12 @@
     ],
     "redirects": [
       {
-        "source": "/:path*",
+        "source": "https://carcassonne-c28b5.firebaseapp.com:path*",
         "destination": "https://top-carcassonner.com/:path",
         "type": 301
       },
       {
-        "source": "/",
+        "source": "https//carcassonne-c28b5.firebaseapp.com/",
         "destination": "https://top-carcassonner.com/",
         "type": 301
       }
