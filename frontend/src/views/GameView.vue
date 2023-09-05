@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { API } from "../api";
 import GameBoard from "../components/GameBoard.vue";
 import PlayerInfo from "../components/PlayerInfo.vue";
@@ -57,6 +57,8 @@ const meepleablePositions = ref<number[]>([]);
 const confirming = ref<boolean>(false);
 const handlingPlaceMeeple = ref<boolean>(false);
 const mustDiscard = ref<boolean>(false);
+
+const router = useRouter();
 
 const initGame = async () => {
   const api = new API();
@@ -729,6 +731,14 @@ onMounted(async () => {
         <p class="flex flex-col justify-center mr-3">
           {{ winner }} {{ translate("wins") }}
         </p>
+      </div>
+      <div class="flex gap-4">
+        <button
+          class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
+          @click.once="router.push(`/replays/${game ? game.id : ''}`)"
+        >
+          {{ translate("view_replay") }}
+        </button>
       </div>
     </div>
   </div>

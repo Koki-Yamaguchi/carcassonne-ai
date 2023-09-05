@@ -2153,6 +2153,7 @@ fn calculate_test_for_road_and_city_completion() {
     let player1_id = 1;
     let mut mvs = vec![
         Move::TMove(TileMove {
+            id: -1,
             ord: 0,
             game_id,
             player_id: player1_id,
@@ -2161,6 +2162,7 @@ fn calculate_test_for_road_and_city_completion() {
             pos: (0, 0),
         }),
         Move::MMove(MeepleMove {
+            id: -1,
             ord: 1,
             game_id,
             player_id: player1_id,
@@ -2171,6 +2173,7 @@ fn calculate_test_for_road_and_city_completion() {
     ];
 
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: 2,
         game_id,
         player_id: player0_id,
@@ -2189,6 +2192,7 @@ fn calculate_test_for_road_and_city_completion() {
     }
 
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: 3,
         game_id,
         player_id: player0_id,
@@ -2209,6 +2213,7 @@ fn calculate_test_for_road_and_city_completion() {
     }
 
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: 4,
         game_id,
         player_id: player1_id,
@@ -2227,6 +2232,7 @@ fn calculate_test_for_road_and_city_completion() {
     }
 
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: 5,
         game_id,
         player_id: player1_id,
@@ -2247,6 +2253,7 @@ fn calculate_test_for_road_and_city_completion() {
     }
 
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: 6,
         game_id,
         player_id: player0_id,
@@ -2265,6 +2272,7 @@ fn calculate_test_for_road_and_city_completion() {
     }
 
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: 7,
         game_id,
         player_id: player0_id,
@@ -2288,6 +2296,7 @@ fn calculate_test_for_road_and_city_completion() {
     }
 
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: 8,
         game_id,
         player_id: player1_id,
@@ -2306,6 +2315,7 @@ fn calculate_test_for_road_and_city_completion() {
     }
 
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: 9,
         game_id,
         player_id: player1_id,
@@ -2329,6 +2339,7 @@ fn calculate_test_for_road_and_city_completion() {
     }
 
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: 10,
         game_id,
         player_id: player0_id,
@@ -2347,6 +2358,7 @@ fn calculate_test_for_road_and_city_completion() {
     }
 
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: 11,
         game_id,
         player_id: player0_id,
@@ -2400,6 +2412,7 @@ fn calculate_test_for_monastery_completion() {
     let player1_id = 1;
     let mut mvs = vec![
         Move::TMove(TileMove {
+            id: -1,
             ord: 0,
             game_id,
             player_id: player1_id,
@@ -2408,6 +2421,7 @@ fn calculate_test_for_monastery_completion() {
             pos: (0, 0),
         }),
         Move::MMove(MeepleMove {
+            id: -1,
             ord: 1,
             game_id,
             player_id: player1_id,
@@ -2418,6 +2432,7 @@ fn calculate_test_for_monastery_completion() {
     ];
 
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: 2,
         game_id,
         player_id: player0_id,
@@ -2436,6 +2451,7 @@ fn calculate_test_for_monastery_completion() {
     }
 
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: 3,
         game_id,
         player_id: player0_id,
@@ -2456,6 +2472,7 @@ fn calculate_test_for_monastery_completion() {
     }
 
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: 4,
         game_id,
         player_id: player1_id,
@@ -2464,6 +2481,7 @@ fn calculate_test_for_monastery_completion() {
         pos: (2, 0),
     }));
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: 5,
         game_id,
         player_id: player1_id,
@@ -2473,6 +2491,7 @@ fn calculate_test_for_monastery_completion() {
     }));
 
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: 6,
         game_id,
         player_id: player0_id,
@@ -2481,6 +2500,7 @@ fn calculate_test_for_monastery_completion() {
         pos: (2, -1),
     }));
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: 7,
         game_id,
         player_id: player0_id,
@@ -2490,6 +2510,7 @@ fn calculate_test_for_monastery_completion() {
     }));
 
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: 8,
         game_id,
         player_id: player1_id,
@@ -2498,6 +2519,7 @@ fn calculate_test_for_monastery_completion() {
         pos: (2, -2),
     }));
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: 9,
         game_id,
         player_id: player1_id,
@@ -2507,6 +2529,7 @@ fn calculate_test_for_monastery_completion() {
     }));
 
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: 10,
         game_id,
         player_id: player0_id,
@@ -2515,6 +2538,7 @@ fn calculate_test_for_monastery_completion() {
         pos: (1, -2),
     }));
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: 11,
         game_id,
         player_id: player0_id,
@@ -2524,6 +2548,7 @@ fn calculate_test_for_monastery_completion() {
     }));
 
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: 12,
         game_id,
         player_id: player0_id,
@@ -2532,6 +2557,7 @@ fn calculate_test_for_monastery_completion() {
         pos: (2, 1),
     }));
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: 13,
         game_id,
         player_id: player0_id,
@@ -2541,6 +2567,7 @@ fn calculate_test_for_monastery_completion() {
     }));
 
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: 14,
         game_id,
         player_id: player1_id,
@@ -2549,6 +2576,7 @@ fn calculate_test_for_monastery_completion() {
         pos: (1, 1),
     }));
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: 15,
         game_id,
         player_id: player1_id,
@@ -2558,6 +2586,7 @@ fn calculate_test_for_monastery_completion() {
     }));
 
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: 16,
         game_id,
         player_id: player0_id,
@@ -2566,6 +2595,7 @@ fn calculate_test_for_monastery_completion() {
         pos: (0, 1),
     }));
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: 17,
         game_id,
         player_id: player0_id,
@@ -2575,6 +2605,7 @@ fn calculate_test_for_monastery_completion() {
     }));
 
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: 18,
         game_id,
         player_id: player1_id,
@@ -2583,6 +2614,7 @@ fn calculate_test_for_monastery_completion() {
         pos: (0, -1),
     }));
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: 19,
         game_id,
         player_id: player1_id,
@@ -2592,6 +2624,7 @@ fn calculate_test_for_monastery_completion() {
     }));
 
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: 20,
         game_id,
         player_id: player0_id,
@@ -2600,6 +2633,7 @@ fn calculate_test_for_monastery_completion() {
         pos: (0, -2),
     }));
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: 21,
         game_id,
         player_id: player0_id,
@@ -2609,6 +2643,7 @@ fn calculate_test_for_monastery_completion() {
     }));
 
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: 22,
         game_id,
         player_id: player1_id,
@@ -2617,6 +2652,7 @@ fn calculate_test_for_monastery_completion() {
         pos: (1, -1),
     }));
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: 23,
         game_id,
         player_id: player1_id,
@@ -2659,6 +2695,7 @@ fn add_move(
     meeple_pos: i32,
 ) {
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: -1,
         game_id: -1,
         player_id: -1,
@@ -2667,6 +2704,7 @@ fn add_move(
         pos,
     }));
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: -1,
         game_id: -1,
         player_id: -1,

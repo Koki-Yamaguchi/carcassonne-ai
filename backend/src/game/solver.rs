@@ -14,6 +14,13 @@ pub struct Win {
     win_player_id: i32,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum SolveResult {
+    AlwaysWin,
+    Winnable,
+    AlwaysLose,
+}
+
 #[allow(dead_code)]
 pub fn next_permutation<T: std::cmp::Ord>(arr: &mut [T]) -> bool {
     use std::cmp::Ordering;
@@ -46,6 +53,7 @@ pub fn search(
     player1_id: i32,
     depth: i32,
     second_player_id: i32,
+    is_last_1_or_2: bool,
 ) -> (Vec<Win>, i32) {
     let mut moves = mvs.clone();
     let next_tile = ordered_tiles.first().unwrap();
@@ -77,6 +85,7 @@ pub fn search(
         }
 
         moves.push(TMove(TileMove {
+            id: -1,
             ord: -1,
             game_id,
             player_id,
@@ -114,6 +123,7 @@ pub fn search(
             }
 
             moves.push(MMove(MeepleMove {
+                id: -1,
                 ord: -1,
                 game_id,
                 player_id,
@@ -158,6 +168,7 @@ pub fn search(
                     player1_id,
                     depth + 1,
                     second_player_id,
+                    is_last_1_or_2,
                 );
 
                 if winner == player_id {
@@ -172,20 +183,13 @@ pub fn search(
             }
             moves.pop(); // pop meeple move
 
-            if win
-            /* FIXME: this should be the following: if win && depth != 0
-            temporarily, AI uses solver for last 1 or 2 move, meaning the sequence of the remaining tile is always unique
-            */
-            {
+            if win && (is_last_1_or_2 || depth != 0) {
                 break;
             }
         }
         moves.pop(); // pop tile move
 
-        if win {
-            /* FIXME: this should be the following: if win && depth != 0
-            temporarily, AI uses solver for last 1 or 2 move, meaning the sequence of the remaining tile is always unique
-            */
+        if win && (is_last_1_or_2 || depth != 0) {
             break;
         }
     }
@@ -200,7 +204,8 @@ pub fn solve(
     player0_id: i32,
     player1_id: i32,
     next_tile: Tile,
-) -> ((TileMove, MeepleMove), bool) {
+    is_last_1_or_2: bool,
+) -> ((TileMove, MeepleMove), SolveResult) {
     // check who is playing
     assert!(moves.len() >= 4);
     let second_player_id = moves[0].player_id();
@@ -265,7 +270,7 @@ pub fn solve(
     let remaining_tiles_num = remaining_tiles.len();
     let mut remaining_tiles_idx: Vec<usize> = (0..remaining_tiles_num).collect();
 
-    // let mut order_count = 0;
+    let mut order_count = 0;
     let mut win_count = HashMap::<(i32, i32, i32, i32), i32>::new();
     let mut total_wins = vec![];
 
@@ -288,6 +293,7 @@ pub fn solve(
             player1_id,
             0,
             second_player_id,
+            is_last_1_or_2,
         );
 
         for win in wins {
@@ -297,7 +303,7 @@ pub fn solve(
             total_wins.push(win);
         }
 
-        // order_count += 1;
+        order_count += 1;
 
         if !next_permutation(&mut remaining_tiles_idx) {
             break;
@@ -314,6 +320,7 @@ pub fn solve(
     }
 
     let mut tm = TileMove {
+        id: -1,
         ord: last_ord + 1,
         game_id,
         player_id: next_player_id,
@@ -322,6 +329,7 @@ pub fn solve(
         pos: (-1, -1),
     };
     let mut mm = MeepleMove {
+        id: -1,
         ord: last_ord + 2,
         game_id,
         player_id: next_player_id,
@@ -331,7 +339,7 @@ pub fn solve(
     };
 
     if win_count.len() == 0 {
-        return ((tm, mm), false);
+        return ((tm, mm), SolveResult::AlwaysLose);
     }
 
     let mut max_count = -1;
@@ -339,6 +347,7 @@ pub fn solve(
         if *value > max_count {
             max_count = *value;
             tm = TileMove {
+                id: -1,
                 ord: tm.ord,
                 game_id: tm.game_id,
                 player_id: tm.player_id,
@@ -347,6 +356,7 @@ pub fn solve(
                 pos: (key.0, key.1),
             };
             mm = MeepleMove {
+                id: -1,
                 ord: mm.ord,
                 game_id: mm.game_id,
                 player_id: mm.player_id,
@@ -372,7 +382,13 @@ pub fn solve(
     println!();
     */
 
-    ((tm, mm), true)
+    let solve_result = if max_count == order_count {
+        SolveResult::AlwaysWin
+    } else {
+        SolveResult::Winnable
+    };
+
+    ((tm, mm), solve_result)
 }
 
 #[allow(dead_code)]
@@ -386,6 +402,7 @@ fn add_move(
     meeple_pos: i32,
 ) {
     mvs.push(Move::TMove(TileMove {
+        id: -1,
         ord: -1,
         game_id: -1,
         player_id,
@@ -394,6 +411,7 @@ fn add_move(
         pos,
     }));
     mvs.push(Move::MMove(MeepleMove {
+        id: -1,
         ord: -1,
         game_id: -1,
         player_id,
@@ -418,8 +436,9 @@ fn solve_test0() {
     mvs.pop();
     mvs.pop();
 
-    let ((tm, mm), winnable) = solve(&mvs, -1, 0, 1, Tile::VerticalSeparator);
-    assert!(winnable);
+    let ((tm, mm), solve_result) = solve(&mvs, -1, 0, 1, Tile::VerticalSeparator, false);
+
+    assert_eq!(solve_result, SolveResult::AlwaysWin);
     assert_eq!(tm.pos, (-5, 7));
     assert_eq!(tm.rot, 2);
     assert_eq!(mm.meeple_pos, 1);
@@ -446,9 +465,9 @@ fn solve_test1() {
         mvs.pop();
     }
 
-    let ((tm, mm), winnable) = solve(&mvs, -1, 0, 1, Tile::Left);
+    let ((tm, mm), solve_result) = solve(&mvs, -1, 0, 1, Tile::Left, false);
 
-    assert!(winnable);
+    assert_eq!(solve_result, SolveResult::AlwaysWin);
     assert_eq!(tm.pos, (-2, -1));
     assert_eq!(tm.rot, 1);
     assert_eq!(mm.meeple_pos, -1);
