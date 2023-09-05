@@ -51,6 +51,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    optimal_move (id) {
+        id -> Int4,
+        game_id -> Int4,
+        last_n -> Int4,
+        tile_move_id -> Int4,
+        meeple_move_id -> Int4,
+    }
+}
+
+diesel::table! {
     player (id) {
         id -> Int4,
         name -> Varchar,
@@ -61,7 +71,6 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(move_ -> game (game_id));
 diesel::joinable!(move_ -> player (player_id));
 diesel::joinable!(player -> color (meeple_color));
 
@@ -69,5 +78,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     color,
     game,
     move_,
+    optimal_move,
     player,
 );

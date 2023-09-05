@@ -9,17 +9,21 @@ pub mod rating;
 pub mod solver;
 pub mod tile;
 
+use std::thread;
+
 use diesel::prelude::*;
 use rocket::serde::Serialize;
 
 use crate::database::{self, get_player, update_player};
 use crate::error::{bad_request_error, Error};
 use crate::game::rating::calculate_rating;
+use crate::game::solver::SolveResult;
 use crate::game::tile::to_tile;
 
 use self::board::{Board, BoardTile};
 use self::calculate::calculate;
-use self::tile::{remaining_tiles, tiles};
+use self::solver::solve;
+use self::tile::{remaining_tiles, tiles, Tile};
 use mov::Move::*;
 use mov::{DiscardMove, MeepleMove, TileMove};
 use rand::Rng;
@@ -134,6 +138,7 @@ pub fn create_game(
     };
 
     let mv0 = TMove(TileMove {
+        id: -1, // ignored
         ord: 0,
         game_id: g.id,
         player_id: second_player_id,
@@ -142,6 +147,7 @@ pub fn create_game(
         pos: (0, 0),
     });
     let mv1 = MMove(MeepleMove {
+        id: -1, // ignored
         ord: 1,
         game_id: g.id,
         player_id: second_player_id,
@@ -197,6 +203,7 @@ pub fn create_tile_move(
     let ord = last_move.ord() + 1;
 
     let mv = TMove(TileMove {
+        id: -1, // ignored
         ord,
         game_id,
         player_id,
@@ -260,6 +267,7 @@ pub fn create_meeple_move(
     let ord = last_move.ord() + 1;
 
     let mv = MMove(MeepleMove {
+        id: -1, // ignored
         ord,
         game_id,
         player_id,
@@ -387,6 +395,7 @@ pub fn create_discard_move(
     let ord = moves.last().unwrap().ord() + 1;
 
     let mv = DMove(DiscardMove {
+        id: -1, // ignored
         ord,
         game_id,
         player_id,
@@ -659,6 +668,7 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
                 }
             }
         }
+
         match database::update_game(
             gm.id,
             gm.next_tile_id.unwrap(),
@@ -679,6 +689,10 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
             }
             Ok(_) => {}
         }
+
+        thread::spawn(move || {
+            create_optimal_move(gm.id, 3, gm.player0_id, gm.player1_id);
+        });
     }
 
     Ok(MeepleMoveResult {
@@ -688,6 +702,72 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
         current_tile_id: gm.current_tile_id.unwrap(),
         current_player_id: gm.current_player_id.unwrap(),
     })
+}
+
+fn create_optimal_move(game_id: i32, last_n: i32, player0_id: i32, player1_id: i32) {
+    let mut moves = match database::list_moves(game_id, None) {
+        Ok(mvs) => mvs,
+        Err(_) => {
+            return;
+        }
+    };
+
+    let mut tile_count = 0;
+    let mut next_tile = Tile::Invalid;
+    loop {
+        match moves.last().unwrap() {
+            TMove(tm) => {
+                tile_count += 1;
+                if tile_count == last_n {
+                    next_tile = tm.tile;
+                    moves.pop();
+                    break;
+                }
+            }
+            _ => {}
+        }
+        moves.pop();
+    }
+
+    let ((mut tile_move, mut meeple_move), solve_result) =
+        solve(&moves, game_id, player0_id, player1_id, next_tile, false);
+
+    if solve_result != SolveResult::AlwaysWin {
+        return;
+    }
+
+    tile_move.ord = -1;
+    meeple_move.ord = -1;
+
+    let tile_move_id = match database::create_move(TMove(tile_move)) {
+        Ok(m) => match m {
+            TMove(tm) => tm.id,
+            _ => {
+                return;
+            }
+        },
+        Err(e) => {
+            panic!("{:?}", e.detail.msg);
+        }
+    };
+    let meeple_move_id = match database::create_move(MMove(meeple_move)) {
+        Ok(m) => match m {
+            MMove(mm) => mm.id,
+            _ => {
+                return;
+            }
+        },
+        Err(e) => {
+            panic!("{:?}", e.detail.msg);
+        }
+    };
+
+    match database::create_optimal_move(game_id, last_n, tile_move_id, meeple_move_id) {
+        Ok(_) => {}
+        Err(e) => {
+            panic!("{:?}", e.detail.msg);
+        }
+    }
 }
 
 pub fn get_board(game_id: Option<i32>, move_id: Option<i32>) -> Result<Board, Error> {

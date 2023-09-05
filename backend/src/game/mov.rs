@@ -5,6 +5,7 @@ use rocket::serde::Serialize;
 #[derive(Debug, Clone, Serialize)]
 #[serde(crate = "rocket::serde")]
 pub struct TileMove {
+    pub id: i32,
     pub ord: i32,
     pub game_id: i32,
     pub player_id: i32,
@@ -16,6 +17,7 @@ pub struct TileMove {
 #[derive(Debug, Clone, Serialize)]
 #[serde(crate = "rocket::serde")]
 pub struct MeepleMove {
+    pub id: i32,
     pub ord: i32,
     pub game_id: i32,
     pub player_id: i32,
@@ -27,6 +29,7 @@ pub struct MeepleMove {
 #[derive(Debug, Clone, Serialize)]
 #[serde(crate = "rocket::serde")]
 pub struct DiscardMove {
+    pub id: i32,
     pub ord: i32,
     pub game_id: i32,
     pub player_id: i32,

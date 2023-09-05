@@ -16,6 +16,14 @@ const loserName = ref<string>("");
 const loserPoint = ref<number>(0);
 const finished = ref<boolean>(false);
 
+const onClick = () => {
+  if (finished.value) {
+    router.push(`/replays/${props.game.id}`);
+  } else {
+    router.push(`/games/${props.game.id}`);
+  }
+};
+
 onMounted(() => {
   if (props.game.winnerPlayerID === props.game.player0ID) {
     winnerName.value = props.game.player0Name;
@@ -60,7 +68,7 @@ onMounted(() => {
       </div>
       <button
         class="shadow bg-green-200 hover:bg-green-400 focus:shadow-outline focus:outline-none text-gray-700 w-20 rounded text-sm"
-        @click="router.push(`/games/${game.id}`)"
+        @click="onClick"
       >
         {{ finished ? translate("replay") : translate("resume") }}
       </button>

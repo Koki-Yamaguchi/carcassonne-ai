@@ -27,6 +27,7 @@ pub fn decode(file_path: String) -> Vec<Move> {
 
     let mut moves = vec![
         Move::TMove(TileMove {
+            id: -1,
             ord,
             game_id,
             player_id: player_id,
@@ -35,6 +36,7 @@ pub fn decode(file_path: String) -> Vec<Move> {
             pos: (0, 0),
         }),
         Move::MMove(MeepleMove {
+            id: -1,
             ord: ord + 1,
             game_id,
             player_id: player_id,
@@ -57,6 +59,7 @@ pub fn decode(file_path: String) -> Vec<Move> {
                                 match prev_move {
                                     Move::TMove(t) => {
                                         moves.push(Move::MMove(MeepleMove {
+                                            id: -1,
                                             ord,
                                             game_id,
                                             player_id,
@@ -114,6 +117,7 @@ pub fn decode(file_path: String) -> Vec<Move> {
                                 tile_id = convert_tile(tile_type);
 
                                 moves.push(Move::TMove(TileMove {
+                                    id: -1,
                                     ord,
                                     game_id,
                                     player_id,
@@ -152,6 +156,7 @@ pub fn decode(file_path: String) -> Vec<Move> {
                                 remaining_meeples[player_id as usize].remove(&meeple_id);
 
                                 moves.push(Move::MMove(MeepleMove {
+                                    id: -1,
                                     ord,
                                     game_id,
                                     player_id,
@@ -176,6 +181,7 @@ pub fn decode(file_path: String) -> Vec<Move> {
     match moves.last().unwrap() {
         Move::TMove(t) => {
             moves.push(Move::MMove(MeepleMove {
+                id: -1,
                 ord,
                 game_id,
                 player_id,

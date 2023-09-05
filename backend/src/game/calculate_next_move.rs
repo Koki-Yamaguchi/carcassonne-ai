@@ -5,6 +5,7 @@ use super::calculate::TileItem;
 use super::evaluate::evaluate;
 use super::mov::{MeepleMove, Move, TileMove};
 use super::solver::solve;
+use super::solver::SolveResult;
 use super::tile::Tile;
 
 pub fn calculate_next_move(
@@ -27,12 +28,12 @@ pub fn calculate_next_move(
         }
     }
     if tile_count >= 72 - 2 {
-        let ((tm, mm), winnable) = solve(&mvs, game_id, player0_id, player1_id, next_tile);
-        println!("tm, mm, winnable = {:?}, {:?}, {:?}", tm, mm, winnable);
-        if winnable {
+        let ((tm, mm), solve_result) =
+            solve(&mvs, game_id, player0_id, player1_id, next_tile, true);
+        if solve_result != SolveResult::AlwaysLose {
             return Some((tm, mm));
         }
-        // lose 100% or failed to calculate the results fast enough, so just play as usual
+        // if the above doesn't return results, then lose 100% (or `solve` failed to calculate the results fast enough), so just play as usual
     }
 
     let mut tile = TileItem {
@@ -55,6 +56,7 @@ pub fn calculate_next_move(
     let mut checked = HashMap::new();
     let mut max_val = -100000;
     let mut tile_move = TileMove {
+        id: -1,
         ord: 0,
         game_id,
         player_id: player_id,
@@ -63,6 +65,7 @@ pub fn calculate_next_move(
         pos: (-1, -1),
     };
     let mut meeple_move = MeepleMove {
+        id: -1,
         ord: 1,
         game_id,
         player_id: player_id,
@@ -132,6 +135,7 @@ pub fn calculate_next_move(
                     None => {}
                 }
                 let tmove = TileMove {
+                    id: -1,
                     ord: tile_move_ord,
                     game_id,
                     player_id,
@@ -166,6 +170,7 @@ pub fn calculate_next_move(
                     }
 
                     let mmove = MeepleMove {
+                        id: -1,
                         ord: meeple_move_ord,
                         game_id,
                         player_id,
