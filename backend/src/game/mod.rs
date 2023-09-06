@@ -690,9 +690,11 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
             Ok(_) => {}
         }
 
+        /*
         thread::spawn(move || {
             create_optimal_move(gm.id, 3, gm.player0_id, gm.player1_id);
         });
+        */
     }
 
     Ok(MeepleMoveResult {
@@ -704,6 +706,7 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
     })
 }
 
+#[allow(dead_code)]
 fn create_optimal_move(game_id: i32, last_n: i32, player0_id: i32, player1_id: i32) {
     let mut moves = match database::list_moves(game_id, None) {
         Ok(mvs) => mvs,
