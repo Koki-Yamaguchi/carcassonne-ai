@@ -99,6 +99,14 @@ pub fn calculate_next_move(
                 }
                 None => {}
             }
+            match checked.get(&(ny, nx)) {
+                Some(_) => {
+                    continue;
+                }
+                None => {}
+            }
+            checked.insert((ny, nx), true);
+
             for rot in vec![1, 2, 3, 4] {
                 tile.rotate();
 
@@ -140,7 +148,7 @@ pub fn calculate_next_move(
                     game_id,
                     player_id,
                     tile: next_tile,
-                    rot: rot,
+                    rot: rot % 4,
                     pos: (ny, nx),
                 };
 
@@ -180,23 +188,17 @@ pub fn calculate_next_move(
                     };
                     mvs.push(Move::MMove(mmove.clone()));
 
-                    /*
-                    // if !(tmove.pos == (-7, 2) && tmove.rot == 4 && mmove.meeple_pos == 0) {
-                    if !(tmove.pos == (-7, 2) && tmove.rot == 4 && mmove.meeple_pos == -1) {
-                        mvs.pop();
-                        continue;
-                    }
-                    */
+                    // let debug = tmove.pos == (0, 3) && tmove.rot == 3 && mmove.meeple_pos == 2;
+                    // let debug = tmove.pos == (0, 4) && tmove.rot == 1 && mmove.meeple_pos == 4;
+                    let debug = false;
 
-                    let (res0, res1) = evaluate(&mvs);
+                    let (res0, res1) = evaluate(&mvs, debug);
 
                     let val = if player_id == player0_id {
                         res0 - res1
                     } else {
                         res1 - res0
                     };
-
-                    // test.push((tmove.clone(), mmove.clone(), res0, res1, val));
 
                     if val > max_val {
                         max_val = val;
@@ -231,25 +233,29 @@ pub fn calculate_next_move(
 }
 
 #[test]
-fn calculate_next_move_test() {
-    /*
-    use super::database;
-    let game_id = 1775;
-    let game = database::get_game(game_id).unwrap();
-    let mut mvs = database::list_moves(game_id, None).unwrap();
-    mvs.pop();
-    mvs.pop();
-    mvs.pop();
-    mvs.pop();
-    let res = calculate_next_move(
-        &mvs,
-        game_id,
-        game.player0_id,
-        game.player1_id,
-        1,
-        Tile::Straight,
-    );
-    println!("res = {:?}", res);
-    assert!(false);
-    */
+fn calculate_next_move_invade_test0() {
+    let src_mvs = super::decoder::decode("src/data/365601037.json".to_string());
+    let mvs = src_mvs[0..10].to_vec();
+
+    let (tile_move, meeple_move) = calculate_next_move(&mvs, -1, 0, 1, 1, Tile::Triangle).unwrap();
+    assert_eq!(tile_move.pos, (-1, 1));
+    assert_eq!(tile_move.rot, 1);
+    assert_eq!(meeple_move.meeple_pos, 0);
+
+    let mvs = src_mvs[0..22].to_vec();
+    let (tile_move, meeple_move) =
+        calculate_next_move(&mvs, -1, 0, 1, 1, Tile::TriangleWithCOA).unwrap();
+    assert_eq!(tile_move.pos, (-2, 2));
+    assert_eq!(tile_move.rot, 3);
+    assert_eq!(meeple_move.meeple_pos, -1);
+
+    let mvs = src_mvs[0..34].to_vec();
+    let (tile_move, meeple_move) =
+        calculate_next_move(&mvs, -1, 0, 1, 1, Tile::ConnectorWithCOA).unwrap();
+    assert_eq!(tile_move.pos, (-3, 2));
+    assert_eq!(tile_move.rot % 2, 0);
+    assert_eq!(meeple_move.meeple_pos, -1);
 }
+
+#[test]
+fn calculate_next_move_test() {}
