@@ -8,6 +8,7 @@ mod game;
 mod handlers;
 mod player;
 mod schema;
+mod optimal_move;
 
 use handlers::all_options;
 use handlers::create_player;

@@ -7,6 +7,7 @@ use crate::error::{internal_server_error, not_found_error, Error};
 use crate::game;
 use crate::game::mov;
 use crate::game::tile;
+use crate::optimal_move;
 use crate::player::{self};
 use crate::schema;
 
@@ -42,6 +43,15 @@ struct NewGame {
     after_player1_rating: Option<i32>,
     first_player_id: Option<i32>,
     winner_player_id: Option<i32>,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = schema::optimal_move)]
+struct NewOptimalMove {
+    game_id: i32,
+    last_n: i32,
+    tile_move_id: i32,
+    meeple_move_id: i32,
 }
 
 #[derive(Insertable)]
@@ -340,6 +350,7 @@ pub fn list_moves(gmid: i32, move_id: Option<i32>) -> Result<Vec<mov::Move>, Err
     };
     match move_
         .filter(game_id.eq(gmid))
+        .filter(ord.ne(-1))
         .filter(ord.le(max_ord))
         .order(ord.asc())
         .load::<QueryMove>(conn)
@@ -411,6 +422,7 @@ pub fn create_move(mv: mov::Move) -> Result<mov::Move, Error> {
 fn to_move(qm: QueryMove) -> mov::Move {
     if qm.tile_id != -1 && qm.rot == -1 {
         return mov::Move::DMove(mov::DiscardMove {
+            id: qm.id,
             ord: qm.ord,
             game_id: qm.game_id,
             player_id: qm.player_id,
@@ -419,6 +431,7 @@ fn to_move(qm: QueryMove) -> mov::Move {
     }
     match (qm.tile_id, qm.meeple_id) {
         (-1, _) => mov::Move::MMove(mov::MeepleMove {
+            id: qm.id,
             ord: qm.ord,
             game_id: qm.game_id,
             player_id: qm.player_id,
@@ -427,6 +440,7 @@ fn to_move(qm: QueryMove) -> mov::Move {
             tile_pos: (qm.tile_pos_y, qm.tile_pos_x),
         }),
         (_, -1) => mov::Move::TMove(mov::TileMove {
+            id: qm.id,
             ord: qm.ord,
             game_id: qm.game_id,
             player_id: qm.player_id,
@@ -435,6 +449,28 @@ fn to_move(qm: QueryMove) -> mov::Move {
             pos: (qm.tile_pos_y, qm.tile_pos_x),
         }),
         (_, _) => mov::Move::InvalidMove,
+    }
+}
+
+pub fn create_optimal_move(
+    game_id: i32,
+    last_n: i32,
+    tile_move_id: i32,
+    meeple_move_id: i32,
+) -> Result<optimal_move::OptimalMove, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    let nom = NewOptimalMove {
+        game_id,
+        last_n,
+        tile_move_id,
+        meeple_move_id,
+    };
+    match diesel::insert_into(schema::optimal_move::table)
+        .values(&nom)
+        .get_result(conn)
+    {
+        Ok(r) => Ok(r),
+        Err(e) => Err(internal_server_error(e.to_string())),
     }
 }
 
