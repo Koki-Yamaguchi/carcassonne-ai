@@ -1,6 +1,7 @@
 pub mod board;
 pub mod calculate;
 pub mod calculate_next_move;
+pub mod debug_moves;
 pub mod decoder;
 pub mod evaluate;
 pub mod mergeable_feature;
@@ -8,8 +9,6 @@ pub mod mov;
 pub mod rating;
 pub mod solver;
 pub mod tile;
-
-use std::thread;
 
 use diesel::prelude::*;
 use rocket::serde::Serialize;

@@ -765,6 +765,10 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
                 }
             }
         }
+        if debug {
+            println!("city {:?}", city);
+            println!("result0, result1 = {:?}, {:?}", result0, result1);
+        }
         results[0] += result0;
         results[1] += result1;
     }
@@ -933,6 +937,10 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
             }
 
             let result = road.point * 10 + (meeple_value / 2 * complete_prob / 100);
+            if debug {
+                println!("road {:?}", road);
+                println!("result{:?} = {:?}", player, result);
+            }
             results[player] += result;
         }
     }
@@ -1040,6 +1048,10 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
 
             let point = 9 - mf.get_open_sides(monastery.root_feature_id);
             let result = point * 10 + meeple_value * complete_prob / 100;
+            if debug {
+                println!("monastery {:?}", monastery);
+                println!("result{:?} = {:?}", player, result);
+            }
             results[player] += result;
         }
     }
@@ -1054,6 +1066,10 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
                 }
             }
             let result = p * 10;
+            if debug {
+                println!("field {:?}", field);
+                println!("result{:?} = {:?}", player, result);
+            }
             results[player] += result;
         }
     }
@@ -1061,8 +1077,39 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
     results[0] += s.player0_point * 12;
     results[1] += s.player1_point * 12;
 
+    if debug {
+        println!(
+            "s.player0_point, s.player1_point = {:?}, {:?}",
+            s.player0_point, s.player1_point
+        );
+        println!(
+            "result0, result1 = {:?}, {:?}",
+            s.player0_point * 12,
+            s.player1_point * 12
+        );
+    }
+
     results[0] += remaining_meeple_values(s.player0_remaining_meeples.len());
     results[1] += remaining_meeple_values(s.player1_remaining_meeples.len());
+
+    if debug {
+        println!(
+            "remainig_meeple_values result0, result1 = {:?}, {:?}",
+            remaining_meeple_values(s.player0_remaining_meeples.len()),
+            remaining_meeple_values(s.player1_remaining_meeples.len()),
+        );
+    }
+    if debug {
+        println!(
+            "final result0, result1, score = {:?}, {:?}, {:?}",
+            results[0],
+            results[1],
+            results[1] - results[0],
+        );
+    }
+    if debug {
+        println!();
+    }
 
     return (results[0], results[1]);
 }
