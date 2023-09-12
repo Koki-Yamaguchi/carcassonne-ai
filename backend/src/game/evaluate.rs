@@ -168,8 +168,16 @@ pub fn last_x_for_city(x: f64) -> i32 {
         46
     } else if 1.5 <= x && x < 1.8 {
         43
-    } else if 0.9 <= x && x < 1.5 {
+    } else if 1.2 <= x && x < 1.5 {
         40
+    } else if 0.9 <= x && x < 1.2 {
+        35
+    } else if 0.6 <= x && x < 0.9 {
+        30
+    } else if 0.3 <= x && x < 0.6 {
+        25
+    } else if 0.01 <= x && x < 0.3 {
+        20
     } else {
         0
     }
@@ -227,6 +235,7 @@ fn city_fill_probability(
     remaining_tiles: &Vec<Tile>,
     y0: i32,
     x0: i32,
+    player_id: i32,
     debug: bool,
 ) -> i32 {
     let dy = [0, -1, 0, 1];
@@ -241,6 +250,7 @@ fn city_fill_probability(
 
     let mut max_block_tile_count = 0;
     let mut min_after_need_tile_count = 100.0;
+    let mut can_die = false;
     for dir0 in 0..dx.len() {
         let y1 = y0 + dy[dir0];
         let x1 = x0 + dx[dir0];
@@ -280,6 +290,9 @@ fn city_fill_probability(
                         }
                     }
                     min_fitting_count_tiles.push(min);
+                    if min == 0 {
+                        can_die = true;
+                    }
                 }
                 min_fitting_count_tiles.sort();
                 let mut prev = -1;
@@ -310,9 +323,20 @@ fn city_fill_probability(
     }
     assert!(max_block_tile_count + need_tile_count != 0);
     let block_prob = max_block_tile_count * 100 / (max_block_tile_count + need_tile_count);
+    if debug {
+        println!("block_prob = {:?}", block_prob);
+        println!(
+            "min_after_need_tile_count = {:?}",
+            min_after_need_tile_count
+        );
+    }
     let mut fill_prob = (100 - block_prob) * last_n_for_city(need_tile_count) / 100;
     let blocked_but_fill_prob = block_prob * last_x_for_city(min_after_need_tile_count) / 100;
     fill_prob = fill_prob + blocked_but_fill_prob;
+
+    if player_id == 1 && can_die {
+        fill_prob = fill_prob * 70 / 100;
+    }
 
     fill_prob
 }
@@ -672,12 +696,15 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
     let cities = search_cities(&board, &mut mf, &tile_id_to_pos, &remaining_tiles);
 
     for city in &cities {
+        if debug {
+            println!("city {:?}", city);
+        }
         let mut effect_complete_prob = 100;
         for feature in &city.features {
             for tile in &feature.tiles {
                 assert!(tile.adjacent_open_side_count <= 3);
                 if tile.adjacent_open_side_count == 2 {
-                    effect_complete_prob = effect_complete_prob * 80 / 100;
+                    effect_complete_prob = effect_complete_prob * 70 / 100;
                 }
                 if tile.adjacent_open_side_count == 3 {
                     effect_complete_prob = effect_complete_prob * 30 / 100;
@@ -691,28 +718,48 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
         if city.connecting_positions.len() != 1 {
             for feature in &city.features {
                 let mut complete_prob = effect_complete_prob;
+                let player_id = if feature.player0_meeples == feature.player1_meeples {
+                    -1
+                } else if feature.player0_meeples > feature.player1_meeples {
+                    0
+                } else {
+                    1
+                };
+                if debug {
+                    println!("complete_prob = {:?}", complete_prob);
+                }
                 for empty_position in &feature.empty_positions {
-                    complete_prob *= city_fill_probability(
+                    let fill_prob = city_fill_probability(
                         &mut board,
                         &remaining_tiles,
                         empty_position.0,
                         empty_position.1,
+                        player_id,
                         debug,
                     );
+                    complete_prob *= fill_prob;
                     complete_prob /= 100;
+                    if debug {
+                        println!("fill_prob = {:?}", fill_prob);
+                    }
                 }
                 for connecting_position in &city.connecting_positions {
-                    complete_prob *= city_fill_probability(
+                    let fill_prob = city_fill_probability(
                         &mut board,
                         &remaining_tiles,
                         connecting_position.0,
                         connecting_position.1,
+                        player_id,
                         debug,
                     );
+                    complete_prob *= fill_prob;
                     complete_prob /= 100;
                 }
                 let c = feature.point * 10
                     + ((feature.point * 10 + 20 + meeple_value) * complete_prob / 100);
+                if debug {
+                    println!("complete_prob = {:?}", complete_prob);
+                }
                 if feature.player0_meeples > feature.player1_meeples {
                     result0 = c;
                 } else if feature.player0_meeples < feature.player1_meeples {
@@ -742,7 +789,15 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
                 total_player1_meeples += feature.player1_meeples;
             }
 
-            let fill_prob = city_fill_probability(&mut board, &remaining_tiles, y0, x0, debug);
+            let player_id = if total_player0_meeples == total_player1_meeples {
+                -1
+            } else if total_player0_meeples > total_player1_meeples {
+                0
+            } else {
+                1
+            };
+            let fill_prob =
+                city_fill_probability(&mut board, &remaining_tiles, y0, x0, player_id, debug);
 
             if total_player0_meeples == total_player1_meeples {
                 // whether it is likely to get completed or not doesn't really matter
@@ -758,17 +813,28 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
                 }
             } else {
                 let mut complete_prob = fill_prob * effect_complete_prob / 100;
+                if debug {
+                    println!(
+                        "complete_prob = {:?} * {:?} / 100 = {:?}",
+                        fill_prob, effect_complete_prob, complete_prob
+                    );
+                }
                 for empty_position in &total_empty_positions {
                     let f_p = city_fill_probability(
                         &mut board,
                         &remaining_tiles,
                         empty_position.0,
                         empty_position.1,
+                        player_id,
                         debug,
                     );
                     complete_prob *= f_p;
                     complete_prob /= 100;
                 }
+                if debug {
+                    println!("complete_prob = {:?}", complete_prob);
+                }
+
                 if total_player0_meeples > total_player1_meeples {
                     let diff = total_point + 1 - player0_point + player1_point;
                     let fill_value = diff * 10 * fill_prob / 100;
@@ -789,7 +855,6 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
             }
         }
         if debug {
-            println!("city {:?}", city);
             println!("result0, result1 = {:?}, {:?}", result0, result1);
         }
         results[0] += result0;

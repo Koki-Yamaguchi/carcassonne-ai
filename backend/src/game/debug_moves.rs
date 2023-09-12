@@ -129,7 +129,7 @@ pub fn list_evaluate_results(moves: &Vec<Move>, next_tile: Tile) {
 
                     let (res0, res1) = evaluate(&mvs, false);
 
-                    results.push((tmove.clone(), mmove, res1, res0, res1 - res0));
+                    results.push((tmove.clone(), mmove, res0, res1, res1 - res0));
 
                     mvs.pop();
                 }
@@ -211,14 +211,14 @@ fn compare_evaluate_results(moves: &Vec<Move>, next_tile: Tile, compare_moves: &
 
 #[test]
 fn test_results() {
-    let game_id = 591;
+    let game_id = 592;
     let mut mvs = super::database::list_moves(game_id, None).unwrap();
 
-    mvs = mvs[0..16].to_vec();
+    mvs = mvs[0..52].to_vec();
     println!("mvs = {:?}", mvs);
     println!();
 
-    let next_tile = Tile::TripleCityWithRoadWithCOA;
+    let next_tile = Tile::TripleCity;
 
     list_evaluate_results(&mvs, next_tile);
 
@@ -227,14 +227,14 @@ fn test_results() {
         next_tile,
         &vec![
             CompareMove {
-                pos: (-2, 1),
+                pos: (3, 5),
                 rot: 0,
-                meeple_pos: 0,
+                meeple_pos: -1,
             },
             CompareMove {
-                pos: (1, -2),
-                rot: 3,
-                meeple_pos: 2,
+                pos: (5, 5),
+                rot: 1,
+                meeple_pos: -1,
             },
         ],
     );
