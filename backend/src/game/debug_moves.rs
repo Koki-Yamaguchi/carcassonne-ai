@@ -211,28 +211,30 @@ fn compare_evaluate_results(moves: &Vec<Move>, next_tile: Tile, compare_moves: &
 
 #[test]
 fn test_results() {
-    let game_id = 590;
+    let game_id = 591;
     let mut mvs = super::database::list_moves(game_id, None).unwrap();
 
-    mvs = mvs[0..20].to_vec();
+    mvs = mvs[0..16].to_vec();
     println!("mvs = {:?}", mvs);
     println!();
 
-    list_evaluate_results(&mvs, Tile::Triangle);
+    let next_tile = Tile::TripleCityWithRoadWithCOA;
+
+    list_evaluate_results(&mvs, next_tile);
 
     compare_evaluate_results(
         &mvs,
-        Tile::Triangle,
+        next_tile,
         &vec![
             CompareMove {
-                pos: (2, -1),
-                rot: 2,
+                pos: (-2, 1),
+                rot: 0,
                 meeple_pos: 0,
             },
             CompareMove {
-                pos: (0, -2),
-                rot: 0,
-                meeple_pos: -1,
+                pos: (1, -2),
+                rot: 3,
+                meeple_pos: 2,
             },
         ],
     );

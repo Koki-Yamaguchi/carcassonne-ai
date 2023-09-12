@@ -12,8 +12,8 @@ use super::{tile, tile::Tile};
 
 #[derive(Debug, Clone)]
 struct Tl {
-    id: i32,
     pos: (i32, i32),
+    adjacent_open_side_count: i32,
 }
 
 #[derive(Debug, Clone)]
@@ -470,16 +470,11 @@ fn search(
     }
 
     let mut empty_positions = vec![];
-
     for tile_id in tile_ids {
         let (y0, x0) = *tile_id_to_pos.get(&tile_id).unwrap();
 
         let tile = board.get(&(y0, x0)).unwrap();
-
-        tiles.push(Tl {
-            id: tile_id,
-            pos: (y0, x0),
-        });
+        let mut open_dirs = vec![];
 
         for dir0 in 0..dy.len() {
             let side_features0 = tile.features_by_dir(dir0);
@@ -500,6 +495,8 @@ fn search(
                 }
                 None => {}
             }
+
+            open_dirs.push(dir0);
 
             let mut connecting_city_count = 0;
 
@@ -571,6 +568,19 @@ fn search(
                 }
             }
         }
+
+        let mut adjacent_open_side_count = 0;
+        if open_dirs.len() == 3 {
+            adjacent_open_side_count = 3;
+        } else if open_dirs.len() == 2 {
+            if i32::abs((open_dirs[0] as i32) - (open_dirs[1] as i32)) == 1 {
+                adjacent_open_side_count = 2;
+            }
+        }
+        tiles.push(Tl {
+            pos: (y0, x0),
+            adjacent_open_side_count,
+        });
     }
 
     features.push(Ft {
@@ -662,12 +672,25 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
     let cities = search_cities(&board, &mut mf, &tile_id_to_pos, &remaining_tiles);
 
     for city in &cities {
-        // FIXME: case for city.connecting_positions.len() >= 2, which feels too complicated
+        let mut effect_complete_prob = 100;
+        for feature in &city.features {
+            for tile in &feature.tiles {
+                assert!(tile.adjacent_open_side_count <= 3);
+                if tile.adjacent_open_side_count == 2 {
+                    effect_complete_prob = effect_complete_prob * 80 / 100;
+                }
+                if tile.adjacent_open_side_count == 3 {
+                    effect_complete_prob = effect_complete_prob * 30 / 100;
+                }
+            }
+        }
         let mut result0 = 0;
         let mut result1 = 0;
+
+        // FIXME: case for city.connecting_positions.len() >= 2, which feels too complicated
         if city.connecting_positions.len() != 1 {
             for feature in &city.features {
-                let mut complete_prob = 100;
+                let mut complete_prob = effect_complete_prob;
                 for empty_position in &feature.empty_positions {
                     complete_prob *= city_fill_probability(
                         &mut board,
@@ -734,7 +757,7 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
                     result1 = player1_point * 10;
                 }
             } else {
-                let mut complete_prob = fill_prob;
+                let mut complete_prob = fill_prob * effect_complete_prob / 100;
                 for empty_position in &total_empty_positions {
                     let f_p = city_fill_probability(
                         &mut board,
@@ -799,8 +822,8 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
                     .get_tile_ids(f.id as usize)
                     .into_iter()
                     .map(|id| Tl {
-                        id: -1,
                         pos: *tile_id_to_pos.get(&id).unwrap(),
+                        adjacent_open_side_count: -1,
                     })
                     .collect(),
                 point: mf.size(f.id as usize) as i32,
