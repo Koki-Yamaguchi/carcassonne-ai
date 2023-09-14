@@ -164,6 +164,9 @@ impl TileItem {
     pub fn bottom(self) -> Side {
         self.sides()[((self.rot + 3) % 4) as usize]
     }
+    pub fn side_by_dir(self, dir: usize) -> Side {
+        self.sides()[(self.rot as usize + dir) % 4]
+    }
     pub fn right_features(self) -> Vec<DistinctFeature> {
         self.side_features()[((self.rot + 0) % 4) as usize].clone()
     }
