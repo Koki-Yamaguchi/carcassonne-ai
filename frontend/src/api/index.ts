@@ -91,10 +91,10 @@ export class API {
     }
   }
 
-  async uploadProfileImage(data: any) {
+  async uploadProfileImage(playerID: number, data: any) {
     try {
       const res = await axios.post(
-        `${this.base_url}/players/13/upload-profile-image`,
+        `${this.base_url}/players/${playerID}/upload-profile-image`,
         data,
         {
           headers: {

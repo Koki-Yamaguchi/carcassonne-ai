@@ -39,11 +39,11 @@ const setImage = (event: any) => {
 const update = async () => {
   const api = new API();
 
-  if (file.value) {
+  if (file.value && player.value) {
     let data = new FormData();
     data.append("profile_image", file.value);
 
-    api.uploadProfileImage(data);
+    api.uploadProfileImage(player.value.id, data);
   }
 
   await api.updatePlayer(
