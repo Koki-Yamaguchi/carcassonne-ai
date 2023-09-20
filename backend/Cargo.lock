@@ -172,31 +172,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aws-sdk-dynamodb"
-version = "0.30.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "069e3c6f367a02ee0af86616b6bf9dcc4f1eab19e11b05d4b0f71da0c86fcd9d"
-dependencies = [
- "aws-credential-types",
- "aws-http",
- "aws-runtime",
- "aws-smithy-async",
- "aws-smithy-client",
- "aws-smithy-http",
- "aws-smithy-json",
- "aws-smithy-runtime",
- "aws-smithy-runtime-api",
- "aws-smithy-types",
- "aws-types",
- "bytes",
- "fastrand 2.0.0",
- "http",
- "regex",
- "tokio-stream",
- "tracing",
-]
-
-[[package]]
 name = "aws-sdk-s3"
 version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -590,7 +565,6 @@ name = "carcassonne"
 version = "0.1.0"
 dependencies = [
  "aws-config",
- "aws-sdk-dynamodb",
  "aws-sdk-s3",
  "chrono",
  "diesel",
@@ -599,7 +573,6 @@ dependencies = [
  "rocket",
  "rocket-multipart-form-data",
  "serde_json",
- "tokio",
 ]
 
 [[package]]
@@ -2140,7 +2113,6 @@ dependencies = [
  "libc",
  "mio",
  "num_cpus",
- "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
  "socket2",

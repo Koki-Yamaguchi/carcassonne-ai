@@ -2,3 +2,7 @@ target
 .env
 src/data
 shell/
+
+secret.key
+self-signed.cert
+
