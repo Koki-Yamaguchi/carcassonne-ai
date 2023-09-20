@@ -58,6 +58,7 @@ export class API {
         userID: res.data.user_id,
         email: res.data.email,
         meepleColor: colorIDToColor(res.data.meeple_color),
+        profileImageURL: res.data.profile_image_url,
         rating: res.data.rating,
       };
       return p;
@@ -78,11 +79,30 @@ export class API {
           userID: "",
           email: "",
           meepleColor: colorIDToColor(v.meeple_color),
+          profileImageURL: v.profile_image_url,
           rating: v.rating,
         };
         return player;
       });
       return players;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async uploadProfileImage(data: any) {
+    try {
+      const res = await axios.post(
+        `${this.base_url}/players/13/upload-profile-image`,
+        data,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      console.log({ res });
     } catch (e) {
       console.log({ e });
       throw e;
@@ -104,6 +124,7 @@ export class API {
         name: res.data.name,
         email: res.data.email,
         userID: res.data.user_id,
+        profileImageURL: res.data.profile_image_url,
         meepleColor: colorIDToColor(res.data.meeple_color),
       };
       return player;
@@ -129,6 +150,7 @@ export class API {
         name: res.data.name,
         email: res.data.email,
         userID: res.data.user_id,
+        profileImageURL: res.data.profile_image_url,
         meepleColor: colorIDToColor(res.data.meeple_color),
       };
       return player;
