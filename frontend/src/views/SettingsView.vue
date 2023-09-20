@@ -15,9 +15,37 @@ const name = ref<string>("");
 const lang = ref<string>("");
 const color = ref<number>(-1);
 const rating = ref<number | undefined>();
+const profileImageURL = ref<string>("");
+const file = ref<File | null>(null);
+const image = ref<string>("");
+const input = ref<HTMLInputElement>();
+
+const upload = () => {
+  if (input.value) {
+    input.value.click();
+  }
+};
+const setImage = (event: any) => {
+  file.value = event.target.files[0];
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    image.value = reader.result as string;
+  };
+  if (file.value) {
+    reader.readAsDataURL(file.value);
+  }
+};
 
 const update = async () => {
   const api = new API();
+
+  if (file.value && player.value) {
+    let data = new FormData();
+    data.append("profile_image", file.value);
+
+    api.uploadProfileImage(player.value.id, data);
+  }
+
   await api.updatePlayer(
     player.value ? player.value.id : -1,
     name.value,
@@ -43,6 +71,7 @@ onMounted(async () => {
   name.value = player.value.name;
   color.value = colorToColorID(player.value.meepleColor);
   rating.value = player.value.rating;
+  profileImageURL.value = player.value.profileImageURL;
 
   if (store.language !== "") {
     if (store.language === "ja") {
@@ -63,6 +92,33 @@ onMounted(async () => {
 <template>
   <div class="m-10">
     <form class="w-full max-w-sm">
+      <div class="md:flex md:items-center mb-6">
+        <div class="md:w-1/3">
+          <label
+            class="block text-gray-500 md:text-right mb-1 md:mb-0 pr-4"
+            for="inline-profile-image"
+          >
+            {{ translate("image") }}
+          </label>
+        </div>
+        <div class="md:w-2/3">
+          <img class="w-28 rounded" :src="image ? image : profileImageURL" />
+          <input
+            class="hidden"
+            ref="input"
+            type="file"
+            accept="image/*"
+            @change="setImage"
+          />
+          <button
+            class="bg-gray-500 hover:bg-gray-400 text-[#eeeeee] rounded px-4 py-2 mt-2"
+            type="button"
+            @click="upload"
+          >
+            Upload
+          </button>
+        </div>
+      </div>
       <div class="md:flex md:items-center mb-6">
         <div class="md:w-1/3">
           <label

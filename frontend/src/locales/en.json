@@ -45,5 +45,6 @@
   "description": "Top Carcassonner is a platfrom where you can play Carcassonne against AI.",
   "calculating_final_points": "Calculating final points...",
   "you": "You",
-  "view_replay": "View Replay"
+  "view_replay": "View Replay",
+  "image": "Image"
 }
