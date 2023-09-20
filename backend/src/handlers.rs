@@ -1,18 +1,11 @@
-use std::path::Path;
 use std::thread;
 
-use aws_sdk_s3::primitives::ByteStream;
-use aws_sdk_s3::Client;
 use rocket::http::{ContentType, Status};
 use rocket::response::stream::{Event, EventStream};
 use rocket::serde::{json::to_string, json::Json, Deserialize};
 use rocket::tokio::select;
 use rocket::tokio::sync::broadcast::{error::RecvError, Sender};
-use rocket::Data;
 use rocket::{Shutdown, State};
-use rocket_multipart_form_data::{
-    mime, MultipartFormData, MultipartFormDataField, MultipartFormDataOptions,
-};
 
 use crate::database;
 use crate::event;
@@ -67,19 +60,16 @@ pub struct CreateGame {
 }
 
 #[get("/players?<user>", format = "application/json")]
-pub async fn get_player(
-    storage_client: &State<Client>,
-    user: String,
-) -> (Status, (ContentType, String)) {
-    match player::get_player_by_uid(storage_client, user).await {
+pub fn get_player(user: String) -> (Status, (ContentType, String)) {
+    match database::get_player_by_uid(user) {
         Ok(player) => (Status::Ok, (ContentType::JSON, to_string(&player).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
 
 #[get("/players", format = "application/json")]
-pub async fn get_players(storage_client: &State<Client>) -> (Status, (ContentType, String)) {
-    match player::get_players(storage_client).await {
+pub fn get_players() -> (Status, (ContentType, String)) {
+    match player::get_players() {
         Ok(players) => (
             Status::Ok,
             (ContentType::JSON, to_string(&players).unwrap()),
@@ -288,31 +278,4 @@ pub fn send_event(params: Json<event::UpdateEvent>, queue: &State<Sender<event::
     let _ = queue.send(event::UpdateEvent {
         game_id: params.game_id,
     });
-}
-
-#[post("/players/<player_id>/upload-profile-image", data = "<data>")]
-pub async fn upload_profile_image(
-    content_type: &ContentType,
-    storage_client: &State<Client>,
-    player_id: i32,
-    data: Data<'_>,
-) {
-    let options = MultipartFormDataOptions::with_multipart_form_data_fields(vec![
-        MultipartFormDataField::file("profile_image")
-            .content_type_by_string(Some(mime::IMAGE_STAR))
-            .unwrap(),
-    ]);
-
-    let multipart_form_data = MultipartFormData::parse(content_type, data, options)
-        .await
-        .unwrap();
-
-    let profile_image = multipart_form_data.files.get("profile_image");
-    if let Some(file_fields) = profile_image {
-        let file_field = &file_fields[0];
-        let path = &file_field.path;
-        let body = ByteStream::from_path(Path::new(path)).await.unwrap();
-
-        player::upload_profile_image(storage_client, player_id, body).await
-    }
 }

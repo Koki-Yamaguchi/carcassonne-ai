@@ -47,7 +47,6 @@ const discardedTileKinds = ref<TileKind[]>([]);
 const finished = ref<boolean>(false);
 const showDiscardedTiles = ref<boolean>(false);
 const evtSource = ref<any>(null);
-const playerProfileImageURL = ref<string>("");
 
 // variables that is only needed from player0's point of view
 const placingTile = ref<Tile | null>(null);
@@ -69,7 +68,6 @@ const initGame = async () => {
   game.value = await api.getGame(gameID);
 
   const player = await api.getPlayer(store.userID);
-  playerProfileImageURL.value = player.profileImageURL;
 
   isMyGame.value = player.id === game.value.player0ID;
 };
@@ -632,167 +630,150 @@ onMounted(async () => {
 });
 </script>
 <template>
-  <div>
-    <div v-if="!finished">
-      <div
-        class="bg-gray-100 rounded text-gray-900 text-sm px-4 py-3 shadow-md flex justify-between"
-      >
-        <div class="flex" v-if="game?.currentTileID !== -1">
-          <div
-            v-if="game?.currentPlayerID !== game?.player0ID"
-            class="flex flex-col justify-center mr-3"
-          >
-            <p>
-              {{ translate("ai_must_place") }}
-            </p>
-          </div>
-          <div v-else class="flex flex-col justify-center mr-3">
-            <p>
-              {{ isMyGame ? translate("you") : game?.player0Name
-              }}<span v-if="mustDiscard">{{ translate("must_discard") }}</span>
-              <span v-else>{{ translate("must_place") }}</span>
-            </p>
-          </div>
-          <div class="flex flex-col justify-center min-w-[30px] mr-3">
-            <img
-              v-if="game?.currentTileID !== -1"
-              class="min-h-[30px]"
-              width="30"
-              height="30"
-              :src="currentTile() ? currentTile()!.src : null"
-            />
-          </div>
-          <SpinnerIcon v-if="game?.currentPlayerID !== game?.player0ID" />
-          <div
-            class="flex flex-col justify-center"
-            v-if="game?.currentPlayerID === game?.player0ID"
-          >
-            <button
-              class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
-              v-if="
-                isMyGame &&
-                placingPosition &&
-                meepleablePositions.length === 0 &&
-                !confirming
-              "
-              @click.once="confirm"
-            >
-              {{ translate("confirm") }}
-            </button>
-            <button
-              class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
-              v-else-if="
-                isMyGame &&
-                meepleablePositions.length !== 0 &&
-                !handlingPlaceMeeple
-              "
-              @click.once="skip"
-            >
-              {{ translate("skip") }}
-            </button>
-            <button
-              class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
-              v-else-if="mustDiscard"
-              @click.once="discard()"
-            >
-              {{ translate("discard") }}
-            </button>
-          </div>
+  <div v-if="!finished">
+    <div
+      class="bg-gray-100 rounded text-gray-900 text-sm px-4 py-3 shadow-md flex justify-between"
+    >
+      <div class="flex" v-if="game?.currentTileID !== -1">
+        <div
+          v-if="game?.currentPlayerID !== game?.player0ID"
+          class="flex flex-col justify-center mr-3"
+        >
+          <p>
+            {{ translate("ai_must_place") }}
+          </p>
         </div>
-        <div v-else>{{ translate("calculating_final_points") }}</div>
-        <div class="flex">
-          <div class="flex flex-col justify-center ml-2 relative">
-            <TrashIcon @click="showDiscardedTiles = !showDiscardedTiles" />
-            <div
-              v-if="showDiscardedTiles"
-              class="absolute top-10 right-0 w-36 bg-gray-100 p-4 rounded-2xl shadow-md"
-            >
-              <p>{{ translate("discarded") }}</p>
-              <div v-if="discardedTileKinds.length > 0" class="mt-2 flex gap-2">
-                <img
-                  v-for="(discardedTileKind, idx) in discardedTileKinds"
-                  :src="newTile(0, discardedTileKind, null, -1, -1).src"
-                  class="min-h-[30px]"
-                  width="30"
-                  height="30"
-                  :key="idx"
-                />
-              </div>
+        <div v-else class="flex flex-col justify-center mr-3">
+          <p>
+            {{ isMyGame ? translate("you") : game?.player0Name
+            }}<span v-if="mustDiscard">{{ translate("must_discard") }}</span>
+            <span v-else>{{ translate("must_place") }}</span>
+          </p>
+        </div>
+        <div class="flex flex-col justify-center min-w-[30px] mr-3">
+          <img
+            v-if="game?.currentTileID !== -1"
+            class="min-h-[30px]"
+            width="30"
+            height="30"
+            :src="currentTile() ? currentTile()!.src : null"
+          />
+        </div>
+        <SpinnerIcon v-if="game?.currentPlayerID !== game?.player0ID" />
+        <div
+          class="flex flex-col justify-center"
+          v-if="game?.currentPlayerID === game?.player0ID"
+        >
+          <button
+            class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
+            v-if="
+              isMyGame &&
+              placingPosition &&
+              meepleablePositions.length === 0 &&
+              !confirming
+            "
+            @click.once="confirm"
+          >
+            {{ translate("confirm") }}
+          </button>
+          <button
+            class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
+            v-else-if="
+              isMyGame &&
+              meepleablePositions.length !== 0 &&
+              !handlingPlaceMeeple
+            "
+            @click.once="skip"
+          >
+            {{ translate("skip") }}
+          </button>
+          <button
+            class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
+            v-else-if="mustDiscard"
+            @click.once="discard()"
+          >
+            {{ translate("discard") }}
+          </button>
+        </div>
+      </div>
+      <div v-else>{{ translate("calculating_final_points") }}</div>
+      <div class="flex">
+        <div class="flex flex-col justify-center">
+          {{ Math.max(TILE_TOTAL_COUNT - tileCount - 2, 0) }}/{{
+            TILE_TOTAL_COUNT
+          }}
+        </div>
+        <div class="flex flex-col justify-center ml-2 relative">
+          <TrashIcon @click="showDiscardedTiles = !showDiscardedTiles" />
+          <div
+            v-if="showDiscardedTiles"
+            class="absolute top-10 right-0 w-36 bg-gray-100 p-4 rounded-2xl shadow-md"
+          >
+            <p>{{ translate("discarded") }}</p>
+            <div v-if="discardedTileKinds.length > 0" class="mt-2 flex gap-2">
+              <img
+                v-for="(discardedTileKind, idx) in discardedTileKinds"
+                :src="newTile(0, discardedTileKind, null, -1, -1).src"
+                class="min-h-[30px]"
+                width="30"
+                height="30"
+                :key="idx"
+              />
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div v-else>
-      <div class="bg-gray-100 rounded text-gray-900 px-4 py-3 shadow-md">
-        <div v-if="!placingPosition && tileCount === TILE_TOTAL_COUNT">
-          <p class="flex flex-col justify-center mr-3">
-            {{ winner }} {{ translate("wins") }}
-          </p>
-        </div>
-        <div class="flex gap-4">
-          <button
-            class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
-            @click.once="router.push(`/replays/${game ? game.id : ''}`)"
-          >
-            {{ translate("view_replay") }}
-          </button>
-        </div>
+  </div>
+  <div v-else>
+    <div class="bg-gray-100 rounded text-gray-900 px-4 py-3 shadow-md">
+      <div v-if="!placingPosition && tileCount === TILE_TOTAL_COUNT">
+        <p class="flex flex-col justify-center mr-3">
+          {{ winner }} {{ translate("wins") }}
+        </p>
       </div>
-    </div>
-    <div class="infos flex flex-wrap">
-      <PlayerInfo
-        :name="game ? game.player0Name : ''"
-        :point="player0Point"
-        :meepleNumber="player0Meeples.size"
-        :meepleColor="game ? game.player0Color : null"
-        :tileSrc="placingTileSrc"
-        :profileImageURL="playerProfileImageURL"
-      />
-      <PlayerInfo
-        :name="game ? game.player1Name : ''"
-        :point="player1Point"
-        :meepleNumber="player1Meeples.size"
-        :meepleColor="game ? game.player1Color : null"
-        :tileSrc="null"
-        :profileImageURL="''"
-      />
-    </div>
-    <div class="board mt-3" :style="boardStyle">
-      <GameBoard
-        :tiles="tiles"
-        :placeablePositions="placeablePositions"
-        :placingTile="placingTile"
-        :placingPosition="placingPosition"
-        :meepleablePositions="meepleablePositions"
-        @tilePositionSelected="handleTilePositionSelected"
-        @turnTile="handleTurnTile"
-        @placeMeeple="handlePlaceMeeple"
-      />
-    </div>
-    <div class="absolute bottom-36 w-full flex justify-between px-8">
-      <div class="relative">
-        <img
-          class="w-14 rounded-md border-2 shadow-xl opacity-80"
-          src="../assets/img/deck.png"
-        />
-        <div
-          class="absolute bottom-1/2 left-1/2 transform translate-y-1/2 -translate-x-1/2 text-md"
+      <div class="flex gap-4">
+        <button
+          class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
+          @click.once="router.push(`/replays/${game ? game.id : ''}`)"
         >
-          {{ Math.max(TILE_TOTAL_COUNT - tileCount - 2, 0) }}
-        </div>
+          {{ translate("view_replay") }}
+        </button>
       </div>
-      <img
-        v-if="placingTileSrc"
-        class="w-14 rounded-md border-2 shadow-xl"
-        :src="placingTileSrc"
-      />
     </div>
+  </div>
+  <div class="infos flex flex-wrap">
+    <PlayerInfo
+      :name="game ? game.player0Name : ''"
+      :point="player0Point"
+      :meepleNumber="player0Meeples.size"
+      :meepleColor="game ? game.player0Color : null"
+      :tileSrc="placingTileSrc"
+    />
+    <PlayerInfo
+      :name="game ? game.player1Name : ''"
+      :point="player1Point"
+      :meepleNumber="player1Meeples.size"
+      :meepleColor="game ? game.player1Color : null"
+      :tileSrc="null"
+    />
+  </div>
+  <div class="board mt-3" :style="boardStyle">
+    <GameBoard
+      :tiles="tiles"
+      :placeablePositions="placeablePositions"
+      :placingTile="placingTile"
+      :placingPosition="placingPosition"
+      :meepleablePositions="meepleablePositions"
+      @tilePositionSelected="handleTilePositionSelected"
+      @turnTile="handleTurnTile"
+      @placeMeeple="handlePlaceMeeple"
+    />
   </div>
 </template>
 <style scoped>
 .board {
+  height: 1000px;
   border-radius: 0.5%;
-  height: calc(100vh - 215px);
 }
 </style>

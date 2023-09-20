@@ -6,7 +6,6 @@ export interface Player {
   email: string;
   userID: string;
   meepleColor: Color;
-  profileImageURL: string;
   rating?: number;
 }
 

@@ -21,17 +21,6 @@ struct NewPlayer {
     rating: Option<i32>,
 }
 
-#[derive(Queryable, Clone)]
-#[diesel(table_name = schema::player)]
-pub struct QueryPlayer {
-    pub id: i32,
-    pub name: String,
-    pub email: String,
-    pub user_id: String,
-    pub meeple_color: i32,
-    pub rating: Option<i32>,
-}
-
 #[derive(Insertable)]
 #[diesel(table_name = schema::game)]
 struct NewGame {
@@ -97,12 +86,12 @@ pub fn get_player(pid: i32) -> Result<player::Player, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     use self::schema::player::dsl::{id, player as p};
 
-    match p.filter(id.eq(pid)).load::<QueryPlayer>(conn) {
+    match p.filter(id.eq(pid)).load::<player::Player>(conn) {
         Ok(ps) => {
             if ps.len() == 0 {
                 return Err(not_found_error("player".to_string()));
             }
-            return Ok(to_player(ps[0].clone()));
+            return Ok(ps[0].clone());
         }
         Err(e) => {
             return Err(internal_server_error(e.to_string()));
@@ -119,10 +108,10 @@ pub fn get_players() -> Result<Vec<player::Player>, Error> {
         .filter(id.ne(1)) // not AI
         .order(rating.desc())
         .limit(10)
-        .load::<QueryPlayer>(conn)
+        .load::<player::Player>(conn)
     {
         Ok(ps) => {
-            return Ok(ps.into_iter().map(|v| to_player(v)).collect());
+            return Ok(ps);
         }
         Err(e) => {
             return Err(internal_server_error(e.to_string()));
@@ -134,12 +123,12 @@ pub fn get_player_by_uid(uid: String) -> Result<player::Player, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     use self::schema::player::dsl::{player as p, user_id};
 
-    match p.filter(user_id.eq(uid)).load::<QueryPlayer>(conn) {
+    match p.filter(user_id.eq(uid)).load::<player::Player>(conn) {
         Ok(ps) => {
             if ps.len() == 0 {
                 return Err(not_found_error("player".to_string()));
             }
-            return Ok(to_player(ps[0].clone()));
+            return Ok(ps[0].clone());
         }
         Err(e) => {
             return Err(internal_server_error(e.to_string()));
@@ -165,7 +154,7 @@ pub fn create_player(
         .values(&new_player)
         .get_result(conn)
     {
-        Ok(p) => Ok(to_player(p)),
+        Ok(r) => Ok(r),
         Err(e) => Err(internal_server_error(e.to_string())),
     }
 }
@@ -182,8 +171,8 @@ pub fn update_player(
         .set((name.eq(nam), meeple_color.eq(m_color), rating.eq(rat)))
         .get_result(conn)
     {
-        Ok(p) => {
-            return Ok(to_player(p));
+        Ok(gm) => {
+            return Ok(gm);
         }
         Err(e) => {
             return Err(internal_server_error(e.to_string()));
@@ -430,28 +419,6 @@ pub fn create_move(mv: mov::Move) -> Result<mov::Move, Error> {
     }
 }
 
-pub fn create_optimal_move(
-    game_id: i32,
-    last_n: i32,
-    tile_move_id: i32,
-    meeple_move_id: i32,
-) -> Result<optimal_move::OptimalMove, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
-    let nom = NewOptimalMove {
-        game_id,
-        last_n,
-        tile_move_id,
-        meeple_move_id,
-    };
-    match diesel::insert_into(schema::optimal_move::table)
-        .values(&nom)
-        .get_result(conn)
-    {
-        Ok(r) => Ok(r),
-        Err(e) => Err(internal_server_error(e.to_string())),
-    }
-}
-
 fn to_move(qm: QueryMove) -> mov::Move {
     if qm.tile_id != -1 && qm.rot == -1 {
         return mov::Move::DMove(mov::DiscardMove {
@@ -485,15 +452,25 @@ fn to_move(qm: QueryMove) -> mov::Move {
     }
 }
 
-fn to_player(v: QueryPlayer) -> player::Player {
-    player::Player {
-        id: v.id,
-        name: v.name,
-        email: v.email,
-        user_id: v.user_id,
-        meeple_color: v.meeple_color,
-        rating: v.rating,
-        profile_image_url: "".to_string(),
+pub fn create_optimal_move(
+    game_id: i32,
+    last_n: i32,
+    tile_move_id: i32,
+    meeple_move_id: i32,
+) -> Result<optimal_move::OptimalMove, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    let nom = NewOptimalMove {
+        game_id,
+        last_n,
+        tile_move_id,
+        meeple_move_id,
+    };
+    match diesel::insert_into(schema::optimal_move::table)
+        .values(&nom)
+        .get_result(conn)
+    {
+        Ok(r) => Ok(r),
+        Err(e) => Err(internal_server_error(e.to_string())),
     }
 }
 

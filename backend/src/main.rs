@@ -6,10 +6,9 @@ mod error;
 mod event;
 mod game;
 mod handlers;
-mod optimal_move;
 mod player;
 mod schema;
-mod storage;
+mod optimal_move;
 
 use handlers::all_options;
 use handlers::create_player;
@@ -22,15 +21,12 @@ use handlers::get_players;
 use handlers::health;
 use handlers::send_event;
 use handlers::update_player;
-use handlers::upload_profile_image;
 use handlers::wait_ai_move;
 use handlers::{create_discard_move, create_meeple_move, create_tile_move};
 use handlers::{create_game, get_game, get_games};
 
 use event::UpdateEvent;
 
-use aws_config::meta::region::RegionProviderChain;
-use aws_sdk_s3::Client;
 use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Header;
 use rocket::tokio::sync::broadcast::channel;
@@ -59,14 +55,9 @@ impl Fairing for CORS {
 }
 
 #[launch]
-async fn rocket() -> _ {
-    let region_provider = RegionProviderChain::default_provider().or_else("ap-northeast-1");
-    let config = aws_config::from_env().region(region_provider).load().await;
-    let storage_client = Client::new(&config);
-
-    let r = rocket::build()
+fn rocket() -> _ {
+    rocket::build()
         .manage(channel::<UpdateEvent>(1024).0)
-        .manage(storage_client)
         .attach(CORS)
         .mount(
             "/",
@@ -89,8 +80,6 @@ async fn rocket() -> _ {
                 health,
                 events,
                 send_event,
-                upload_profile_image,
             ],
-        );
-    r
+        )
 }

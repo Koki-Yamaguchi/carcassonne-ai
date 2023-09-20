@@ -1641,7 +1641,6 @@ pub fn calculate(moves: &Vec<Move>, get_final_status: bool) -> Result<Status, Er
                     }
                     None => {}
                 }
-                // FIXME use `if let`
                 match board.get(&(y, x - 1)) {
                     Some(t) => {
                         if t.right() != current_tile.left() {
