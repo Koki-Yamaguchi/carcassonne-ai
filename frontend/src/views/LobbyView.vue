@@ -2,6 +2,8 @@
 import { onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { API } from "../api";
+import SpinnerIcon from "../components/SpinnerIcon.vue";
+import { translate } from "../locales/translate";
 import { store } from "../store";
 import { Player } from "../types";
 
@@ -67,6 +69,9 @@ const search = async () => {
 
     await sleep(5000);
 
+    if (!searching.value) {
+      return;
+    }
     await api.deleteWaitingGame(waitingGame.playerID);
 
     await search();
@@ -81,6 +86,8 @@ const joinGameHandler = async (event: any) => {
   const gameID: number = JSON.parse(event.data).id;
 
   await disconnect();
+
+  searching.value = false;
 
   router.push(`/games/${gameID}`);
 };
@@ -136,6 +143,30 @@ onUnmounted(async () => {
 </script>
 
 <template>
-  <button v-if="!searching" @click="search">Play random match!</button>
-  <button v-else @click="cancel">Cancel</button>
+  <div class="p-6">
+    <p>{{ translate("random_match") }}</p>
+    <p class="text-sm text-gray-700">
+      {{ translate("random_match_description") }}
+    </p>
+    <div class="flex flex-col items-center">
+      <button
+        v-if="!searching"
+        class="mt-4 w-5/6 bg-gray-500 hover:bg-gray-400 text-[#eeeeee] rounded px-4 py-2"
+        @click="search"
+      >
+        {{ translate("play_random_match") }}
+      </button>
+      <div v-else>
+        <button
+          class="mt-4 w-5/6 bg-red-700 hover:bg-red-500 text-[#eeeeee] rounded px-4 py-2"
+          @click="cancel"
+        >
+          {{ translate("cancel") }}
+        </button>
+        <div class="flex gap-4">
+          {{ translate("searching_opponent") }} <SpinnerIcon />
+        </div>
+      </div>
+    </div>
+  </div>
 </template>

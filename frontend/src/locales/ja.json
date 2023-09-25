@@ -47,5 +47,9 @@
   "you": "あなた",
   "view_replay": "リプレイを見る",
   "image": "画像",
-  "random_match": "ランダムマッチ"
+  "random_match": "ランダムマッチ",
+  "random_match_description": "このモードではランダムに選ばれた他のプレイヤーと対戦することができます。現在、この対戦結果によるレーティングの変動はありません。",
+  "play_random_match": "対戦相手を探す",
+  "cancel": "キャンセル",
+  "searching_opponent": "対戦相手を探しています ..."
 }
