@@ -6,6 +6,7 @@ import SignupView from "../views/SignupView.vue";
 import SigninView from "../views/SigninView.vue";
 import SettingsView from "../views/SettingsView.vue";
 import CompetitiveView from "../views/CompetitiveView.vue";
+import LobbyView from "../views/LobbyView.vue";
 import ReplayView from "../views/ReplayView.vue";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { store } from "../store";
@@ -52,6 +53,11 @@ const router = createRouter({
       path: "/replays/:id",
       name: "replay",
       component: ReplayView,
+    },
+    {
+      path: "/lobby",
+      name: "lobby",
+      component: LobbyView,
     },
   ],
   scrollBehavior(_, __, savedPosition) {

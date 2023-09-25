@@ -66,8 +66,31 @@ pub struct CreateGame {
     pub is_rated: Option<bool>,
 }
 
-#[get("/players?<user>", format = "application/json")]
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct CreateWaitingGame {
+    pub player_id: i32,
+}
+
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct DeleteWaitingGame {
+    pub player_id: i32,
+}
+
+#[get("/players/<player_id>", format = "application/json")]
 pub async fn get_player(
+    storage_client: &State<Client>,
+    player_id: i32,
+) -> (Status, (ContentType, String)) {
+    match player::get_player(storage_client, player_id).await {
+        Ok(player) => (Status::Ok, (ContentType::JSON, to_string(&player).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[get("/players?<user>", format = "application/json")]
+pub async fn get_player_by_uid(
     storage_client: &State<Client>,
     user: String,
 ) -> (Status, (ContentType, String)) {
@@ -154,6 +177,50 @@ pub fn create_game(params: Json<CreateGame>) -> (Status, (ContentType, String)) 
     }
 }
 
+#[post(
+    "/waiting-games/delete",
+    format = "application/json",
+    data = "<params>"
+)]
+pub fn delete_waiting_game(params: Json<DeleteWaitingGame>) -> (Status, (ContentType, String)) {
+    match game::delete_waiting_games(params.player_id) {
+        Ok(games) => (Status::Ok, (ContentType::JSON, to_string(&games).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+#[post(
+    "/waiting-games/create",
+    format = "application/json",
+    data = "<params>"
+)]
+pub fn create_waiting_game(params: Json<CreateWaitingGame>) -> (Status, (ContentType, String)) {
+    match game::create_waiting_game(params.player_id) {
+        Ok(games) => (Status::Ok, (ContentType::JSON, to_string(&games).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+#[get("/waiting-games", format = "application/json")]
+pub fn get_waiting_games() -> (Status, (ContentType, String)) {
+    match game::get_waiting_games() {
+        Ok(games) => (Status::Ok, (ContentType::JSON, to_string(&games).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+#[post(
+    "/waiting-games/<id>/update",
+    format = "application/json",
+    data = "<params>"
+)]
+pub fn update_waiting_game(
+    id: Option<i32>,
+    params: Json<game::UpdateWaitingGame>,
+) -> (Status, (ContentType, String)) {
+    match game::update_waiting_game(id.unwrap(), params.game_id) {
+        Ok(games) => (Status::Ok, (ContentType::JSON, to_string(&games).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
 #[post("/tile-moves/create", format = "application/json", data = "<params>")]
 pub fn create_tile_move(
     params: Json<CreateTileMove>,
@@ -167,7 +234,8 @@ pub fn create_tile_move(
         (params.pos_y, params.pos_x),
     );
     let _ = queue.send(event::UpdateEvent {
-        game_id: params.game_id,
+        name: "update_game".to_string(),
+        id: params.game_id,
     });
 
     match r {
@@ -189,7 +257,8 @@ pub fn create_meeple_move(
         params.pos,
     );
     let _ = queue.send(event::UpdateEvent {
-        game_id: params.game_id,
+        name: "update_game".to_string(),
+        id: params.game_id,
     });
     match r {
         Ok(res) => (Status::Ok, (ContentType::JSON, to_string(&res).unwrap())),
@@ -219,7 +288,8 @@ pub fn wait_ai_move(params: Json<WaitAIMove>, queue: &State<Sender<event::Update
     thread::spawn(move || match game::wait_ai_move(params.game_id) {
         Ok(_) => {
             let _ = q.send(event::UpdateEvent {
-                game_id: params.game_id,
+                name: "update_game".to_string(),
+                id: params.game_id,
             });
         }
         Err(_) => {}
@@ -258,13 +328,13 @@ pub fn health() -> (Status, (ContentType, String)) {
     (Status::Ok, (ContentType::JSON, "".to_string()))
 }
 
-#[get("/events?<game>")]
+#[get("/events?<name>&<id>")]
 pub async fn events(
-    game: Option<i32>,
+    name: Option<String>,
+    id: Option<i32>,
     queue: &State<Sender<event::UpdateEvent>>,
     mut end: Shutdown,
 ) -> EventStream![] {
-    let game_id = game.unwrap();
     let mut rx = queue.subscribe();
     EventStream! {
         loop {
@@ -276,7 +346,7 @@ pub async fn events(
                 },
                 _ = &mut end => break,
             };
-            if msg.game_id == game_id {
+            if msg.name == name.clone().unwrap() && msg.id == id.unwrap() {
                 yield Event::json(&msg);
             }
         }
@@ -286,7 +356,8 @@ pub async fn events(
 #[post("/send-event", format = "application/json", data = "<params>")]
 pub fn send_event(params: Json<event::UpdateEvent>, queue: &State<Sender<event::UpdateEvent>>) {
     let _ = queue.send(event::UpdateEvent {
-        game_id: params.game_id,
+        name: params.name.clone(),
+        id: params.id,
     });
 }
 

@@ -17,6 +17,7 @@ import {
   DiscardMove,
   Board,
   Player,
+  WaitingGame,
 } from "../types";
 
 export class API {
@@ -25,10 +26,11 @@ export class API {
     this.base_url = import.meta.env.VITE_API_BASE_URL;
   }
 
-  async sendEvent(gameID: number) {
+  async sendEvent(name: string, id: number) {
     try {
       const res = await axios.post(`${this.base_url}/send-event`, {
-        game_id: Number(gameID),
+        name: name,
+        id: Number(id),
       });
       console.log({ res });
     } catch (e) {
@@ -37,9 +39,11 @@ export class API {
     }
   }
 
-  async join(gid: number, f: (event: any) => void) {
+  async subscribe(name: string, id: number, f: (event: any) => void) {
     try {
-      const evtSource = new EventSource(`${this.base_url}/events?game=${gid}`);
+      const evtSource = new EventSource(
+        `${this.base_url}/events?name=${name}&id=${id}`
+      );
       evtSource.onmessage = f;
       return evtSource;
     } catch (e) {
@@ -48,7 +52,27 @@ export class API {
     }
   }
 
-  async getPlayer(userID: string): Promise<Player> {
+  async getPlayer(id: number): Promise<Player> {
+    try {
+      const res = await axios.get(`${this.base_url}/players/${id}`);
+      console.log({ res });
+      const p: Player = {
+        id: res.data.id,
+        name: res.data.name,
+        userID: res.data.user_id,
+        email: res.data.email,
+        meepleColor: colorIDToColor(res.data.meeple_color),
+        profileImageURL: res.data.profile_image_url,
+        rating: res.data.rating,
+      };
+      return p;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async getPlayerByUserID(userID: string): Promise<Player> {
     try {
       const res = await axios.get(`${this.base_url}/players?user=${userID}`);
       console.log({ res });
@@ -154,6 +178,73 @@ export class API {
         meepleColor: colorIDToColor(res.data.meeple_color),
       };
       return player;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async getWaitingGames(): Promise<WaitingGame[]> {
+    try {
+      const url = `${this.base_url}/waiting-games`;
+      const res = await axios.get(url);
+      console.log({ res });
+      const games: WaitingGame[] = res.data.map((g: any) => {
+        return {
+          id: g.id,
+          game_id: g.game_id,
+          playerID: g.player_id,
+        };
+      });
+      return games;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async updateWaitingGame(id: number, gameID: number): Promise<WaitingGame> {
+    try {
+      const res = await axios.post(
+        `${this.base_url}/waiting-games/${id}/update`,
+        {
+          game_id: gameID,
+        }
+      );
+      const waitingGame: WaitingGame = {
+        id: res.data.id,
+        game_id: res.data.game_id,
+        playerID: res.data.player_id,
+      };
+      return waitingGame;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async createWaitingGame(playerID: number): Promise<WaitingGame> {
+    try {
+      const res = await axios.post(`${this.base_url}/waiting-games/create`, {
+        player_id: playerID,
+      });
+      const waitingGame: WaitingGame = {
+        id: res.data.id,
+        game_id: res.data.game_id,
+        playerID: res.data.player_id,
+      };
+      return waitingGame;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async deleteWaitingGame(playerID: number) {
+    try {
+      await axios.post(`${this.base_url}/waiting-games/delete`, {
+        player_id: playerID,
+      });
     } catch (e) {
       console.log({ e });
       throw e;

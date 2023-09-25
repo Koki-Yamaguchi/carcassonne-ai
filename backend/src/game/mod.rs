@@ -11,7 +11,7 @@ pub mod solver;
 pub mod tile;
 
 use diesel::prelude::*;
-use rocket::serde::Serialize;
+use rocket::serde::{Deserialize, Serialize};
 
 use crate::database::{self, get_player, update_player};
 use crate::error::{bad_request_error, Error};
@@ -27,6 +27,22 @@ use mov::Move::*;
 use mov::{DiscardMove, MeepleMove, TileMove};
 use rand::Rng;
 use tile::Tile::*;
+
+#[derive(Serialize, Queryable, Clone, Debug)]
+#[serde(crate = "rocket::serde")]
+#[diesel(table_name = schema::waiting_game)]
+pub struct WaitingGame {
+    pub id: i32,
+    pub player_id: i32,
+    pub game_id: Option<i32>,
+    pub created_at: chrono::NaiveDateTime,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(crate = "rocket::serde")]
+pub struct UpdateWaitingGame {
+    pub game_id: i32,
+}
 
 #[derive(Serialize, Queryable, Clone, Debug)]
 #[serde(crate = "rocket::serde")]
@@ -77,6 +93,22 @@ pub struct MeepleMoveResult {
     pub next_player_id: i32,
     pub current_tile_id: i32,
     pub current_player_id: i32,
+}
+
+pub fn get_waiting_games() -> Result<Vec<WaitingGame>, Error> {
+    database::get_waiting_games()
+}
+
+pub fn create_waiting_game(player_id: i32) -> Result<WaitingGame, Error> {
+    database::create_waiting_game(player_id)
+}
+
+pub fn update_waiting_game(id: i32, game_id: i32) -> Result<WaitingGame, Error> {
+    database::update_waiting_game(id, game_id)
+}
+
+pub fn delete_waiting_games(player_id: i32) -> Result<(), Error> {
+    database::delete_waiting_game(player_id)
 }
 
 pub fn create_game(

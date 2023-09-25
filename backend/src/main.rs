@@ -11,6 +11,7 @@ mod player;
 mod schema;
 mod storage;
 
+use event::UpdateEvent;
 use handlers::all_options;
 use handlers::create_player;
 use handlers::events;
@@ -18,6 +19,7 @@ use handlers::get_board;
 use handlers::get_final_events;
 use handlers::get_moves;
 use handlers::get_player;
+use handlers::get_player_by_uid;
 use handlers::get_players;
 use handlers::health;
 use handlers::send_event;
@@ -26,8 +28,7 @@ use handlers::upload_profile_image;
 use handlers::wait_ai_move;
 use handlers::{create_discard_move, create_meeple_move, create_tile_move};
 use handlers::{create_game, get_game, get_games};
-
-use event::UpdateEvent;
+use handlers::{create_waiting_game, delete_waiting_game, get_waiting_games, update_waiting_game};
 
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::Client;
@@ -72,11 +73,16 @@ async fn rocket() -> _ {
             "/",
             routes![
                 get_player,
+                get_player_by_uid,
                 get_players,
                 update_player,
                 get_game,
                 get_games,
                 create_game,
+                get_waiting_games,
+                create_waiting_game,
+                update_waiting_game,
+                delete_waiting_game,
                 create_player,
                 create_tile_move,
                 create_meeple_move,

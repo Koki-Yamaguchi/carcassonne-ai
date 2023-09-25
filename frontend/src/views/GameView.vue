@@ -23,6 +23,7 @@ import {
   Game,
   MeepleMove,
   Move,
+  Player,
   TileMove,
   TilePosition,
 } from "../types";
@@ -47,7 +48,8 @@ const discardedTileKinds = ref<TileKind[]>([]);
 const finished = ref<boolean>(false);
 const showDiscardedTiles = ref<boolean>(false);
 const evtSource = ref<any>(null);
-const playerProfileImageURL = ref<string>("");
+const player0ProfileImageURL = ref<string>("");
+const player1ProfileImageURL = ref<string>("");
 
 // variables that is only needed from player0's point of view
 const placingTile = ref<Tile | null>(null);
@@ -58,6 +60,7 @@ const meepleablePositions = ref<number[]>([]);
 const confirming = ref<boolean>(false);
 const handlingPlaceMeeple = ref<boolean>(false);
 const mustDiscard = ref<boolean>(false);
+const player = ref<Player | null>(null);
 
 const router = useRouter();
 
@@ -68,10 +71,17 @@ const initGame = async () => {
   const gameID: number = parseInt(route.params.id as string, 10);
   game.value = await api.getGame(gameID);
 
-  const player = await api.getPlayer(store.userID);
-  playerProfileImageURL.value = player.profileImageURL;
+  const player0 = await api.getPlayer(game.value.player0ID);
+  const player1 = await api.getPlayer(game.value.player1ID);
 
-  isMyGame.value = player.id === game.value.player0ID;
+  player0ProfileImageURL.value = player0.profileImageURL;
+  player1ProfileImageURL.value = player1.profileImageURL;
+
+  player.value = await api.getPlayerByUserID(store.userID);
+
+  isMyGame.value =
+    player.value.id === game.value.player0ID ||
+    player.value.id === game.value.player1ID;
 };
 
 const joinGame = async () => {
@@ -84,7 +94,11 @@ const joinGame = async () => {
     update();
   };
 
-  evtSource.value = await api.join(game.value.id, updateHandler);
+  evtSource.value = await api.subscribe(
+    "update_game",
+    game.value.id,
+    updateHandler
+  );
 };
 
 onUnmounted(() => {
@@ -143,6 +157,7 @@ const handleTurnTile = () => {
 const confirm = async () => {
   if (
     !game.value ||
+    !player.value ||
     !placingTile.value ||
     !placingPosition.value ||
     confirming.value
@@ -154,7 +169,7 @@ const confirm = async () => {
   const api = new API();
   await api.createTileMove(
     game.value.id,
-    game.value.player0ID,
+    player.value.id,
     game.value.currentTileID,
     placingTile.value.direction,
     placingPosition.value.y - Math.floor(boardSize / 2),
@@ -163,12 +178,24 @@ const confirm = async () => {
 };
 
 const handlePlaceMeeple = async (pos: number) => {
-  if (!game.value || !placingPosition.value || handlingPlaceMeeple.value) {
+  if (
+    !game.value ||
+    !player.value ||
+    !placingPosition.value ||
+    handlingPlaceMeeple.value
+  ) {
     return;
   }
   handlingPlaceMeeple.value = true;
 
-  const meepleID = pos === -1 ? -1 : getNextMeepleID(player0Meeples.value);
+  const meepleID =
+    pos === -1
+      ? -1
+      : getNextMeepleID(
+          player.value.id === game.value.player0ID
+            ? player0Meeples.value
+            : player1Meeples.value
+        );
 
   const tilePosY = placingPosition.value.y - Math.floor(boardSize / 2);
   const tilePosX = placingPosition.value.x - Math.floor(boardSize / 2);
@@ -176,7 +203,7 @@ const handlePlaceMeeple = async (pos: number) => {
   const api = new API();
   await api.createMeepleMove(
     game.value.id,
-    game.value.player0ID,
+    player.value.id,
     meepleID,
     pos,
     tilePosY,
@@ -195,11 +222,11 @@ const discard = async () => {
     game.value.currentPlayerID,
     game.value.currentTileID
   );
-  await api.sendEvent(game.value.id);
+  await api.sendEvent("update_game", game.value.id);
 };
 
 const update = async () => {
-  if (!game.value) {
+  if (!game.value || !player.value) {
     return;
   }
 
@@ -284,35 +311,56 @@ const update = async () => {
     tileCount.value++;
   };
 
-  if (lastMove.playerID === 1) {
+  if (lastMove.playerID !== player.value.id) {
     // discard move
     if ("tile" in lastMove && !("rot" in lastMove)) {
       await updateDiscardMove(lastMove as DiscardMove);
 
-      alert(`AI discarded a tile.`);
+      alert(`The opponent discarded a tile.`);
 
-      waitAIMove();
+      waitOpponentMove();
     } else {
-      // AI's tile move and meeple move must happen at once
-      const tileMove = moves.value[moves.value.length - 2] as TileMove;
-      const meepleMove = moves.value[moves.value.length - 1] as MeepleMove;
+      if (lastMove.playerID === 1) {
+        // AI's tile move and meeple move must happen at once
+        const tileMove = moves.value[moves.value.length - 2] as TileMove;
+        const meepleMove = moves.value[moves.value.length - 1] as MeepleMove;
 
-      await updateTileMove(tileMove);
+        await updateTileMove(tileMove);
 
-      if (isMyGame.value && placingTile.value) {
-        placeablePositions.value = getPlaceablePositions(placingTile.value);
-      }
+        if (isMyGame.value && placingTile.value) {
+          placeablePositions.value = getPlaceablePositions(placingTile.value);
+        }
 
-      await sleep(500);
+        await sleep(500);
 
-      await updateMeepleMove(meepleMove, tileMove);
+        await updateMeepleMove(meepleMove, tileMove);
 
-      if (game.value.currentTileID === -1) {
-        await finishGame();
-      }
+        if (game.value.currentTileID === -1) {
+          await finishGame();
+        }
 
-      if (isMyGame.value && placeablePositions.value.length === 0) {
-        mustDiscard.value = true;
+        if (isMyGame.value && placeablePositions.value.length === 0) {
+          mustDiscard.value = true;
+        }
+      } else {
+        if ("rot" in lastMove) {
+          await updateTileMove(lastMove as TileMove);
+          if (isMyGame.value && placingTile.value) {
+            placeablePositions.value = getPlaceablePositions(placingTile.value);
+          }
+        } else {
+          const tileMove = moves.value[moves.value.length - 2] as TileMove;
+          const meepleMove = moves.value[moves.value.length - 1] as MeepleMove;
+          await updateMeepleMove(meepleMove, tileMove);
+
+          if (game.value.currentTileID === -1) {
+            await finishGame();
+          }
+
+          if (isMyGame.value && placeablePositions.value.length === 0) {
+            mustDiscard.value = true;
+          }
+        }
       }
     }
   } else {
@@ -339,7 +387,10 @@ const update = async () => {
         meepleablePositions.value = board.value.meepleablePositions;
         if (
           meepleablePositions.value.length === 0 ||
-          player0Meeples.value.size === 0
+          (player.value.id === game.value.player0ID &&
+            player0Meeples.value.size === 0) ||
+          (player.value.id === game.value.player1ID &&
+            player1Meeples.value.size === 0)
         ) {
           handlePlaceMeeple(-1);
         }
@@ -365,7 +416,7 @@ const update = async () => {
         if (game.value.currentTileID === -1) {
           await finishGame();
         } else {
-          waitAIMove();
+          waitOpponentMove();
         }
       }
     }
@@ -483,7 +534,7 @@ const retrieveMeeple = (meeples: Set<number>, meeple: number): TilePosition => {
 };
 
 const initialUpdate = async () => {
-  if (!game.value) {
+  if (!game.value || !player.value) {
     return;
   }
 
@@ -515,8 +566,12 @@ const initialUpdate = async () => {
   }
 
   moves.value = await api.getMoves(game.value.id);
+  const lastMove = moves.value[moves.value.length - 1];
 
   tileCount.value = moves.value.filter((m) => !("meepleID" in m)).length;
+  if ("rot" in lastMove) {
+    tileCount.value--;
+  }
 
   // frame tiles from last 1 or 2 tile moves
   let count = 0;
@@ -552,8 +607,7 @@ const initialUpdate = async () => {
   }
 
   if (isMyGame.value) {
-    const lastMove = moves.value[moves.value.length - 1];
-    if ("rot" in lastMove) {
+    if ("rot" in lastMove && lastMove.playerID === player.value.id) {
       meepleablePositions.value = board.value.meepleablePositions;
       const lastTileMove = lastMove as TileMove;
       placingPosition.value = {
@@ -562,7 +616,7 @@ const initialUpdate = async () => {
       };
     } else {
       const placingTileID =
-        game.value.currentPlayerID === game.value.player0ID
+        game.value.currentPlayerID === player.value.id
           ? game.value.currentTileID
           : game.value.nextTileID;
       const placingTileKind = idToTileKind(placingTileID);
@@ -570,7 +624,7 @@ const initialUpdate = async () => {
       placeablePositions.value = getPlaceablePositions(placingTile.value);
 
       if (
-        game.value.currentPlayerID === game.value.player0ID &&
+        game.value.currentPlayerID === player.value.id &&
         placeablePositions.value.length === 0
       )
         mustDiscard.value = true;
@@ -601,13 +655,15 @@ const placingTileSrc = computed(() => {
   return placingTile.value?.src;
 });
 
-const waitAIMove = () => {
+const waitOpponentMove = () => {
   if (!game.value) {
     return;
   }
 
-  const api = new API();
-  api.waitAIMove(game.value.id);
+  if (game.value.player1ID === 1) {
+    const api = new API();
+    api.waitAIMove(game.value.id);
+  }
 };
 
 const winner = computed(() => {
@@ -627,7 +683,7 @@ onMounted(async () => {
   await joinGame();
   await initialUpdate();
   if (isMyGame.value && game.value?.currentPlayerID !== game.value?.player0ID) {
-    waitAIMove();
+    waitOpponentMove();
   }
 });
 </script>
@@ -639,7 +695,7 @@ onMounted(async () => {
       >
         <div class="flex" v-if="game?.currentTileID !== -1">
           <div
-            v-if="game?.currentPlayerID !== game?.player0ID"
+            v-if="game?.currentPlayerID === 1"
             class="flex flex-col justify-center mr-3"
           >
             <p>
@@ -648,7 +704,12 @@ onMounted(async () => {
           </div>
           <div v-else class="flex flex-col justify-center mr-3">
             <p>
-              {{ isMyGame ? translate("you") : game?.player0Name
+              {{
+                game?.currentPlayerID === player?.id
+                  ? translate("you")
+                  : player?.id === game?.player0ID
+                  ? game?.player1Name
+                  : game?.player0Name
               }}<span v-if="mustDiscard">{{ translate("must_discard") }}</span>
               <span v-else>{{ translate("must_place") }}</span>
             </p>
@@ -662,10 +723,10 @@ onMounted(async () => {
               :src="currentTile() ? currentTile()!.src : null"
             />
           </div>
-          <SpinnerIcon v-if="game?.currentPlayerID !== game?.player0ID" />
+          <SpinnerIcon v-if="game?.currentPlayerID === 1" />
           <div
             class="flex flex-col justify-center"
-            v-if="game?.currentPlayerID === game?.player0ID"
+            v-if="game?.currentPlayerID === player?.id"
           >
             <button
               class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
@@ -747,7 +808,7 @@ onMounted(async () => {
         :meepleNumber="player0Meeples.size"
         :meepleColor="game ? game.player0Color : null"
         :tileSrc="placingTileSrc"
-        :profileImageURL="playerProfileImageURL"
+        :profileImageURL="player0ProfileImageURL"
       />
       <PlayerInfo
         :name="game ? game.player1Name : ''"
@@ -755,7 +816,7 @@ onMounted(async () => {
         :meepleNumber="player1Meeples.size"
         :meepleColor="game ? game.player1Color : null"
         :tileSrc="null"
-        :profileImageURL="''"
+        :profileImageURL="player1ProfileImageURL"
       />
     </div>
     <div class="board mt-3" :style="boardStyle">

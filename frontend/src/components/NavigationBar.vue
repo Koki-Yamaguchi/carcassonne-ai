@@ -40,6 +40,15 @@ const isOpen = ref<boolean>(false);
             {{ translate("competitive_mode") }}
           </div>
           <div
+            @click="
+              isOpen = false;
+              router.push('/lobby');
+            "
+            class="p-2 md:p-0"
+          >
+            {{ translate("random_match") }}
+          </div>
+          <div
             class="p-2 md:p-0"
             v-if="store.authenticated"
             @click="
