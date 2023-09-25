@@ -78,3 +78,15 @@ pub async fn get_players(storage_client: &State<Client>) -> Result<Vec<Player>, 
 
     Ok(players)
 }
+
+pub async fn get_player(storage_client: &State<Client>, id: i32) -> Result<Player, Error> {
+    let mut player = database::get_player(id)?;
+
+    player.email = "".to_string();
+    player.user_id = "".to_string();
+
+    let key = format!("profile-image/{}", player.id);
+    player.profile_image_url = storage::get_object_url(storage_client, &key).await;
+
+    Ok(player)
+}

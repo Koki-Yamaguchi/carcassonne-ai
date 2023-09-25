@@ -71,6 +71,15 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    waiting_game (id) {
+        id -> Int4,
+        player_id -> Int4,
+        game_id -> Nullable<Int4>,
+        created_at -> Timestamp,
+    }
+}
+
 diesel::joinable!(move_ -> player (player_id));
 diesel::joinable!(player -> color (meeple_color));
 
@@ -80,4 +89,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     move_,
     optimal_move,
     player,
+    waiting_game,
 );

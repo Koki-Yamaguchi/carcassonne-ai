@@ -27,6 +27,12 @@ export interface Game {
   winnerPlayerID: number;
 }
 
+export interface WaitingGame {
+  id: number;
+  game_id?: number;
+  playerID: number;
+}
+
 export interface TilePosition {
   y: number;
   x: number;

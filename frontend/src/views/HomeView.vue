@@ -41,7 +41,7 @@ const seeMore = async () => {
 };
 onMounted(async () => {
   const api = new API();
-  player.value = await api.getPlayer(store.userID);
+  player.value = await api.getPlayerByUserID(store.userID);
   games.value = await api.getGames(player.value.id, false, 5);
 });
 </script>

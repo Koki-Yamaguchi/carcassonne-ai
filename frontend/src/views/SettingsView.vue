@@ -67,7 +67,7 @@ const signout = () => {
 
 onMounted(async () => {
   const api = new API();
-  player.value = await api.getPlayer(store.userID);
+  player.value = await api.getPlayerByUserID(store.userID);
   name.value = player.value.name;
   color.value = colorToColorID(player.value.meepleColor);
   rating.value = player.value.rating;

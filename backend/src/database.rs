@@ -33,6 +33,12 @@ pub struct QueryPlayer {
 }
 
 #[derive(Insertable)]
+#[diesel(table_name = schema::waiting_game)]
+struct NewWaitingGame {
+    player_id: i32,
+}
+
+#[derive(Insertable)]
 #[diesel(table_name = schema::game)]
 struct NewGame {
     player0_id: i32,
@@ -250,6 +256,58 @@ pub fn get_game(gmid: i32) -> Result<game::Game, Error> {
             }
             return Ok(games[0].clone());
         }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
+pub fn get_waiting_games() -> Result<Vec<game::WaitingGame>, Error> {
+    let conn = &mut establish_connection();
+    use self::schema::waiting_game::dsl::*;
+    match waiting_game.load::<game::WaitingGame>(conn) {
+        Ok(gs) => Ok(gs),
+        Err(e) => return Err(internal_server_error(e.to_string())),
+    }
+}
+
+pub fn create_waiting_game(player_id: i32) -> Result<game::WaitingGame, Error> {
+    let new_waiting_game = NewWaitingGame { player_id };
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    match diesel::insert_into(schema::waiting_game::table)
+        .values(&new_waiting_game)
+        .get_result(conn)
+    {
+        Ok(gm) => {
+            return Ok(gm);
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
+pub fn update_waiting_game(wid: i32, gid: i32) -> Result<game::WaitingGame, Error> {
+    use self::schema::waiting_game::dsl::*;
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    match diesel::update(waiting_game.find(wid))
+        .set(game_id.eq(gid))
+        .get_result(conn)
+    {
+        Ok(gm) => {
+            return Ok(gm);
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
+pub fn delete_waiting_game(pid: i32) -> Result<(), Error> {
+    use self::schema::waiting_game::dsl::*;
+    let conn = &mut establish_connection();
+    match diesel::delete(waiting_game.filter(player_id.eq(pid))).execute(conn) {
+        Ok(_) => Ok(()),
         Err(e) => {
             return Err(internal_server_error(e.to_string()));
         }

@@ -68,7 +68,7 @@ const initGame = async () => {
   const gameID: number = parseInt(route.params.id as string, 10);
   game.value = await api.getGame(gameID);
 
-  const player = await api.getPlayer(store.userID);
+  const player = await api.getPlayerByUserID(store.userID);
   playerProfileImageURL.value = player.profileImageURL;
 
   isMyGame.value = player.id === game.value.player0ID;
@@ -84,7 +84,11 @@ const joinGame = async () => {
     update();
   };
 
-  evtSource.value = await api.join(game.value.id, updateHandler);
+  evtSource.value = await api.subscribe(
+    "update_game",
+    game.value.id,
+    updateHandler
+  );
 };
 
 onUnmounted(() => {
@@ -195,7 +199,7 @@ const discard = async () => {
     game.value.currentPlayerID,
     game.value.currentTileID
   );
-  await api.sendEvent(game.value.id);
+  await api.sendEvent("update_game", game.value.id);
 };
 
 const update = async () => {
