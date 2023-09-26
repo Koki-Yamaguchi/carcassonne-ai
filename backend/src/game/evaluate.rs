@@ -660,6 +660,23 @@ fn search_cities(
     cities
 }
 
+fn can_be_used_to_expand(t: Tile) -> bool {
+    match t {
+        Tile::QuadrupleCityWithCOA
+        | Tile::TripleCity
+        | Tile::TripleCityWithCOA
+        | Tile::TripleCityWithRoad
+        | Tile::TripleCityWithRoadWithCOA
+        | Tile::Triangle
+        | Tile::TriangleWithCOA
+        | Tile::TriangleWithRoad
+        | Tile::TriangleWithRoadWithCOA
+        | Tile::Connector
+        | Tile::ConnectorWithCOA => true,
+        _ => false,
+    }
+}
+
 pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
     let dy = [0, -1, 0, 1];
     let dx = [1, 0, -1, 0];
@@ -700,6 +717,7 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
             println!("city {:?}", city);
         }
         let mut effect_complete_prob = 100;
+
         for feature in &city.features {
             for tile in &feature.tiles {
                 assert!(tile.adjacent_open_side_count <= 3);
@@ -711,6 +729,70 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
                 }
             }
         }
+
+        // when a city can be expanded and can die by one opponent's move, its value is reduced
+        let mut killing_expander_count = 0;
+        for feature in &city.features {
+            for empty_position in &feature.empty_positions {
+                let (y0, x0) = empty_position;
+                for rt in &remaining_tiles {
+                    if !can_be_used_to_expand(*rt) {
+                        continue;
+                    }
+                    let mut kill = false;
+                    for rot in 0..4 {
+                        let t = TileItem {
+                            tile: rt.clone(),
+                            rot,
+                            id: -1,
+                            feature_starting_id: -1,
+                            meeple_id: None,
+                            meeple_pos: None,
+                        };
+                        if !is_fitting(&board, t, *y0, *x0) {
+                            continue;
+                        }
+                        board.insert(*empty_position, t);
+                        let expander = board.get(empty_position).unwrap();
+                        for dir in 0..dy.len() {
+                            if expander.side_by_dir(dir) == City {
+                                let y1 = y0 + dy[dir];
+                                let x1 = x0 + dx[dir];
+
+                                if let None = board.get(&(y1, x1)) {
+                                    let num =
+                                        count_fitting_tiles(&board, &remaining_tiles, *rt, y1, x1)
+                                            .unwrap();
+                                    if num == 0 {
+                                        kill = true;
+                                    }
+                                }
+                            }
+                        }
+                        board.remove(empty_position);
+                        if kill {
+                            break;
+                        }
+                    }
+                    if kill {
+                        killing_expander_count += 1;
+                    }
+                }
+            }
+        }
+        match killing_expander_count {
+            0 => {}
+            1..=5 => {
+                effect_complete_prob = effect_complete_prob * 90 / 100;
+            }
+            6..=10 => {
+                effect_complete_prob = effect_complete_prob * 75 / 100;
+            }
+            _ => {
+                effect_complete_prob = effect_complete_prob * 60 / 100;
+            }
+        }
+
         let mut result0 = 0;
         let mut result1 = 0;
 
