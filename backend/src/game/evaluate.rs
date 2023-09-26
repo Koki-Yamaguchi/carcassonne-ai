@@ -159,25 +159,25 @@ pub fn last_x_for_city(x: f64) -> i32 {
     if x >= 3.0 {
         last_n_for_city(x as i32)
     } else if 2.7 <= x && x < 3.0 {
-        55
+        65
     } else if 2.4 <= x && x < 2.7 {
-        52
+        62
     } else if 2.1 <= x && x < 2.4 {
-        49
+        59
     } else if 1.8 <= x && x < 2.1 {
-        46
+        56
     } else if 1.5 <= x && x < 1.8 {
-        43
+        53
     } else if 1.2 <= x && x < 1.5 {
-        40
+        50
     } else if 0.9 <= x && x < 1.2 {
-        35
+        45
     } else if 0.6 <= x && x < 0.9 {
-        30
+        40
     } else if 0.3 <= x && x < 0.6 {
-        25
+        35
     } else if 0.01 <= x && x < 0.3 {
-        20
+        30
     } else {
         0
     }
@@ -186,11 +186,10 @@ pub fn last_x_for_city(x: f64) -> i32 {
 pub fn last_n_for_city(n: i32) -> i32 {
     let naive = match n {
         0 => 0,
-        1 => 40,
-        2 => 48,
-        3 => 58,
-        4 => 67,
-        5 | 6 => 75,
+        1 => 48,
+        2 => 58,
+        3 => 67,
+        4 | 5 | 6 => 75,
         7 | 8 | 9 | 10 => 80,
         11 | 12 | 13 | 14 => 85,
         15 | 16 | 17 | 18 => 90,
@@ -921,14 +920,14 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
                     let diff = total_point + 1 - player0_point + player1_point;
                     let fill_value = diff * 10 * fill_prob / 100;
                     let complete_value =
-                        (total_point * 10 + 20 + meeple_value) * complete_prob / 100;
+                        (total_point * 10 + 30 + meeple_value) * complete_prob / 100;
                     result0 = player0_point * 10 + fill_value + complete_value;
                     result1 = player1_point * 10;
                 } else if total_player0_meeples < total_player1_meeples {
                     let diff = total_point + 1 - player1_point + player0_point;
                     let fill_value = diff * 10 * fill_prob / 100;
                     let complete_value =
-                        (total_point * 10 + 20 + meeple_value) * complete_prob / 100;
+                        (total_point * 10 + 30 + meeple_value) * complete_prob / 100;
                     result0 = player0_point * 10;
                     result1 = player1_point * 10 + fill_value + complete_value;
                 } else {

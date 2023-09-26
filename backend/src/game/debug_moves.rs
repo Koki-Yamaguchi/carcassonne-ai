@@ -214,11 +214,12 @@ fn test_results() {
     let game_id = 689;
     let mut mvs = super::database::list_moves(game_id, None).unwrap();
 
-    mvs = mvs[0..16].to_vec();
+    mvs = mvs[0..2].to_vec();
     println!("mvs = {:?}", mvs);
     println!();
 
-    let next_tile = Tile::CityCap;
+    /*
+    let next_tile = Tile::ConnectorWithCOA;
 
     list_evaluate_results(&mvs, next_tile);
 
@@ -227,17 +228,17 @@ fn test_results() {
         next_tile,
         &vec![
             CompareMove {
-                pos: (1, 2),
+                pos: (-4, 3),
                 rot: 0,
                 meeple_pos: -1,
             },
             CompareMove {
-                pos: (3, 1),
-                rot: 2,
-                meeple_pos: 0,
+                pos: (-3, 2),
+                rot: 0,
+                meeple_pos: -1,
             },
         ],
     );
-
     assert!(true);
+    */
 }
