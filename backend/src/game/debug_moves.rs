@@ -211,14 +211,15 @@ fn compare_evaluate_results(moves: &Vec<Move>, next_tile: Tile, compare_moves: &
 
 #[test]
 fn test_results() {
-    let game_id = 592;
+    let game_id = 689;
     let mut mvs = super::database::list_moves(game_id, None).unwrap();
 
-    mvs = mvs[0..52].to_vec();
+    mvs = mvs[0..2].to_vec();
     println!("mvs = {:?}", mvs);
     println!();
 
-    let next_tile = Tile::TripleCity;
+    /*
+    let next_tile = Tile::ConnectorWithCOA;
 
     list_evaluate_results(&mvs, next_tile);
 
@@ -227,17 +228,17 @@ fn test_results() {
         next_tile,
         &vec![
             CompareMove {
-                pos: (3, 5),
+                pos: (-4, 3),
                 rot: 0,
                 meeple_pos: -1,
             },
             CompareMove {
-                pos: (5, 5),
-                rot: 1,
+                pos: (-3, 2),
+                rot: 0,
                 meeple_pos: -1,
             },
         ],
     );
-
-    assert!(false);
+    assert!(true);
+    */
 }

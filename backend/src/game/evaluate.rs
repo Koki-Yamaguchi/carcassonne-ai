@@ -159,25 +159,25 @@ pub fn last_x_for_city(x: f64) -> i32 {
     if x >= 3.0 {
         last_n_for_city(x as i32)
     } else if 2.7 <= x && x < 3.0 {
-        55
+        65
     } else if 2.4 <= x && x < 2.7 {
-        52
+        62
     } else if 2.1 <= x && x < 2.4 {
-        49
+        59
     } else if 1.8 <= x && x < 2.1 {
-        46
+        56
     } else if 1.5 <= x && x < 1.8 {
-        43
+        53
     } else if 1.2 <= x && x < 1.5 {
-        40
+        50
     } else if 0.9 <= x && x < 1.2 {
-        35
+        45
     } else if 0.6 <= x && x < 0.9 {
-        30
+        40
     } else if 0.3 <= x && x < 0.6 {
-        25
+        35
     } else if 0.01 <= x && x < 0.3 {
-        20
+        30
     } else {
         0
     }
@@ -186,11 +186,10 @@ pub fn last_x_for_city(x: f64) -> i32 {
 pub fn last_n_for_city(n: i32) -> i32 {
     let naive = match n {
         0 => 0,
-        1 => 40,
-        2 => 48,
-        3 => 58,
-        4 => 67,
-        5 | 6 => 75,
+        1 => 48,
+        2 => 58,
+        3 => 67,
+        4 | 5 | 6 => 75,
         7 | 8 | 9 | 10 => 80,
         11 | 12 | 13 | 14 => 85,
         15 | 16 | 17 | 18 => 90,
@@ -660,6 +659,23 @@ fn search_cities(
     cities
 }
 
+fn can_be_used_to_expand(t: Tile) -> bool {
+    match t {
+        Tile::QuadrupleCityWithCOA
+        | Tile::TripleCity
+        | Tile::TripleCityWithCOA
+        | Tile::TripleCityWithRoad
+        | Tile::TripleCityWithRoadWithCOA
+        | Tile::Triangle
+        | Tile::TriangleWithCOA
+        | Tile::TriangleWithRoad
+        | Tile::TriangleWithRoadWithCOA
+        | Tile::Connector
+        | Tile::ConnectorWithCOA => true,
+        _ => false,
+    }
+}
+
 pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
     let dy = [0, -1, 0, 1];
     let dx = [1, 0, -1, 0];
@@ -700,6 +716,7 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
             println!("city {:?}", city);
         }
         let mut effect_complete_prob = 100;
+
         for feature in &city.features {
             for tile in &feature.tiles {
                 assert!(tile.adjacent_open_side_count <= 3);
@@ -711,6 +728,70 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
                 }
             }
         }
+
+        // when a city can be expanded and can die by one opponent's move, its value is reduced
+        let mut killing_expander_count = 0;
+        for feature in &city.features {
+            for empty_position in &feature.empty_positions {
+                let (y0, x0) = empty_position;
+                for rt in &remaining_tiles {
+                    if !can_be_used_to_expand(*rt) {
+                        continue;
+                    }
+                    let mut kill = false;
+                    for rot in 0..4 {
+                        let t = TileItem {
+                            tile: rt.clone(),
+                            rot,
+                            id: -1,
+                            feature_starting_id: -1,
+                            meeple_id: None,
+                            meeple_pos: None,
+                        };
+                        if !is_fitting(&board, t, *y0, *x0) {
+                            continue;
+                        }
+                        board.insert(*empty_position, t);
+                        let expander = board.get(empty_position).unwrap();
+                        for dir in 0..dy.len() {
+                            if expander.side_by_dir(dir) == City {
+                                let y1 = y0 + dy[dir];
+                                let x1 = x0 + dx[dir];
+
+                                if let None = board.get(&(y1, x1)) {
+                                    let num =
+                                        count_fitting_tiles(&board, &remaining_tiles, *rt, y1, x1)
+                                            .unwrap();
+                                    if num == 0 {
+                                        kill = true;
+                                    }
+                                }
+                            }
+                        }
+                        board.remove(empty_position);
+                        if kill {
+                            break;
+                        }
+                    }
+                    if kill {
+                        killing_expander_count += 1;
+                    }
+                }
+            }
+        }
+        match killing_expander_count {
+            0 => {}
+            1..=5 => {
+                effect_complete_prob = effect_complete_prob * 90 / 100;
+            }
+            6..=10 => {
+                effect_complete_prob = effect_complete_prob * 75 / 100;
+            }
+            _ => {
+                effect_complete_prob = effect_complete_prob * 60 / 100;
+            }
+        }
+
         let mut result0 = 0;
         let mut result1 = 0;
 
@@ -839,14 +920,14 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
                     let diff = total_point + 1 - player0_point + player1_point;
                     let fill_value = diff * 10 * fill_prob / 100;
                     let complete_value =
-                        (total_point * 10 + 20 + meeple_value) * complete_prob / 100;
+                        (total_point * 10 + 30 + meeple_value) * complete_prob / 100;
                     result0 = player0_point * 10 + fill_value + complete_value;
                     result1 = player1_point * 10;
                 } else if total_player0_meeples < total_player1_meeples {
                     let diff = total_point + 1 - player1_point + player0_point;
                     let fill_value = diff * 10 * fill_prob / 100;
                     let complete_value =
-                        (total_point * 10 + 20 + meeple_value) * complete_prob / 100;
+                        (total_point * 10 + 30 + meeple_value) * complete_prob / 100;
                     result0 = player0_point * 10;
                     result1 = player1_point * 10 + fill_value + complete_value;
                 } else {
