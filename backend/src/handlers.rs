@@ -233,13 +233,15 @@ pub fn create_tile_move(
         params.rot,
         (params.pos_y, params.pos_x),
     );
-    let _ = queue.send(event::UpdateEvent {
-        name: "update_game".to_string(),
-        id: params.game_id,
-    });
 
     match r {
-        Ok(res) => (Status::Ok, (ContentType::JSON, to_string(&res).unwrap())),
+        Ok(res) => {
+            let _ = queue.send(event::UpdateEvent {
+                name: "update_game".to_string(),
+                id: params.game_id,
+            });
+            (Status::Ok, (ContentType::JSON, to_string(&res).unwrap()))
+        }
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
@@ -256,12 +258,14 @@ pub fn create_meeple_move(
         (params.tile_pos_y, params.tile_pos_x),
         params.pos,
     );
-    let _ = queue.send(event::UpdateEvent {
-        name: "update_game".to_string(),
-        id: params.game_id,
-    });
     match r {
-        Ok(res) => (Status::Ok, (ContentType::JSON, to_string(&res).unwrap())),
+        Ok(res) => {
+            let _ = queue.send(event::UpdateEvent {
+                name: "update_game".to_string(),
+                id: params.game_id,
+            });
+            (Status::Ok, (ContentType::JSON, to_string(&res).unwrap()))
+        }
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
