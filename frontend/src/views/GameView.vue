@@ -57,10 +57,10 @@ const placeablePositions = ref<TilePosition[]>([]);
 const placeableDirections = ref<number[]>([]);
 const placingPosition = ref<TilePosition | null>(null);
 const meepleablePositions = ref<number[]>([]);
-const confirming = ref<boolean>(false);
-const handlingPlaceMeeple = ref<boolean>(false);
 const mustDiscard = ref<boolean>(false);
 const player = ref<Player | null>(null);
+const canConfirm = ref<boolean>(false);
+const canPlaceMeeple = ref<boolean>(false);
 
 const router = useRouter();
 
@@ -141,6 +141,8 @@ const handleTilePositionSelected = (pos: TilePosition) => {
   ) {
     placingTile.value?.rotate();
   }
+
+  canConfirm.value = true;
 };
 
 const handleTurnTile = () => {
@@ -159,12 +161,15 @@ const confirm = async () => {
     !game.value ||
     !player.value ||
     !placingTile.value ||
-    !placingPosition.value ||
-    confirming.value
+    !placingPosition.value
   ) {
     return;
   }
-  confirming.value = true;
+
+  if (isMyGame.value) {
+    canConfirm.value = false;
+    placeablePositions.value = [];
+  }
 
   const api = new API();
   await api.createTileMove(
@@ -178,15 +183,14 @@ const confirm = async () => {
 };
 
 const handlePlaceMeeple = async (pos: number) => {
-  if (
-    !game.value ||
-    !player.value ||
-    !placingPosition.value ||
-    handlingPlaceMeeple.value
-  ) {
+  if (!game.value || !player.value || !placingPosition.value) {
     return;
   }
-  handlingPlaceMeeple.value = true;
+
+  if (isMyGame.value) {
+    canPlaceMeeple.value = false;
+    meepleablePositions.value = [];
+  }
 
   const meepleID =
     pos === -1
@@ -295,10 +299,6 @@ const update = async () => {
       );
     }
 
-    if (isMyGame.value) {
-      meepleablePositions.value = [];
-    }
-
     tileCount.value++;
 
     await sleep(500);
@@ -329,6 +329,16 @@ const update = async () => {
 
         if (isMyGame.value && placingTile.value) {
           placeablePositions.value = getPlaceablePositions(placingTile.value);
+          if (
+            placingPosition.value &&
+            placeablePositions.value.filter(
+              ({ x, y }) =>
+                x == placingPosition?.value?.x && y == placingPosition?.value?.y
+            ).length === 0
+          ) {
+            placingPosition.value = null;
+            canConfirm.value = false;
+          }
         }
 
         await sleep(500);
@@ -339,14 +349,25 @@ const update = async () => {
           await finishGame();
         }
 
-        if (isMyGame.value && placeablePositions.value.length === 0) {
-          mustDiscard.value = true;
+        if (isMyGame.value) {
+          mustDiscard.value = placeablePositions.value.length === 0;
         }
       } else {
         if ("rot" in lastMove) {
           await updateTileMove(lastMove as TileMove);
           if (isMyGame.value && placingTile.value) {
             placeablePositions.value = getPlaceablePositions(placingTile.value);
+            if (
+              placingPosition.value &&
+              placeablePositions.value.filter(
+                ({ x, y }) =>
+                  x == placingPosition?.value?.x &&
+                  y == placingPosition?.value?.y
+              ).length === 0
+            ) {
+              placingPosition.value = null;
+              canConfirm.value = false;
+            }
           }
         } else {
           const tileMove = moves.value[moves.value.length - 2] as TileMove;
@@ -357,8 +378,8 @@ const update = async () => {
             await finishGame();
           }
 
-          if (isMyGame.value && placeablePositions.value.length === 0) {
-            mustDiscard.value = true;
+          if (isMyGame.value) {
+            mustDiscard.value = placeablePositions.value.length === 0;
           }
         }
       }
@@ -380,19 +401,19 @@ const update = async () => {
     } else if ("rot" in lastMove) {
       await updateTileMove(lastMove as TileMove);
 
-      confirming.value = false;
-
       if (isMyGame.value) {
         placeablePositions.value = [];
-        meepleablePositions.value = board.value.meepleablePositions;
-        if (
-          meepleablePositions.value.length === 0 ||
-          (player.value.id === game.value.player0ID &&
-            player0Meeples.value.size === 0) ||
-          (player.value.id === game.value.player1ID &&
-            player1Meeples.value.size === 0)
-        ) {
-          handlePlaceMeeple(-1);
+        const meepleable =
+          board.value.meepleablePositions.length > 0 &&
+          ((player.value.id === game.value.player0ID &&
+            player0Meeples.value.size !== 0) ||
+            (player.value.id === game.value.player1ID &&
+              player1Meeples.value.size !== 0));
+        if (meepleable) {
+          meepleablePositions.value = board.value.meepleablePositions;
+          canPlaceMeeple.value = true;
+        } else {
+          await skip();
         }
       }
     } else if ("meepleID" in lastMove) {
@@ -402,8 +423,6 @@ const update = async () => {
         lastMove as MeepleMove,
         moves.value[moves.value.length - 2] as TileMove
       );
-
-      handlingPlaceMeeple.value = false;
 
       if (isMyGame.value) {
         placingPosition.value = null;
@@ -614,6 +633,7 @@ const initialUpdate = async () => {
         y: lastTileMove.pos.y + Math.floor(boardSize / 2),
         x: lastTileMove.pos.x + Math.floor(boardSize / 2),
       };
+      canPlaceMeeple.value = true;
     } else {
       const placingTileID =
         game.value.currentPlayerID === player.value.id
@@ -641,8 +661,8 @@ const currentTile = () => {
   }
 };
 
-const skip = () => {
-  handlePlaceMeeple(-1);
+const skip = async () => {
+  await handlePlaceMeeple(-1);
 };
 
 const boardStyle = computed(() => {
@@ -730,23 +750,14 @@ onMounted(async () => {
           >
             <button
               class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
-              v-if="
-                isMyGame &&
-                placingPosition &&
-                meepleablePositions.length === 0 &&
-                !confirming
-              "
+              v-if="isMyGame && canConfirm"
               @click.once="confirm"
             >
               {{ translate("confirm") }}
             </button>
             <button
               class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
-              v-else-if="
-                isMyGame &&
-                meepleablePositions.length !== 0 &&
-                !handlingPlaceMeeple
-              "
+              v-else-if="isMyGame && canPlaceMeeple"
               @click.once="skip"
             >
               {{ translate("skip") }}
