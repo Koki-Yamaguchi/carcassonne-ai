@@ -279,6 +279,11 @@ export class API {
           player0Color: colorIDToColor(g.player0_color),
           player1Color: colorIDToColor(g.player1_color),
           winnerPlayerID: g.winner_player_id,
+          beforePlayer0Rating: g.before_player0_rating,
+          afterPlayer0Rating: g.after_player0_rating,
+          beforePlayer1Rating: g.before_player1_rating,
+          afterPlayer1Rating: g.after_player1_rating,
+          isRated: g.is_rated,
         };
       });
       return games;
@@ -307,6 +312,11 @@ export class API {
         player0Color: colorIDToColor(res.data.player0_color),
         player1Color: colorIDToColor(res.data.player1_color),
         winnerPlayerID: res.data.winner_player_id,
+        beforePlayer0Rating: res.data.before_player0_rating,
+        afterPlayer0Rating: res.data.after_player0_rating,
+        beforePlayer1Rating: res.data.before_player1_rating,
+        afterPlayer1Rating: res.data.after_player1_rating,
+        isRated: res.data.is_rated,
       };
       return game;
     } catch (e) {
@@ -345,6 +355,11 @@ export class API {
         player0Color: colorIDToColor(res.data.player0_color),
         player1Color: colorIDToColor(res.data.player1_color),
         winnerPlayerID: res.data.winner_player_id,
+        beforePlayer0Rating: res.data.before_player0_rating,
+        afterPlayer0Rating: res.data.after_player0_rating,
+        beforePlayer1Rating: res.data.before_player1_rating,
+        afterPlayer1Rating: res.data.after_player1_rating,
+        isRated: res.data.is_rated,
       };
       return game;
     } catch (e) {

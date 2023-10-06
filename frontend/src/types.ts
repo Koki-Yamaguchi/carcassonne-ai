@@ -25,6 +25,11 @@ export interface Game {
   currentTileID: number;
   nextTileID: number;
   winnerPlayerID: number;
+  beforePlayer0Rating: number;
+  afterPlayer0Rating: number;
+  beforePlayer1Rating: number;
+  afterPlayer1Rating: number;
+  isRated: boolean;
 }
 
 export interface WaitingGame {
