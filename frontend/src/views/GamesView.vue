@@ -7,20 +7,21 @@ import { Game } from "../types";
 const route = useRoute();
 
 const games = ref<Game[]>([]);
+const playerID = ref<number | null>(null);
 
 onMounted(async () => {
-  const playerID = route.query.player
+  playerID.value = route.query.player
     ? parseInt(route.query.player as string, 10)
     : null;
   const isRated = (route.query.is_rated as string) === "true";
   const limit = 100;
 
   const api = new API();
-  games.value = await api.getGames(playerID, isRated, limit);
+  games.value = await api.getGames(playerID.value, isRated, limit);
 });
 </script>
 <template>
   <div class="mx-4 my-4">
-    <GameItems :games="games" />
+    <GameItems :games="games" :pointOfViewPlayerID="playerID" />
   </div>
 </template>

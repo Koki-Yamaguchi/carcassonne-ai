@@ -61,10 +61,14 @@ onMounted(async () => {
         {{ translate("play_now") }}
       </button>
     </div>
-    <GameItems class="mt-4" :games="games" />
+    <GameItems
+      class="mt-4"
+      :games="games"
+      :pointOfViewPlayerID="player ? player.id : null"
+    />
     <div
       @click="seeMore"
-      class="text-gray-500 underline text-xs text-right mt-2 mr-2"
+      class="text-gray-500 hover:cursor-pointer underline text-xs text-right mt-2 mr-2"
     >
       {{ translate("see_more") }}
     </div>
