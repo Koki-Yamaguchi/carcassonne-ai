@@ -21,7 +21,7 @@ const diff = ref<number>(0);
 
 const onClick = () => {
   if (finished.value) {
-    router.push(`/replays/${props.game.id}`);
+    router.push(`/games/${props.game.id}/result`);
   } else {
     router.push(`/games/${props.game.id}`);
   }

@@ -51,5 +51,7 @@
   "random_match_description": "In this mode, you can play against a randomly matched player. At the moment, the game results do not affect your rating.",
   "play_random_match": "Search opponents",
   "cancel": "Cancel",
-  "searching_opponent": "Searching Opponent ..."
+  "searching_opponent": "Searching Opponent ...",
+  "play_again": "Play Again",
+  "game_result": "Game Result"
 }

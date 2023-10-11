@@ -455,6 +455,12 @@ const finishGame = async () => {
   game.value = await api.getGame(game.value.id);
 
   finished.value = true;
+
+  await sleep(3000);
+
+  evtSource.value.close();
+
+  router.push(`/games/${game.value.id}/result`);
 };
 
 const processCompleteEvents = (completeEvents: CompleteEvent[]) => {
@@ -805,7 +811,7 @@ onMounted(async () => {
         <div class="flex gap-4">
           <button
             class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
-            @click.once="router.push(`/replays/${game ? game.id : ''}`)"
+            @click.once="router.push(`/games/${game ? game.id : ''}/replay`)"
           >
             {{ translate("view_replay") }}
           </button>
