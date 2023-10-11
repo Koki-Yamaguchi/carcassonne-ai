@@ -6,8 +6,8 @@ defineProps<{
   profileImage: string;
   name: string;
   point: number;
-  beforeRating: number;
-  afterRating: number;
+  beforeRating: number | null;
+  afterRating: number | null;
   isWinner: boolean;
 }>();
 </script>
@@ -26,7 +26,7 @@ defineProps<{
         <div>{{ point }} pt</div>
       </div>
       <div class="flex mt-2">
-        <div>{{ beforeRating }}</div>
+        <div>{{ beforeRating ?? 1500 }}</div>
         <ArrowIcon
           :color="
             afterRating > beforeRating
@@ -36,7 +36,7 @@ defineProps<{
               : 'gray'
           "
         />
-        <div>{{ afterRating }}</div>
+        <div>{{ afterRating ?? 1500 }}</div>
       </div>
     </div>
   </div>
