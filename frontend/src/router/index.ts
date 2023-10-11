@@ -8,6 +8,7 @@ import SettingsView from "../views/SettingsView.vue";
 import CompetitiveView from "../views/CompetitiveView.vue";
 import LobbyView from "../views/LobbyView.vue";
 import ReplayView from "../views/ReplayView.vue";
+import ResultView from "../views/ResultView.vue";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { store } from "../store";
 
@@ -40,6 +41,16 @@ const router = createRouter({
       component: GameView,
     },
     {
+      path: "/games/:id/result",
+      name: "result",
+      component: ResultView,
+    },
+    {
+      path: "/games/:id/replay",
+      name: "replay",
+      component: ReplayView,
+    },
+    {
       path: "/settings",
       name: "settings",
       component: SettingsView,
@@ -48,11 +59,6 @@ const router = createRouter({
       path: "/competitive",
       name: "competitive mode",
       component: CompetitiveView,
-    },
-    {
-      path: "/replays/:id",
-      name: "replay",
-      component: ReplayView,
     },
     {
       path: "/lobby",

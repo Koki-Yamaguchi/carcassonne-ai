@@ -51,5 +51,7 @@
   "random_match_description": "このモードではランダムに選ばれた他のプレイヤーと対戦することができます。現在、この対戦結果によるレーティングの変動はありません。",
   "play_random_match": "対戦相手を探す",
   "cancel": "キャンセル",
-  "searching_opponent": "対戦相手を探しています ..."
+  "searching_opponent": "対戦相手を探しています ...",
+  "play_again": "再戦する",
+  "game_result": "ゲームの結果"
 }
