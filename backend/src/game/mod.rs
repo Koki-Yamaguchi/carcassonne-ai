@@ -74,12 +74,6 @@ pub struct Game {
 
 #[derive(Serialize, Queryable, Clone)]
 #[serde(crate = "rocket::serde")]
-pub struct MeepleablePositions {
-    pub meepleable_positions: Vec<i32>,
-}
-
-#[derive(Serialize, Queryable, Clone)]
-#[serde(crate = "rocket::serde")]
 pub struct CompleteEvent {
     pub meeple_ids: Vec<i32>,
     pub feature: String,
@@ -205,7 +199,20 @@ pub fn create_tile_move(
     tile: tile::Tile,
     rot: i32,
     pos: (i32, i32),
-) -> Result<MeepleablePositions, Error> {
+) -> Result<mov::Move, Error> {
+    // dangling move for voting
+    if game_id == -1 {
+        return database::create_move(TMove(TileMove {
+            id: -1, // ignored
+            ord: -1,
+            game_id,
+            player_id,
+            tile,
+            rot,
+            pos,
+        }));
+    }
+
     let mut moves = match database::list_moves(game_id, None) {
         Ok(mvs) => mvs,
         Err(e) => {
@@ -244,22 +251,9 @@ pub fn create_tile_move(
     });
     moves.push(mv.clone());
 
-    let res = calculate::calculate(&moves, false);
-    let meepleable_positions = match res {
-        Ok(s) => s.meepleable_positions,
-        Err(e) => {
-            return Err(e);
-        }
-    };
+    calculate::calculate(&moves, false)?;
 
-    match database::create_move(mv) {
-        Err(e) => return Err(e),
-        _ => {}
-    }
-
-    Ok(MeepleablePositions {
-        meepleable_positions,
-    })
+    database::create_move(mv)
 }
 
 pub fn create_meeple_move(
@@ -268,7 +262,20 @@ pub fn create_meeple_move(
     meeple_id: i32,
     tile_pos: (i32, i32),
     meeple_pos: i32,
-) -> Result<MeepleMoveResult, Error> {
+) -> Result<mov::Move, Error> {
+    // dangling move for voting
+    if game_id == -1 {
+        return database::create_move(MMove(MeepleMove {
+            id: -1, // ignored
+            ord: -1,
+            game_id,
+            player_id,
+            meeple_id,
+            tile_pos,
+            meeple_pos,
+        }));
+    }
+
     let gm = match database::get_game(game_id) {
         Ok(game) => game,
         Err(e) => {
@@ -326,11 +333,6 @@ pub fn create_meeple_move(
             return Err(e);
         }
     };
-
-    match database::create_move(mv) {
-        Err(e) => return Err(e),
-        _ => {}
-    }
 
     let mut out_tiles = vec![];
     match gm.next_tile_id {
@@ -392,20 +394,14 @@ pub fn create_meeple_move(
         Ok(_) => {}
     }
 
-    Ok(MeepleMoveResult {
-        complete_events,
-        next_tile_id: next_tile.to_id(),
-        next_player_id,
-        current_tile_id: gm.next_tile_id.unwrap(),
-        current_player_id: cur_player_id,
-    })
+    database::create_move(mv)
 }
 
 pub fn create_discard_move(
     game_id: i32,
     player_id: i32,
     tile: tile::Tile,
-) -> Result<MeepleMoveResult, Error> {
+) -> Result<mov::Move, Error> {
     let mut rng = rand::thread_rng();
 
     let gm = match database::get_game(game_id) {
@@ -434,7 +430,7 @@ pub fn create_discard_move(
     });
     moves.push(mv.clone());
 
-    match database::create_move(mv) {
+    match database::create_move(mv.clone()) {
         Err(e) => return Err(e),
         _ => {}
     }
@@ -490,16 +486,10 @@ pub fn create_discard_move(
         Ok(_) => {}
     }
 
-    Ok(MeepleMoveResult {
-        complete_events: vec![],
-        next_tile_id: gm.next_tile_id.unwrap(),
-        next_player_id: gm.next_player_id.unwrap(),
-        current_tile_id: draw_tile.to_id(),
-        current_player_id: gm.current_player_id.unwrap(),
-    })
+    Ok(mv)
 }
 
-pub fn wait_ai_move(game_id: i32) -> Result<MeepleMoveResult, Error> {
+pub fn wait_ai_move(game_id: i32) -> Result<(), Error> {
     let game = match database::get_game(game_id) {
         Ok(gm) => gm,
         Err(e) => {
@@ -526,28 +516,23 @@ pub fn wait_ai_move(game_id: i32) -> Result<MeepleMoveResult, Error> {
         placing_tile,
     ) {
         Some((tile_move, meeple_move)) => {
-            let r = match create_tile_move(game.id, 1, placing_tile, tile_move.rot, tile_move.pos) {
-                Ok(res) => res,
-                Err(e) => {
-                    return Err(e);
-                }
-            };
-            assert!(
-                meeple_move.meeple_id == -1
-                    || r.meepleable_positions.contains(&meeple_move.meeple_pos)
-            );
+            create_tile_move(game.id, 1, placing_tile, tile_move.rot, tile_move.pos)?;
 
-            let meeple_move_result = create_meeple_move(
+            create_meeple_move(
                 game.id,
                 1,
                 meeple_move.meeple_id,
                 meeple_move.tile_pos,
                 meeple_move.meeple_pos,
-            );
+            )?;
 
-            meeple_move_result
+            Ok(())
         }
-        None => create_discard_move(game.id, 1, placing_tile),
+        None => {
+            create_discard_move(game.id, 1, placing_tile)?;
+
+            Ok(())
+        }
     }
 }
 
