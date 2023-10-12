@@ -34,6 +34,7 @@ const placingPosition = ref<TilePosition | null>(null);
 const meepleablePositions = ref<number[]>([]);
 const canConfirm = ref<boolean>(false);
 const canCancel = ref<boolean>(false);
+const canMeeple = ref<boolean>(false);
 const canSubmit = ref<boolean>(false);
 const meeplingPosition = ref<number>(-1);
 const note = ref<string>("");
@@ -146,13 +147,20 @@ const confirm = async () => {
   }
 
   canConfirm.value = false;
-  canCancel.value = true;
 
   tiles.value[placingPosition.value.y][placingPosition.value.x] =
     placingTile.value;
-
-  meepleablePositions.value = [0, 1, 2, 3, 4, 5, 6, 7];
+  if (player0Meeples.value.size !== 0) {
+    meepleablePositions.value = [0, 1, 2, 3, 4, 5, 6, 7];
+    canMeeple.value = true;
+  } else {
+    await handlePlaceMeeple(-1);
+  }
   placeablePositions.value = [];
+};
+
+const skip = () => {
+  handlePlaceMeeple(-1);
 };
 
 const handlePlaceMeeple = async (pos: number) => {
@@ -168,6 +176,8 @@ const handlePlaceMeeple = async (pos: number) => {
 
   meepleablePositions.value = [];
   meeplingPosition.value = pos;
+  canMeeple.value = false;
+  canCancel.value = true;
   canSubmit.value = true;
 };
 
@@ -337,6 +347,13 @@ onMounted(async () => {
           @click.once="confirm"
         >
           {{ translate("confirm") }}
+        </button>
+        <button
+          class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
+          v-if="canMeeple"
+          @click.once="skip"
+        >
+          {{ translate("skip") }}
         </button>
         <button
           class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"

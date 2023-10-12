@@ -74,11 +74,12 @@ pub fn get_problems() -> Result<Vec<Problem>, Error> {
 
 #[test]
 fn create_problem_test() {
+    /*
     use super::game::decoder;
     use super::game::mov::{MeepleMove, Move::*, TileMove};
 
     let all_mvs = decoder::decode("src/data/426597340.json".to_string());
-    let remaining_tile_count = 45;
+    let remaining_tile_count = 6;
     let mv_idx = (72 - (remaining_tile_count + 2)) * 2;
 
     let mvs = all_mvs[0..mv_idx].to_vec();
@@ -126,7 +127,7 @@ fn create_problem_test() {
                 database::create_move(TMove(TileMove {
                     id: -1, // ignored
                     ord: tm.ord,
-                    game_id: g.id,
+                    game_id: Some(g.id),
                     player_id: map[tm.player_id as usize],
                     tile: tm.tile,
                     rot: tm.rot,
@@ -157,7 +158,7 @@ fn create_problem_test() {
                 database::create_move(MMove(MeepleMove {
                     id: -1, // ignored
                     ord: mm.ord,
-                    game_id: g.id,
+                    game_id: Some(g.id),
                     player_id: map[mm.player_id as usize],
                     meeple_id,
                     tile_pos: mm.tile_pos,
@@ -171,7 +172,8 @@ fn create_problem_test() {
         }
     }
 
-    create_problem(g.id, "First Problem".to_string()).unwrap();
+    create_problem(g.id, "Second Problem".to_string()).unwrap();
+    */
 }
 
 pub fn create_vote(
