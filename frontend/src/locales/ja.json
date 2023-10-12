@@ -53,5 +53,9 @@
   "cancel": "キャンセル",
   "searching_opponent": "対戦相手を探しています ...",
   "play_again": "再戦する",
-  "game_result": "ゲームの結果"
+  "game_result": "ゲームの結果",
+  "try_again": "置き直す",
+  "tile_in_hand": "配置タイル",
+  "comment": "コメントを書く...",
+  "vote": "投票する！"
 }

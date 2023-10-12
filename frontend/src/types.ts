@@ -94,5 +94,16 @@ export interface Board {
 
 export interface Problem {
   id: number;
+  gameID: number;
   name: string;
+}
+
+export interface Vote {
+  id: number;
+  problemID: number;
+  playerID: number;
+  playerName: string;
+  note: string;
+  tileMoveID: number;
+  meepleMoveID: number;
 }

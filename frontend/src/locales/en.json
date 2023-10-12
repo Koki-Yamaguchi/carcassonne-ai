@@ -53,5 +53,9 @@
   "cancel": "Cancel",
   "searching_opponent": "Searching Opponent ...",
   "play_again": "Play Again",
-  "game_result": "Game Result"
+  "game_result": "Game Result",
+  "try_again": "Try Again",
+  "tile_in_hand": "Tile in hand",
+  "comment": "Write comments...",
+  "vote": "Vote!"
 }

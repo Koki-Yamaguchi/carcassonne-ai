@@ -15,6 +15,5 @@ const router = useRouter();
     @click="router.push(`/problems/${problem.id}`)"
   >
     {{ problem.name }}
-    {{ problem.id }}
   </div>
 </template>

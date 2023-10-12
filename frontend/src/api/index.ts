@@ -19,6 +19,7 @@ import {
   Player,
   WaitingGame,
   Problem,
+  Vote,
 } from "../types";
 
 export class API {
@@ -600,6 +601,7 @@ export class API {
       console.log({ res });
       const prob: Problem = {
         id: res.data.id,
+        gameID: res.data.game_id,
         name: res.data.name,
       };
       return prob;
@@ -614,13 +616,47 @@ export class API {
       const url = `${this.base_url}/problems`;
       const res = await axios.get(url);
       console.log({ res });
-      const problems: Problem[] = res.data.map((g: any) => {
+      const problems: Problem[] = res.data.map((p: any) => {
         return {
-          id: g.id,
-          name: g.name,
+          id: p.id,
+          gameID: p.game_id,
+          name: p.name,
         };
       });
       return problems;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async createVote(
+    problemID: number,
+    playerID: number,
+    playerName: number,
+    note: string,
+    tileMoveID: number,
+    meepleMoveID: number
+  ): Promise<Vote> {
+    try {
+      const res = await axios.post(`${this.base_url}/votes/create`, {
+        problem_id: problemID,
+        player_id: playerID,
+        player_name: playerName,
+        note: note,
+        tile_move_id: tileMoveID,
+        meeple_move_id: meepleMoveID,
+      });
+      const vote: Vote = {
+        id: res.data.id,
+        problemID: res.data.problem_id,
+        playerID: res.data.player_id,
+        playerName: res.data.player_name,
+        note: res.data.not,
+        tileMoveID: res.data.tile_move_id,
+        meepleMoveID: res.data.meeple_move_id,
+      };
+      return vote;
     } catch (e) {
       console.log({ e });
       throw e;
