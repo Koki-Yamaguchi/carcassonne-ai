@@ -102,8 +102,29 @@ pub struct QueryMove {
 
 #[derive(Insertable)]
 #[diesel(table_name = schema::problem)]
-struct NewProblem {
-    game_id: i32,
+pub struct NewProblem {
+    pub game_id: i32,
+    pub name: String,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = schema::favorite)]
+pub struct NewFavorite {
+    pub vote_id: i32,
+    pub player_id: i32,
+    pub player_name: String,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = schema::vote)]
+pub struct NewVote {
+    pub problem_id: i32,
+    pub player_id: i32,
+    pub player_name: String,
+    pub note: String,
+    pub favorite_count: i32,
+    pub tile_move_id: i32,
+    pub meeple_move_id: i32,
 }
 
 pub fn get_player(pid: i32) -> Result<player::Player, Error> {
@@ -517,13 +538,11 @@ pub fn create_optimal_move(
     }
 }
 
-pub fn create_problem(gid: i32) -> Result<problem::Problem, Error> {
+pub fn create_problem(new_problem: &NewProblem) -> Result<problem::Problem, Error> {
     let conn = &mut establish_connection();
 
-    let new_problem = NewProblem { game_id: gid };
-
     match diesel::insert_into(schema::problem::table)
-        .values(&new_problem)
+        .values(new_problem)
         .get_result(conn)
     {
         Ok(prb) => Ok(prb),
@@ -562,6 +581,89 @@ pub fn get_problems() -> Result<Vec<problem::Problem>, Error> {
     {
         Ok(ps) => {
             return Ok(ps);
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
+pub fn create_vote(nv: &NewVote) -> Result<problem::Vote, Error> {
+    let conn = &mut establish_connection();
+
+    match diesel::insert_into(schema::vote::table)
+        .values(nv)
+        .get_result(conn)
+    {
+        Ok(v) => Ok(v),
+        Err(e) => Err(internal_server_error(e.to_string())),
+    }
+}
+
+pub fn get_vote(vid: i32) -> Result<problem::Vote, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    use self::schema::vote::dsl::{id, vote as v};
+
+    match v.filter(id.eq(vid)).limit(1).load::<problem::Vote>(conn) {
+        Ok(vs) => {
+            if vs.len() == 0 {
+                return Err(not_found_error("vote".to_string()));
+            }
+            return Ok(vs[0].clone());
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
+pub fn get_votes(prid: Option<i32>) -> Result<Vec<problem::Vote>, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    use self::schema::vote::dsl::{created_at, problem_id, vote as v};
+    let mut query = v.order(created_at.desc()).into_boxed();
+    if let Some(pr) = prid {
+        query = query.filter(problem_id.eq(pr))
+    }
+    query = query.limit(100);
+
+    match query.load::<problem::Vote>(conn) {
+        Ok(vs) => {
+            return Ok(vs);
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
+pub fn create_favorite(nf: &NewFavorite) -> Result<problem::Favorite, Error> {
+    let conn = &mut establish_connection();
+
+    match diesel::insert_into(schema::favorite::table)
+        .values(nf)
+        .get_result(conn)
+    {
+        Ok(f) => Ok(f),
+        Err(e) => Err(internal_server_error(e.to_string())),
+    }
+}
+
+pub fn get_favorites(vid: Option<i32>, pid: Option<i32>) -> Result<Vec<problem::Favorite>, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    use self::schema::favorite::dsl::{created_at, favorite as f, player_id, vote_id};
+
+    let mut query = f.order(created_at.desc()).into_boxed();
+    if let Some(v) = vid {
+        query = query.filter(vote_id.eq(v))
+    }
+    if let Some(p) = pid {
+        query = query.filter(player_id.eq(p))
+    }
+    query = query.limit(100);
+
+    match query.load::<problem::Favorite>(conn) {
+        Ok(fs) => {
+            return Ok(fs);
         }
         Err(e) => {
             return Err(internal_server_error(e.to_string()));

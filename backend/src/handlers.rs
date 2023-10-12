@@ -408,3 +408,50 @@ pub async fn get_problems() -> (Status, (ContentType, String)) {
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
+
+#[post("/votes/create", format = "application/json", data = "<params>")]
+pub fn create_vote(params: Json<problem::CreateVote>) -> (Status, (ContentType, String)) {
+    match problem::create_vote(
+        params.problem_id,
+        params.player_id,
+        params.player_name.clone(),
+        params.note.clone(),
+        params.tile_move_id,
+        params.meeple_move_id,
+    ) {
+        Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[get("/votes/<id>", format = "application/json")]
+pub fn get_vote(id: Option<i32>) -> (Status, (ContentType, String)) {
+    match problem::get_vote(id.unwrap()) {
+        Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[get("/votes?<problem>", format = "application/json")]
+pub fn get_votes(problem: Option<i32>) -> (Status, (ContentType, String)) {
+    match problem::get_votes(problem) {
+        Ok(vs) => (Status::Ok, (ContentType::JSON, to_string(&vs).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[post("/favorites/create", format = "application/json", data = "<params>")]
+pub fn create_favorite(params: Json<problem::CreateFavorite>) -> (Status, (ContentType, String)) {
+    match problem::create_favorite(params.vote_id, params.player_id, params.player_name.clone()) {
+        Ok(f) => (Status::Ok, (ContentType::JSON, to_string(&f).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[get("/favorites?<vote>&<player>", format = "application/json")]
+pub fn get_favorites(vote: Option<i32>, player: Option<i32>) -> (Status, (ContentType, String)) {
+    match problem::get_favorites(vote, player) {
+        Ok(fs) => (Status::Ok, (ContentType::JSON, to_string(&fs).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
