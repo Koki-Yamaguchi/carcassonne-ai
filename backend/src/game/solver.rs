@@ -44,7 +44,7 @@ pub fn next_permutation<T: std::cmp::Ord>(arr: &mut [T]) -> bool {
 
 #[allow(dead_code)]
 pub fn search(
-    game_id: i32,
+    game_id: Option<i32>,
     mvs: &Vec<Move>,
     ordered_tiles: Vec<Tile>,
     player_id: i32,
@@ -87,7 +87,7 @@ pub fn search(
         moves.push(TMove(TileMove {
             id: -1,
             ord: -1,
-            game_id,
+            game_id: game_id,
             player_id,
             tile: *next_tile,
             rot: tileable_position.rot,
@@ -125,7 +125,7 @@ pub fn search(
             moves.push(MMove(MeepleMove {
                 id: -1,
                 ord: -1,
-                game_id,
+                game_id: game_id,
                 player_id,
                 meeple_id,
                 tile_pos: tileable_position.pos,
@@ -200,7 +200,7 @@ pub fn search(
 #[allow(dead_code)]
 pub fn solve(
     moves: &Vec<Move>,
-    game_id: i32,
+    game_id: Option<i32>,
     player0_id: i32,
     player1_id: i32,
     next_tile: Tile,
@@ -322,7 +322,7 @@ pub fn solve(
     let mut tm = TileMove {
         id: -1,
         ord: last_ord + 1,
-        game_id,
+        game_id: game_id,
         player_id: next_player_id,
         tile: next_tile,
         rot: 0,
@@ -331,7 +331,7 @@ pub fn solve(
     let mut mm = MeepleMove {
         id: -1,
         ord: last_ord + 2,
-        game_id,
+        game_id: game_id,
         player_id: next_player_id,
         meeple_id: -1,
         tile_pos: (-1, -1),
@@ -404,7 +404,7 @@ fn add_move(
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: -1,
-        game_id: -1,
+        game_id: None,
         player_id,
         tile,
         rot,
@@ -413,7 +413,7 @@ fn add_move(
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: -1,
-        game_id: -1,
+        game_id: None,
         player_id,
         meeple_id: meeple_id,
         tile_pos: pos,

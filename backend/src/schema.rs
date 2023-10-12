@@ -49,7 +49,7 @@ diesel::table! {
     move_ (id) {
         id -> Int4,
         ord -> Int4,
-        game_id -> Int4,
+        game_id -> Nullable<Int4>,
         player_id -> Int4,
         tile_id -> Int4,
         meeple_id -> Int4,

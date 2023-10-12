@@ -15,7 +15,6 @@ pub fn decode(file_path: String) -> Vec<Move> {
     file.read_to_string(&mut data).unwrap();
     let v: Value = serde_json::from_str(&data).unwrap();
 
-    let game_id = -1;
     let mut ord = 0;
     let mut player_id = 0;
     let mut tile_id = -1;
@@ -29,7 +28,7 @@ pub fn decode(file_path: String) -> Vec<Move> {
         Move::TMove(TileMove {
             id: -1,
             ord,
-            game_id,
+            game_id: None,
             player_id: player_id,
             tile: Tile::StartingTile,
             rot: 0,
@@ -38,7 +37,7 @@ pub fn decode(file_path: String) -> Vec<Move> {
         Move::MMove(MeepleMove {
             id: -1,
             ord: ord + 1,
-            game_id,
+            game_id: None,
             player_id: player_id,
             meeple_id: -1,
             tile_pos: (0, 0),
@@ -61,7 +60,7 @@ pub fn decode(file_path: String) -> Vec<Move> {
                                         moves.push(Move::MMove(MeepleMove {
                                             id: -1,
                                             ord,
-                                            game_id,
+                                            game_id: None,
                                             player_id,
                                             meeple_id: -1,
                                             tile_pos: t.pos,
@@ -119,7 +118,7 @@ pub fn decode(file_path: String) -> Vec<Move> {
                                 moves.push(Move::TMove(TileMove {
                                     id: -1,
                                     ord,
-                                    game_id,
+                                    game_id: None,
                                     player_id,
                                     tile: to_tile(tile_id),
                                     rot,
@@ -158,7 +157,7 @@ pub fn decode(file_path: String) -> Vec<Move> {
                                 moves.push(Move::MMove(MeepleMove {
                                     id: -1,
                                     ord,
-                                    game_id,
+                                    game_id: None,
                                     player_id,
                                     meeple_id,
                                     tile_pos: (y, x),
@@ -183,7 +182,7 @@ pub fn decode(file_path: String) -> Vec<Move> {
             moves.push(Move::MMove(MeepleMove {
                 id: -1,
                 ord,
-                game_id,
+                game_id: None,
                 player_id,
                 meeple_id: -1,
                 tile_pos: t.pos,

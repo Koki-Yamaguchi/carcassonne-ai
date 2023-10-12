@@ -24,7 +24,7 @@ use crate::problem;
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct CreateTileMove {
-    pub game_id: i32,
+    pub game_id: Option<i32>,
     pub player_id: i32,
     pub tile_id: i32,
     pub rot: i32,
@@ -35,7 +35,7 @@ pub struct CreateTileMove {
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct CreateMeepleMove {
-    pub game_id: i32,
+    pub game_id: Option<i32>,
     pub player_id: i32,
     pub meeple_id: i32,
     pub pos: i32,
@@ -46,7 +46,7 @@ pub struct CreateMeepleMove {
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct CreateDiscardMove {
-    pub game_id: i32,
+    pub game_id: Option<i32>,
     pub player_id: i32,
     pub tile_id: i32,
 }
@@ -237,10 +237,12 @@ pub fn create_tile_move(
 
     match r {
         Ok(res) => {
-            let _ = queue.send(event::UpdateEvent {
-                name: "update_game".to_string(),
-                id: params.game_id,
-            });
+            if let Some(gid) = params.game_id {
+                let _ = queue.send(event::UpdateEvent {
+                    name: "update_game".to_string(),
+                    id: gid,
+                });
+            }
             (Status::Ok, (ContentType::JSON, to_string(&res).unwrap()))
         }
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
@@ -261,10 +263,12 @@ pub fn create_meeple_move(
     );
     match r {
         Ok(res) => {
-            let _ = queue.send(event::UpdateEvent {
-                name: "update_game".to_string(),
-                id: params.game_id,
-            });
+            if let Some(gid) = params.game_id {
+                let _ = queue.send(event::UpdateEvent {
+                    name: "update_game".to_string(),
+                    id: gid,
+                });
+            }
             (Status::Ok, (ContentType::JSON, to_string(&res).unwrap()))
         }
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),

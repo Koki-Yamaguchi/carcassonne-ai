@@ -76,7 +76,7 @@ struct NewOptimalMove {
 #[diesel(table_name = schema::move_)]
 pub struct InsertMove {
     pub ord: i32,
-    pub game_id: i32,
+    pub game_id: Option<i32>,
     pub player_id: i32,
     pub tile_id: i32,
     pub meeple_id: i32,
@@ -90,7 +90,7 @@ pub struct InsertMove {
 pub struct QueryMove {
     pub id: i32,
     pub ord: i32,
-    pub game_id: i32,
+    pub game_id: Option<i32>,
     pub player_id: i32,
     pub tile_id: i32,
     pub meeple_id: i32,

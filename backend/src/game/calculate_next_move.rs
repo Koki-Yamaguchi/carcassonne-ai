@@ -10,7 +10,7 @@ use super::tile::Tile;
 
 pub fn calculate_next_move(
     moves: &Vec<Move>,
-    game_id: i32,
+    game_id: Option<i32>,
     player0_id: i32,
     player1_id: i32,
     player_id: i32,
@@ -238,7 +238,8 @@ fn calculate_next_move_invade_test0() {
     let mvs = src_mvs[0..10].to_vec();
 
     // 365601037/0.png
-    let (tile_move, meeple_move) = calculate_next_move(&mvs, -1, 0, 1, 1, Tile::Triangle).unwrap();
+    let (tile_move, meeple_move) =
+        calculate_next_move(&mvs, None, 0, 1, 1, Tile::Triangle).unwrap();
     assert_eq!(tile_move.pos, (-1, 1));
     assert_eq!(tile_move.rot, 1);
     assert_eq!(meeple_move.meeple_pos, 0);
@@ -246,7 +247,7 @@ fn calculate_next_move_invade_test0() {
     // 365601037/1.png
     let mvs = src_mvs[0..22].to_vec();
     let (tile_move, meeple_move) =
-        calculate_next_move(&mvs, -1, 0, 1, 1, Tile::TriangleWithCOA).unwrap();
+        calculate_next_move(&mvs, None, 0, 1, 1, Tile::TriangleWithCOA).unwrap();
     assert_eq!(tile_move.pos, (-2, 2));
     assert_eq!(tile_move.rot, 3);
     assert_eq!(meeple_move.meeple_pos, -1);

@@ -165,7 +165,7 @@ pub fn create_game(
     let mv0 = TMove(TileMove {
         id: -1, // ignored
         ord: 0,
-        game_id: g.id,
+        game_id: Some(g.id),
         player_id: second_player_id,
         tile: StartingTile,
         rot: 0,
@@ -174,7 +174,7 @@ pub fn create_game(
     let mv1 = MMove(MeepleMove {
         id: -1, // ignored
         ord: 1,
-        game_id: g.id,
+        game_id: Some(g.id),
         player_id: second_player_id,
         meeple_id: -1,
         tile_pos: (0, 0),
@@ -194,14 +194,14 @@ pub fn create_game(
 }
 
 pub fn create_tile_move(
-    game_id: i32,
+    game_id: Option<i32>,
     player_id: i32,
     tile: tile::Tile,
     rot: i32,
     pos: (i32, i32),
 ) -> Result<mov::Move, Error> {
     // dangling move for voting
-    if game_id == -1 {
+    if let None = game_id {
         return database::create_move(TMove(TileMove {
             id: -1, // ignored
             ord: -1,
@@ -213,7 +213,7 @@ pub fn create_tile_move(
         }));
     }
 
-    let mut moves = match database::list_moves(game_id, None) {
+    let mut moves = match database::list_moves(game_id.unwrap(), None) {
         Ok(mvs) => mvs,
         Err(e) => {
             return Err(e);
@@ -257,14 +257,14 @@ pub fn create_tile_move(
 }
 
 pub fn create_meeple_move(
-    game_id: i32,
+    game_id: Option<i32>,
     player_id: i32,
     meeple_id: i32,
     tile_pos: (i32, i32),
     meeple_pos: i32,
 ) -> Result<mov::Move, Error> {
     // dangling move for voting
-    if game_id == -1 {
+    if let None = game_id {
         return database::create_move(MMove(MeepleMove {
             id: -1, // ignored
             ord: -1,
@@ -276,7 +276,7 @@ pub fn create_meeple_move(
         }));
     }
 
-    let gm = match database::get_game(game_id) {
+    let gm = match database::get_game(game_id.unwrap()) {
         Ok(game) => game,
         Err(e) => {
             return Err(e);
@@ -284,7 +284,7 @@ pub fn create_meeple_move(
     };
 
     let mut rng = rand::thread_rng();
-    let mut moves = match database::list_moves(game_id, None) {
+    let mut moves = match database::list_moves(game_id.unwrap(), None) {
         Ok(mvs) => mvs,
         Err(e) => {
             return Err(e);
@@ -374,7 +374,7 @@ pub fn create_meeple_move(
     };
 
     match database::update_game(
-        game_id,
+        game_id.unwrap(),
         next_tile.to_id(),
         next_player_id,
         player0_point,
@@ -398,20 +398,31 @@ pub fn create_meeple_move(
 }
 
 pub fn create_discard_move(
-    game_id: i32,
+    game_id: Option<i32>,
     player_id: i32,
     tile: tile::Tile,
 ) -> Result<mov::Move, Error> {
+    // dangling move for voting (although discard move is not really used)
+    if let None = game_id {
+        return database::create_move(DMove(DiscardMove {
+            id: -1, // ignored
+            ord: -1,
+            game_id,
+            player_id,
+            tile,
+        }));
+    }
+
     let mut rng = rand::thread_rng();
 
-    let gm = match database::get_game(game_id) {
+    let gm = match database::get_game(game_id.unwrap()) {
         Ok(game) => game,
         Err(e) => {
             return Err(e);
         }
     };
 
-    let mut moves = match database::list_moves(game_id, None) {
+    let mut moves = match database::list_moves(game_id.unwrap(), None) {
         Ok(mvs) => mvs,
         Err(e) => {
             return Err(e);
@@ -429,11 +440,6 @@ pub fn create_discard_move(
         tile,
     });
     moves.push(mv.clone());
-
-    match database::create_move(mv.clone()) {
-        Err(e) => return Err(e),
-        _ => {}
-    }
 
     let mut out_tiles = vec![];
     match gm.next_tile_id {
@@ -466,7 +472,7 @@ pub fn create_discard_move(
     // TODO: what if thre's no tile to draw on the second last turn?
 
     match database::update_game(
-        game_id,
+        game_id.unwrap(),
         gm.next_tile_id.unwrap(),
         gm.next_player_id.unwrap(),
         gm.player0_point,
@@ -486,7 +492,7 @@ pub fn create_discard_move(
         Ok(_) => {}
     }
 
-    Ok(mv)
+    database::create_move(mv)
 }
 
 pub fn wait_ai_move(game_id: i32) -> Result<(), Error> {
@@ -509,17 +515,17 @@ pub fn wait_ai_move(game_id: i32) -> Result<(), Error> {
 
     match calculate_next_move::calculate_next_move(
         &moves,
-        game.id,
+        Some(game.id),
         game.player0_id,
         game.player1_id,
         1,
         placing_tile,
     ) {
         Some((tile_move, meeple_move)) => {
-            create_tile_move(game.id, 1, placing_tile, tile_move.rot, tile_move.pos)?;
+            create_tile_move(Some(game.id), 1, placing_tile, tile_move.rot, tile_move.pos)?;
 
             create_meeple_move(
-                game.id,
+                Some(game.id),
                 1,
                 meeple_move.meeple_id,
                 meeple_move.tile_pos,
@@ -529,7 +535,7 @@ pub fn wait_ai_move(game_id: i32) -> Result<(), Error> {
             Ok(())
         }
         None => {
-            create_discard_move(game.id, 1, placing_tile)?;
+            create_discard_move(Some(game.id), 1, placing_tile)?;
 
             Ok(())
         }
@@ -749,8 +755,14 @@ fn create_optimal_move(game_id: i32, last_n: i32, player0_id: i32, player1_id: i
         moves.pop();
     }
 
-    let ((mut tile_move, mut meeple_move), solve_result) =
-        solve(&moves, game_id, player0_id, player1_id, next_tile, false);
+    let ((mut tile_move, mut meeple_move), solve_result) = solve(
+        &moves,
+        Some(game_id),
+        player0_id,
+        player1_id,
+        next_tile,
+        false,
+    );
 
     if solve_result != SolveResult::AlwaysWin {
         return;

@@ -184,13 +184,19 @@ const cancel = () => {
 };
 
 const createVote = async () => {
-  /*
-  FIXME
-
+  if (
+    !player.value ||
+    !game.value ||
+    !placingTile.value ||
+    !placingPosition.value ||
+    !problem.value
+  ) {
+    return;
+  }
   const api = new API();
 
   const tileMove = await api.createTileMove(
-    -1,
+    null,
     player.value.id,
     game.value.currentTileID,
     placingTile.value.direction,
@@ -199,7 +205,7 @@ const createVote = async () => {
   );
 
   const meepleMove = await api.createMeepleMove(
-    -1,
+    null,
     player.value.id,
     6,
     meeplingPosition.value,
@@ -207,7 +213,7 @@ const createVote = async () => {
     placingPosition.value.x - Math.floor(boardSize / 2)
   );
 
-  const vote = await api.createVote(
+  await api.createVote(
     problem.value.id,
     player.value.id,
     player.value.name,
@@ -215,7 +221,8 @@ const createVote = async () => {
     tileMove.id,
     meepleMove.id
   );
-  */
+
+  // Show results
 };
 
 onMounted(async () => {
