@@ -737,7 +737,7 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
     })
 }
 
-#[allow(dead_code)]
+#[allow(dead_code, unused_assignments)]
 fn create_optimal_move(game_id: i32, last_n: i32, player0_id: i32, player1_id: i32) {
     let mut moves = match database::list_moves(game_id, None) {
         Ok(mvs) => mvs,
@@ -747,6 +747,7 @@ fn create_optimal_move(game_id: i32, last_n: i32, player0_id: i32, player1_id: i
     };
 
     let mut tile_count = 0;
+
     let mut next_tile = Tile::Invalid;
     loop {
         match moves.last().unwrap() {

@@ -9,6 +9,7 @@ use crate::game::mov;
 use crate::game::tile;
 use crate::optimal_move;
 use crate::player::{self};
+use crate::problem;
 use crate::schema;
 
 #[derive(Insertable)]
@@ -97,6 +98,12 @@ pub struct QueryMove {
     pub tile_pos_y: i32,
     pub tile_pos_x: i32,
     pub meeple_pos: i32,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = schema::problem)]
+struct NewProblem {
+    game_id: i32,
 }
 
 pub fn get_player(pid: i32) -> Result<player::Player, Error> {
@@ -507,6 +514,58 @@ pub fn create_optimal_move(
     {
         Ok(r) => Ok(r),
         Err(e) => Err(internal_server_error(e.to_string())),
+    }
+}
+
+pub fn create_problem(gid: i32) -> Result<problem::Problem, Error> {
+    let conn = &mut establish_connection();
+
+    let new_problem = NewProblem { game_id: gid };
+
+    match diesel::insert_into(schema::problem::table)
+        .values(&new_problem)
+        .get_result(conn)
+    {
+        Ok(prb) => Ok(prb),
+        Err(e) => Err(internal_server_error(e.to_string())),
+    }
+}
+
+pub fn get_problem(prid: i32) -> Result<problem::Problem, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    use self::schema::problem::dsl::{id, problem as p};
+
+    match p
+        .filter(id.eq(prid))
+        .limit(1)
+        .load::<problem::Problem>(conn)
+    {
+        Ok(ps) => {
+            if ps.len() == 0 {
+                return Err(not_found_error("problem".to_string()));
+            }
+            return Ok(ps[0].clone());
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+pub fn get_problems() -> Result<Vec<problem::Problem>, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    use self::schema::problem::dsl::{created_at, problem as p};
+
+    match p
+        .order(created_at.desc())
+        .limit(100)
+        .load::<problem::Problem>(conn)
+    {
+        Ok(ps) => {
+            return Ok(ps);
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
     }
 }
 

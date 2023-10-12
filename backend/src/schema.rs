@@ -8,6 +8,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    favorite (id) {
+        id -> Int4,
+        vote_id -> Int4,
+        player_id -> Int4,
+        player_name -> Varchar,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     game (id) {
         id -> Int4,
         player0_id -> Int4,
@@ -72,6 +82,28 @@ diesel::table! {
 }
 
 diesel::table! {
+    problem (id) {
+        id -> Int4,
+        game_id -> Int4,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    vote (id) {
+        id -> Int4,
+        problem_id -> Int4,
+        player_id -> Int4,
+        player_name -> Varchar,
+        note -> Text,
+        favorite_count -> Int4,
+        tile_move_id -> Int4,
+        meeple_move_id -> Int4,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     waiting_game (id) {
         id -> Int4,
         player_id -> Int4,
@@ -80,14 +112,18 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(move_ -> player (player_id));
+diesel::joinable!(favorite -> vote (vote_id));
 diesel::joinable!(player -> color (meeple_color));
+diesel::joinable!(vote -> problem (problem_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     color,
+    favorite,
     game,
     move_,
     optimal_move,
     player,
+    problem,
+    vote,
     waiting_game,
 );

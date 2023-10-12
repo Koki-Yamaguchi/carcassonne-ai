@@ -19,6 +19,7 @@ use crate::event;
 use crate::game;
 use crate::game::tile;
 use crate::player;
+use crate::problem;
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
@@ -389,5 +390,21 @@ pub async fn upload_profile_image(
         let body = ByteStream::from_path(Path::new(path)).await.unwrap();
 
         player::upload_profile_image(storage_client, player_id, body).await
+    }
+}
+
+#[get("/problems/<id>", format = "application/json")]
+pub async fn get_problem(id: Option<i32>) -> (Status, (ContentType, String)) {
+    match problem::get_problem(id.unwrap()) {
+        Ok(p) => (Status::Ok, (ContentType::JSON, to_string(&p).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[get("/problems", format = "application/json")]
+pub async fn get_problems() -> (Status, (ContentType, String)) {
+    match problem::get_problems() {
+        Ok(ps) => (Status::Ok, (ContentType::JSON, to_string(&ps).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
