@@ -29,11 +29,11 @@ defineProps<{
         <div>{{ beforeRating ?? 1500 }}</div>
         <ArrowIcon
           :color="
-            afterRating > beforeRating
+            !beforeRating || !afterRating || beforeRating == afterRating
+              ? 'gray'
+              : afterRating > beforeRating
               ? 'green'
-              : afterRating < beforeRating
-              ? 'red'
-              : 'gray'
+              : 'red'
           "
         />
         <div>{{ afterRating ?? 1500 }}</div>

@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from "vue-router";
 import HomeView from "../views/HomeView.vue";
 import GameView from "../views/GameView.vue";
 import GamesView from "../views/GamesView.vue";
+import ProblemsView from "../views/ProblemsView.vue";
+import ProblemView from "../views/ProblemView.vue";
 import SignupView from "../views/SignupView.vue";
 import SigninView from "../views/SigninView.vue";
 import SettingsView from "../views/SettingsView.vue";
@@ -49,6 +51,16 @@ const router = createRouter({
       path: "/games/:id/replay",
       name: "replay",
       component: ReplayView,
+    },
+    {
+      path: "/problems/:id",
+      name: "problem",
+      component: ProblemView,
+    },
+    {
+      path: "/problems",
+      name: "problems",
+      component: ProblemsView,
     },
     {
       path: "/settings",

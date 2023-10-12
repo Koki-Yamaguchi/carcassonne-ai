@@ -18,6 +18,7 @@ import {
   Board,
   Player,
   WaitingGame,
+  Problem,
 } from "../types";
 
 export class API {
@@ -586,6 +587,40 @@ export class API {
         ),
       };
       return board;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async getProblem(id: number): Promise<Problem> {
+    try {
+      const url = `${this.base_url}/problems/${id}`;
+      const res = await axios.get(url);
+      console.log({ res });
+      const prob: Problem = {
+        id: res.data.id,
+        name: res.data.name,
+      };
+      return prob;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async getProblems(): Promise<Problem[]> {
+    try {
+      const url = `${this.base_url}/problems`;
+      const res = await axios.get(url);
+      console.log({ res });
+      const problems: Problem[] = res.data.map((g: any) => {
+        return {
+          id: g.id,
+          name: g.name,
+        };
+      });
+      return problems;
     } catch (e) {
       console.log({ e });
       throw e;

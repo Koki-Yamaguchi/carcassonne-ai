@@ -91,3 +91,8 @@ export interface Board {
   meepleablePositions: number[];
   completeEvents: CompleteEvent[];
 }
+
+export interface Problem {
+  id: number;
+  name: string;
+}
