@@ -7,7 +7,7 @@ use rocket::serde::Serialize;
 pub struct TileMove {
     pub id: i32,
     pub ord: i32,
-    pub game_id: i32,
+    pub game_id: Option<i32>,
     pub player_id: i32,
     pub tile: Tile,
     pub rot: i32,
@@ -19,7 +19,7 @@ pub struct TileMove {
 pub struct MeepleMove {
     pub id: i32,
     pub ord: i32,
-    pub game_id: i32,
+    pub game_id: Option<i32>,
     pub player_id: i32,
     pub meeple_id: i32,
     pub tile_pos: (i32, i32),
@@ -31,7 +31,7 @@ pub struct MeepleMove {
 pub struct DiscardMove {
     pub id: i32,
     pub ord: i32,
-    pub game_id: i32,
+    pub game_id: Option<i32>,
     pub player_id: i32,
     pub tile: Tile,
 }

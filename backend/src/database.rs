@@ -9,6 +9,7 @@ use crate::game::mov;
 use crate::game::tile;
 use crate::optimal_move;
 use crate::player::{self};
+use crate::problem;
 use crate::schema;
 
 #[derive(Insertable)]
@@ -75,7 +76,7 @@ struct NewOptimalMove {
 #[diesel(table_name = schema::move_)]
 pub struct InsertMove {
     pub ord: i32,
-    pub game_id: i32,
+    pub game_id: Option<i32>,
     pub player_id: i32,
     pub tile_id: i32,
     pub meeple_id: i32,
@@ -84,12 +85,12 @@ pub struct InsertMove {
     pub tile_pos_x: i32,
     pub meeple_pos: i32,
 }
-#[derive(Queryable)]
+#[derive(Queryable, Clone)]
 #[diesel(table_name = schema::move_)]
 pub struct QueryMove {
     pub id: i32,
     pub ord: i32,
-    pub game_id: i32,
+    pub game_id: Option<i32>,
     pub player_id: i32,
     pub tile_id: i32,
     pub meeple_id: i32,
@@ -97,6 +98,47 @@ pub struct QueryMove {
     pub tile_pos_y: i32,
     pub tile_pos_x: i32,
     pub meeple_pos: i32,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = schema::problem)]
+pub struct NewProblem {
+    pub game_id: i32,
+    pub name: String,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = schema::favorite)]
+pub struct NewFavorite {
+    pub vote_id: i32,
+    pub player_id: i32,
+    pub player_name: String,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = schema::vote)]
+pub struct NewVote {
+    pub problem_id: i32,
+    pub player_id: i32,
+    pub player_name: String,
+    pub note: String,
+    pub favorite_count: i32,
+    pub tile_move_id: i32,
+    pub meeple_move_id: i32,
+}
+
+#[derive(Queryable, Clone)]
+#[diesel(table_name = schema::vote)]
+pub struct QueryVote {
+    id: i32,
+    pub problem_id: i32,
+    pub player_id: i32,
+    pub player_name: String,
+    pub note: String,
+    pub favorite_count: i32,
+    pub tile_move_id: i32,
+    pub meeple_move_id: i32,
+    pub created_at: chrono::NaiveDateTime,
 }
 
 pub fn get_player(pid: i32) -> Result<player::Player, Error> {
@@ -410,6 +452,37 @@ pub fn update_game(
     }
 }
 
+pub fn get_tile_move(mid: i32) -> Result<mov::TileMove, Error> {
+    match get_move(mid)? {
+        mov::Move::TMove(tm) => Ok(tm),
+        _ => return Err(not_found_error("tile_move".to_string())),
+    }
+}
+
+pub fn get_meeple_move(mid: i32) -> Result<mov::MeepleMove, Error> {
+    match get_move(mid)? {
+        mov::Move::MMove(mm) => Ok(mm),
+        _ => return Err(not_found_error("meeple_move".to_string())),
+    }
+}
+
+pub fn get_move(mid: i32) -> Result<mov::Move, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    use self::schema::move_::dsl::{id, move_ as m};
+
+    match m.filter(id.eq(mid)).limit(1).load::<QueryMove>(conn) {
+        Ok(ms) => {
+            if ms.len() == 0 {
+                return Err(not_found_error("move".to_string()));
+            }
+            Ok(to_move(ms[0].clone()))
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
 pub fn list_moves(gmid: i32, move_id: Option<i32>) -> Result<Vec<mov::Move>, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     use self::schema::move_::dsl::*;
@@ -510,6 +583,139 @@ pub fn create_optimal_move(
     }
 }
 
+pub fn create_problem(new_problem: &NewProblem) -> Result<problem::Problem, Error> {
+    let conn = &mut establish_connection();
+
+    match diesel::insert_into(schema::problem::table)
+        .values(new_problem)
+        .get_result(conn)
+    {
+        Ok(prb) => Ok(prb),
+        Err(e) => Err(internal_server_error(e.to_string())),
+    }
+}
+
+pub fn get_problem(prid: i32) -> Result<problem::Problem, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    use self::schema::problem::dsl::{id, problem as p};
+
+    match p
+        .filter(id.eq(prid))
+        .limit(1)
+        .load::<problem::Problem>(conn)
+    {
+        Ok(ps) => {
+            if ps.len() == 0 {
+                return Err(not_found_error("problem".to_string()));
+            }
+            return Ok(ps[0].clone());
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+pub fn get_problems() -> Result<Vec<problem::Problem>, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    use self::schema::problem::dsl::{created_at, problem as p};
+
+    match p
+        .order(created_at.desc())
+        .limit(100)
+        .load::<problem::Problem>(conn)
+    {
+        Ok(ps) => {
+            return Ok(ps);
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
+pub fn create_vote(nv: &NewVote) -> Result<problem::Vote, Error> {
+    let conn = &mut establish_connection();
+
+    match diesel::insert_into(schema::vote::table)
+        .values(nv)
+        .get_result(conn)
+    {
+        Ok(v) => to_vote(v),
+        Err(e) => Err(internal_server_error(e.to_string())),
+    }
+}
+
+pub fn get_vote(vid: i32) -> Result<problem::Vote, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    use self::schema::vote::dsl::{id, vote as v};
+
+    match v.filter(id.eq(vid)).limit(1).load::<QueryVote>(conn) {
+        Ok(vs) => {
+            if vs.len() == 0 {
+                return Err(not_found_error("vote".to_string()));
+            }
+            return to_vote(vs[0].clone());
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
+pub fn get_votes(prid: Option<i32>) -> Result<Vec<problem::Vote>, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    use self::schema::vote::dsl::{created_at, problem_id, vote as v};
+    let mut query = v.order(created_at.desc()).into_boxed();
+    if let Some(pr) = prid {
+        query = query.filter(problem_id.eq(pr))
+    }
+    query = query.limit(100);
+
+    match query.load::<QueryVote>(conn) {
+        Ok(vts) => {
+            return Ok(vts.into_iter().map(|vt| to_vote(vt).unwrap()).collect());
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
+pub fn create_favorite(nf: &NewFavorite) -> Result<problem::Favorite, Error> {
+    let conn = &mut establish_connection();
+
+    match diesel::insert_into(schema::favorite::table)
+        .values(nf)
+        .get_result(conn)
+    {
+        Ok(f) => Ok(f),
+        Err(e) => Err(internal_server_error(e.to_string())),
+    }
+}
+
+pub fn get_favorites(vid: Option<i32>, pid: Option<i32>) -> Result<Vec<problem::Favorite>, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    use self::schema::favorite::dsl::{created_at, favorite as f, player_id, vote_id};
+
+    let mut query = f.order(created_at.desc()).into_boxed();
+    if let Some(v) = vid {
+        query = query.filter(vote_id.eq(v))
+    }
+    if let Some(p) = pid {
+        query = query.filter(player_id.eq(p))
+    }
+    query = query.limit(100);
+
+    match query.load::<problem::Favorite>(conn) {
+        Ok(fs) => {
+            return Ok(fs);
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
 fn to_move(qm: QueryMove) -> mov::Move {
     if qm.tile_id != -1 && qm.rot == -1 {
         return mov::Move::DMove(mov::DiscardMove {
@@ -553,6 +759,23 @@ fn to_player(v: QueryPlayer) -> player::Player {
         rating: v.rating,
         profile_image_url: "".to_string(),
     }
+}
+
+fn to_vote(v: QueryVote) -> Result<problem::Vote, Error> {
+    Ok(problem::Vote {
+        id: v.id,
+        problem_id: v.problem_id,
+        player_id: v.player_id,
+        player_name: v.player_name,
+        player_profile_image_url: "".to_string(),
+        note: v.note,
+        favorite_count: v.favorite_count,
+        tile_move_id: v.tile_move_id,
+        tile_move: get_tile_move(v.tile_move_id)?,
+        meeple_move_id: v.meeple_move_id,
+        meeple_move: get_meeple_move(v.meeple_move_id)?,
+        created_at: v.created_at,
+    })
 }
 
 fn establish_connection() -> PgConnection {

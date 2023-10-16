@@ -1,4 +1,4 @@
-use aws_sdk_s3::{operation::get_object::GetObjectOutput, primitives::ByteStream, Client};
+use aws_sdk_s3::{primitives::ByteStream, Client};
 use rocket::State;
 
 pub async fn put_object(storage_client: &State<Client>, key: &str, body: ByteStream) {

@@ -53,5 +53,14 @@
   "cancel": "キャンセル",
   "searching_opponent": "対戦相手を探しています ...",
   "play_again": "再戦する",
-  "game_result": "ゲームの結果"
+  "game_result": "ゲームの結果",
+  "try_again": "やり直す",
+  "tile_in_hand": "配置タイル",
+  "comment": "コメントを書く...",
+  "vote": "投票する！",
+  "vote_results": "投票結果",
+  "created_by": "作成者",
+  "problems": "どこ置くの問題",
+  "problems_description": "ここではカルカソンヌの特定の盤面について、自分ならどこに置くかを考えて投票したり、他の人が投票した結果を見たりすることができます。自分の投票を完了すると全員の投票結果が見れるようになります。",
+  "remaining_tiles": "残りタイル"
 }

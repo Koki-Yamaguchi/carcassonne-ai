@@ -10,7 +10,6 @@ import {
   Game,
   MeepleMoveResult,
   CompleteEvent,
-  TileMoveResult,
   Move,
   TileMove,
   MeepleMove,
@@ -18,6 +17,8 @@ import {
   Board,
   Player,
   WaitingGame,
+  Problem,
+  Vote,
 } from "../types";
 
 export class API {
@@ -369,13 +370,13 @@ export class API {
   }
 
   async createTileMove(
-    gameID: number,
+    gameID: number | null,
     playerID: number,
     tileID: number,
     rot: number,
     posY: number,
     posX: number
-  ): Promise<TileMoveResult> {
+  ): Promise<TileMove> {
     try {
       const res = await axios.post(`${this.base_url}/tile-moves/create`, {
         game_id: gameID,
@@ -386,10 +387,15 @@ export class API {
         pos_x: posX,
       });
       console.log({ res });
-      const tileMoveResult: TileMoveResult = {
-        meepleablePositions: res.data.meepleable_positions,
+      const tileMove: TileMove = {
+        id: res.data.TMove.id,
+        playerID: res.data.TMove.player_id,
+        ord: res.data.TMove.ord,
+        tile: res.data.TMove.tile,
+        pos: { y: res.data.TMove.pos[0], x: res.data.TMove.pos[1] },
+        rot: res.data.TMove.rot,
       };
-      return tileMoveResult;
+      return tileMove;
     } catch (e) {
       console.log({ e });
       throw e;
@@ -397,13 +403,13 @@ export class API {
   }
 
   async createMeepleMove(
-    gameID: number,
+    gameID: number | null,
     playerID: number,
     meepleID: number,
     pos: number,
     tilePosY: number,
     tilePosX: number
-  ): Promise<MeepleMoveResult> {
+  ): Promise<MeepleMove> {
     try {
       const res = await axios.post(`${this.base_url}/meeple-moves/create`, {
         game_id: gameID,
@@ -414,22 +420,15 @@ export class API {
         tile_pos_x: tilePosX,
       });
       console.log({ res });
-      const meepleMoveResult: MeepleMoveResult = {
-        completeEvents: res.data.complete_events.map(
-          (e: any): CompleteEvent => {
-            return {
-              meepleIDs: e.meeple_ids,
-              feature: e.feature,
-              point: e.point,
-            };
-          }
-        ),
-        currentPlayerID: res.data.current_player_id,
-        nextPlayerID: res.data.next_player_id,
-        currentTileID: res.data.current_tile_id,
-        nextTileID: res.data.next_tile_id,
+
+      const meepleMove: MeepleMove = {
+        id: res.data.MMove.id,
+        playerID: res.data.MMove.player_id,
+        ord: res.data.MMove.ord,
+        meepleID: res.data.MMove.meeple_id,
+        pos: res.data.MMove.meeple_pos,
       };
-      return meepleMoveResult;
+      return meepleMove;
     } catch (e) {
       console.log({ e });
       throw e;
@@ -440,7 +439,7 @@ export class API {
     gameID: number,
     playerID: number,
     tileID: number
-  ): Promise<MeepleMoveResult> {
+  ): Promise<DiscardMove> {
     try {
       const res = await axios.post(`${this.base_url}/discard-moves/create`, {
         game_id: gameID,
@@ -448,14 +447,13 @@ export class API {
         tile_id: tileID,
       });
       console.log({ res });
-      const meepleMoveResult: MeepleMoveResult = {
-        completeEvents: [],
-        currentPlayerID: res.data.current_player_id,
-        nextPlayerID: res.data.next_player_id,
-        currentTileID: res.data.current_tile_id,
-        nextTileID: res.data.next_tile_id,
+      const discardMove: DiscardMove = {
+        id: res.data.DMove.id,
+        playerID: res.data.DMove.player_id,
+        ord: res.data.DMove.ord,
+        tile: res.data.DMove.tile,
       };
-      return meepleMoveResult;
+      return discardMove;
     } catch (e) {
       console.log({ e });
       throw e;
@@ -483,6 +481,7 @@ export class API {
       const moves = res.data.map((mv: any) => {
         if (mv.TMove) {
           const tm: TileMove = {
+            id: mv.TMove.id,
             playerID: mv.TMove.player_id,
             ord: mv.TMove.ord,
             tile: mv.TMove.tile,
@@ -492,6 +491,7 @@ export class API {
           return tm;
         } else if (mv.MMove) {
           const mm: MeepleMove = {
+            id: mv.MMove.id,
             playerID: mv.MMove.player_id,
             ord: mv.MMove.ord,
             meepleID: mv.MMove.meeple_id,
@@ -500,6 +500,7 @@ export class API {
           return mm;
         } else {
           const dm: DiscardMove = {
+            id: mv.DMove.id,
             playerID: mv.DMove.player_id,
             ord: mv.DMove.ord,
             tile: mv.DMove.tile,
@@ -586,6 +587,133 @@ export class API {
         ),
       };
       return board;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async getProblem(id: number): Promise<Problem> {
+    try {
+      const url = `${this.base_url}/problems/${id}`;
+      const res = await axios.get(url);
+      console.log({ res });
+      const prob: Problem = {
+        id: res.data.id,
+        gameID: res.data.game_id,
+        name: res.data.name,
+      };
+      return prob;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async getProblems(): Promise<Problem[]> {
+    try {
+      const url = `${this.base_url}/problems`;
+      const res = await axios.get(url);
+      console.log({ res });
+      const problems: Problem[] = res.data.map((p: any) => {
+        return {
+          id: p.id,
+          gameID: p.game_id,
+          name: p.name,
+        };
+      });
+      return problems;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async createVote(
+    problemID: number,
+    playerID: number,
+    playerName: string,
+    note: string,
+    tileMoveID: number,
+    meepleMoveID: number
+  ): Promise<Vote> {
+    try {
+      const res = await axios.post(`${this.base_url}/votes/create`, {
+        problem_id: problemID,
+        player_id: playerID,
+        player_name: playerName,
+        note: note,
+        tile_move_id: tileMoveID,
+        meeple_move_id: meepleMoveID,
+      });
+      const tileMove: TileMove = {
+        id: res.data.tile_move.id,
+        playerID: res.data.tile_move.player_id,
+        ord: res.data.tile_move.ord,
+        tile: res.data.tile_move.tile,
+        pos: { y: res.data.tile_move.pos[0], x: res.data.tile_move.pos[1] },
+        rot: res.data.tile_move.rot,
+      };
+      const meepleMove: MeepleMove = {
+        id: res.data.meeple_move.id,
+        playerID: res.data.meeple_move.player_id,
+        ord: res.data.meeple_move.ord,
+        meepleID: res.data.meeple_move.meeple_id,
+        pos: res.data.meeple_move.meeple_pos,
+      };
+      const vote: Vote = {
+        id: res.data.id,
+        problemID: res.data.problem_id,
+        playerID: res.data.player_id,
+        playerName: res.data.player_name,
+        playerProfileImageURL: res.data.player_profile_image_url,
+        note: res.data.note,
+        tileMove,
+        meepleMove,
+      };
+      return vote;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async getVotes(problemID?: number): Promise<Vote[]> {
+    try {
+      let url = `${this.base_url}/votes`;
+      if (problemID) {
+        url = `${url}?problem=${problemID}`;
+      }
+      const res = await axios.get(url);
+      console.log({ res });
+      const votes: Vote[] = res.data.map((v: any) => {
+        const tileMove: TileMove = {
+          id: v.tile_move.id,
+          playerID: v.tile_move.player_id,
+          ord: v.tile_move.ord,
+          tile: v.tile_move.tile,
+          pos: { y: v.tile_move.pos[0], x: v.tile_move.pos[1] },
+          rot: v.tile_move.rot,
+        };
+        const meepleMove: MeepleMove = {
+          id: v.meeple_move.id,
+          playerID: v.meeple_move.player_id,
+          ord: v.meeple_move.ord,
+          meepleID: v.meeple_move.meeple_id,
+          pos: v.meeple_move.meeple_pos,
+        };
+        return {
+          id: v.id,
+          problemID: v.problem_id,
+          playerID: v.player_id,
+          playerName: v.player_name,
+          playerProfileImageURL: v.player_profile_image_url,
+          note: v.note,
+          tileMove,
+          meepleMove,
+        };
+      });
+      return votes;
     } catch (e) {
       console.log({ e });
       throw e;

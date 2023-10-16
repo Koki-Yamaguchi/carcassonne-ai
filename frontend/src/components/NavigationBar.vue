@@ -49,6 +49,15 @@ const isOpen = ref<boolean>(false);
             {{ translate("random_match") }}
           </div>
           <div
+            @click="
+              isOpen = false;
+              router.push('/problems');
+            "
+            class="p-2 md:p-0"
+          >
+            {{ translate("problems") }}
+          </div>
+          <div
             class="p-2 md:p-0"
             v-if="store.authenticated"
             @click="

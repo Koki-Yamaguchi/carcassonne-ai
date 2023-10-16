@@ -19,11 +19,12 @@ use crate::event;
 use crate::game;
 use crate::game::tile;
 use crate::player;
+use crate::problem;
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct CreateTileMove {
-    pub game_id: i32,
+    pub game_id: Option<i32>,
     pub player_id: i32,
     pub tile_id: i32,
     pub rot: i32,
@@ -34,7 +35,7 @@ pub struct CreateTileMove {
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct CreateMeepleMove {
-    pub game_id: i32,
+    pub game_id: Option<i32>,
     pub player_id: i32,
     pub meeple_id: i32,
     pub pos: i32,
@@ -45,7 +46,7 @@ pub struct CreateMeepleMove {
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct CreateDiscardMove {
-    pub game_id: i32,
+    pub game_id: Option<i32>,
     pub player_id: i32,
     pub tile_id: i32,
 }
@@ -236,10 +237,12 @@ pub fn create_tile_move(
 
     match r {
         Ok(res) => {
-            let _ = queue.send(event::UpdateEvent {
-                name: "update_game".to_string(),
-                id: params.game_id,
-            });
+            if let Some(gid) = params.game_id {
+                let _ = queue.send(event::UpdateEvent {
+                    name: "update_game".to_string(),
+                    id: gid,
+                });
+            }
             (Status::Ok, (ContentType::JSON, to_string(&res).unwrap()))
         }
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
@@ -260,10 +263,12 @@ pub fn create_meeple_move(
     );
     match r {
         Ok(res) => {
-            let _ = queue.send(event::UpdateEvent {
-                name: "update_game".to_string(),
-                id: params.game_id,
-            });
+            if let Some(gid) = params.game_id {
+                let _ = queue.send(event::UpdateEvent {
+                    name: "update_game".to_string(),
+                    id: gid,
+                });
+            }
             (Status::Ok, (ContentType::JSON, to_string(&res).unwrap()))
         }
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
@@ -389,5 +394,74 @@ pub async fn upload_profile_image(
         let body = ByteStream::from_path(Path::new(path)).await.unwrap();
 
         player::upload_profile_image(storage_client, player_id, body).await
+    }
+}
+
+#[get("/problems/<id>", format = "application/json")]
+pub async fn get_problem(id: Option<i32>) -> (Status, (ContentType, String)) {
+    match problem::get_problem(id.unwrap()) {
+        Ok(p) => (Status::Ok, (ContentType::JSON, to_string(&p).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[get("/problems", format = "application/json")]
+pub async fn get_problems() -> (Status, (ContentType, String)) {
+    match problem::get_problems() {
+        Ok(ps) => (Status::Ok, (ContentType::JSON, to_string(&ps).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[post("/votes/create", format = "application/json", data = "<params>")]
+pub fn create_vote(params: Json<problem::CreateVote>) -> (Status, (ContentType, String)) {
+    match problem::create_vote(
+        params.problem_id,
+        params.player_id,
+        params.player_name.clone(),
+        params.note.clone(),
+        params.tile_move_id,
+        params.meeple_move_id,
+    ) {
+        Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[get("/votes/<id>", format = "application/json")]
+pub async fn get_vote(
+    id: Option<i32>,
+    storage_client: &State<Client>,
+) -> (Status, (ContentType, String)) {
+    match problem::get_vote(id.unwrap(), storage_client).await {
+        Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[get("/votes?<problem>", format = "application/json")]
+pub async fn get_votes(
+    problem: Option<i32>,
+    storage_client: &State<Client>,
+) -> (Status, (ContentType, String)) {
+    match problem::get_votes(problem, storage_client).await {
+        Ok(vs) => (Status::Ok, (ContentType::JSON, to_string(&vs).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[post("/favorites/create", format = "application/json", data = "<params>")]
+pub fn create_favorite(params: Json<problem::CreateFavorite>) -> (Status, (ContentType, String)) {
+    match problem::create_favorite(params.vote_id, params.player_id, params.player_name.clone()) {
+        Ok(f) => (Status::Ok, (ContentType::JSON, to_string(&f).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[get("/favorites?<vote>&<player>", format = "application/json")]
+pub fn get_favorites(vote: Option<i32>, player: Option<i32>) -> (Status, (ContentType, String)) {
+    match problem::get_favorites(vote, player) {
+        Ok(fs) => (Status::Ok, (ContentType::JSON, to_string(&fs).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }

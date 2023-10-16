@@ -8,6 +8,7 @@ mod game;
 mod handlers;
 mod optimal_move;
 mod player;
+mod problem;
 mod schema;
 mod storage;
 
@@ -27,8 +28,11 @@ use handlers::update_player;
 use handlers::upload_profile_image;
 use handlers::wait_ai_move;
 use handlers::{create_discard_move, create_meeple_move, create_tile_move};
+use handlers::{create_favorite, get_favorites};
 use handlers::{create_game, get_game, get_games};
+use handlers::{create_vote, get_vote, get_votes};
 use handlers::{create_waiting_game, delete_waiting_game, get_waiting_games, update_waiting_game};
+use handlers::{get_problem, get_problems};
 
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::Client;
@@ -96,6 +100,13 @@ async fn rocket() -> _ {
                 events,
                 send_event,
                 upload_profile_image,
+                get_problem,
+                get_problems,
+                create_vote,
+                get_vote,
+                get_votes,
+                create_favorite,
+                get_favorites,
             ],
         );
     r

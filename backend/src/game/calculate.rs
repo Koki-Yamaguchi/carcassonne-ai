@@ -2163,7 +2163,7 @@ fn calculate_test_for_road_and_city_completion() {
         Move::TMove(TileMove {
             id: -1,
             ord: 0,
-            game_id,
+            game_id: Some(game_id),
             player_id: player1_id,
             tile: Tile::StartingTile,
             rot: 0,
@@ -2172,7 +2172,7 @@ fn calculate_test_for_road_and_city_completion() {
         Move::MMove(MeepleMove {
             id: -1,
             ord: 1,
-            game_id,
+            game_id: Some(game_id),
             player_id: player1_id,
             meeple_id: -1,
             tile_pos: (0, 0),
@@ -2183,7 +2183,7 @@ fn calculate_test_for_road_and_city_completion() {
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: 2,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         tile: Tile::TriangleWithRoad,
         rot: 2,
@@ -2202,7 +2202,7 @@ fn calculate_test_for_road_and_city_completion() {
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: 3,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         meeple_id: 0,
         tile_pos: (-1, 0),
@@ -2223,7 +2223,7 @@ fn calculate_test_for_road_and_city_completion() {
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: 4,
-        game_id,
+        game_id: Some(game_id),
         player_id: player1_id,
         tile: Tile::CityCapWithCrossroad,
         rot: 3,
@@ -2242,7 +2242,7 @@ fn calculate_test_for_road_and_city_completion() {
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: 5,
-        game_id,
+        game_id: Some(game_id),
         player_id: player1_id,
         meeple_id: 7,
         tile_pos: (0, -1),
@@ -2263,7 +2263,7 @@ fn calculate_test_for_road_and_city_completion() {
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: 6,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         tile: Tile::CityCapWithCrossroad,
         rot: 0,
@@ -2282,7 +2282,7 @@ fn calculate_test_for_road_and_city_completion() {
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: 7,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         meeple_id: 1,
         tile_pos: (0, 1),
@@ -2306,7 +2306,7 @@ fn calculate_test_for_road_and_city_completion() {
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: 8,
-        game_id,
+        game_id: Some(game_id),
         player_id: player1_id,
         tile: Tile::StartingTile,
         rot: 1,
@@ -2325,7 +2325,7 @@ fn calculate_test_for_road_and_city_completion() {
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: 9,
-        game_id,
+        game_id: Some(game_id),
         player_id: player1_id,
         meeple_id: 8,
         tile_pos: (0, -2),
@@ -2349,7 +2349,7 @@ fn calculate_test_for_road_and_city_completion() {
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: 10,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         tile: Tile::TriangleWithRoadWithCOA,
         rot: 3,
@@ -2368,7 +2368,7 @@ fn calculate_test_for_road_and_city_completion() {
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: 11,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         meeple_id: 1,
         tile_pos: (-1, 1),
@@ -2422,7 +2422,7 @@ fn calculate_test_for_monastery_completion() {
         Move::TMove(TileMove {
             id: -1,
             ord: 0,
-            game_id,
+            game_id: Some(game_id),
             player_id: player1_id,
             tile: Tile::StartingTile,
             rot: 0,
@@ -2431,7 +2431,7 @@ fn calculate_test_for_monastery_completion() {
         Move::MMove(MeepleMove {
             id: -1,
             ord: 1,
-            game_id,
+            game_id: Some(game_id),
             player_id: player1_id,
             meeple_id: -1,
             tile_pos: (0, 0),
@@ -2442,7 +2442,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: 2,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         tile: Tile::Monastery,
         rot: 0,
@@ -2461,7 +2461,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: 3,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         meeple_id: 0,
         tile_pos: (1, 0),
@@ -2482,7 +2482,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: 4,
-        game_id,
+        game_id: Some(game_id),
         player_id: player1_id,
         tile: Tile::Monastery,
         rot: 0,
@@ -2491,7 +2491,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: 5,
-        game_id,
+        game_id: Some(game_id),
         player_id: player1_id,
         meeple_id: -1,
         tile_pos: (2, 0),
@@ -2501,7 +2501,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: 6,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         tile: Tile::Monastery,
         rot: 0,
@@ -2510,7 +2510,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: 7,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         meeple_id: -1,
         tile_pos: (2, -1),
@@ -2520,7 +2520,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: 8,
-        game_id,
+        game_id: Some(game_id),
         player_id: player1_id,
         tile: Tile::Monastery,
         rot: 0,
@@ -2529,7 +2529,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: 9,
-        game_id,
+        game_id: Some(game_id),
         player_id: player1_id,
         meeple_id: -1,
         tile_pos: (2, -2),
@@ -2539,7 +2539,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: 10,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         tile: Tile::Monastery,
         rot: 0,
@@ -2548,7 +2548,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: 11,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         meeple_id: -1,
         tile_pos: (1, -2),
@@ -2558,7 +2558,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: 12,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         tile: Tile::Monastery,
         rot: 0,
@@ -2567,7 +2567,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: 13,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         meeple_id: -1,
         tile_pos: (2, 1),
@@ -2577,7 +2577,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: 14,
-        game_id,
+        game_id: Some(game_id),
         player_id: player1_id,
         tile: Tile::Monastery,
         rot: 0,
@@ -2586,7 +2586,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: 15,
-        game_id,
+        game_id: Some(game_id),
         player_id: player1_id,
         meeple_id: -1,
         tile_pos: (1, 1),
@@ -2596,7 +2596,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: 16,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         tile: Tile::StartingTile,
         rot: 0,
@@ -2605,7 +2605,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: 17,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         meeple_id: -1,
         tile_pos: (0, 1),
@@ -2615,7 +2615,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: 18,
-        game_id,
+        game_id: Some(game_id),
         player_id: player1_id,
         tile: Tile::StartingTile,
         rot: 0,
@@ -2624,7 +2624,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: 19,
-        game_id,
+        game_id: Some(game_id),
         player_id: player1_id,
         meeple_id: -1,
         tile_pos: (0, -1),
@@ -2634,7 +2634,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: 20,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         tile: Tile::StartingTile,
         rot: 0,
@@ -2643,7 +2643,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: 21,
-        game_id,
+        game_id: Some(game_id),
         player_id: player0_id,
         meeple_id: -1,
         tile_pos: (0, -2),
@@ -2653,7 +2653,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: 22,
-        game_id,
+        game_id: Some(game_id),
         player_id: player1_id,
         tile: Tile::Monastery,
         rot: 0,
@@ -2662,7 +2662,7 @@ fn calculate_test_for_monastery_completion() {
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: 23,
-        game_id,
+        game_id: Some(game_id),
         player_id: player1_id,
         meeple_id: 7,
         tile_pos: (1, -1),
@@ -2705,7 +2705,7 @@ fn add_move(
     mvs.push(Move::TMove(TileMove {
         id: -1,
         ord: -1,
-        game_id: -1,
+        game_id: None,
         player_id: -1,
         tile,
         rot,
@@ -2714,7 +2714,7 @@ fn add_move(
     mvs.push(Move::MMove(MeepleMove {
         id: -1,
         ord: -1,
-        game_id: -1,
+        game_id: None,
         player_id: -1,
         meeple_id: meeple_id,
         tile_pos: pos,

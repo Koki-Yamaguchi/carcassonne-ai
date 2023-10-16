@@ -88,7 +88,7 @@ pub fn list_evaluate_results(moves: &Vec<Move>, next_tile: Tile) {
                 let tmove = TileMove {
                     id: -1,
                     ord: tile_move_ord,
-                    game_id: -1,
+                    game_id: None,
                     player_id: -1,
                     tile: next_tile,
                     rot: rot % 4,
@@ -119,7 +119,7 @@ pub fn list_evaluate_results(moves: &Vec<Move>, next_tile: Tile) {
                     let mmove = MeepleMove {
                         id: -1,
                         ord: meeple_move_ord,
-                        game_id: -1,
+                        game_id: None,
                         player_id: -1,
                         meeple_id,
                         tile_pos: (ny, nx),
@@ -175,7 +175,7 @@ fn compare_evaluate_results(moves: &Vec<Move>, next_tile: Tile, compare_moves: &
         let tmove = TileMove {
             id: -1,
             ord: tile_move_ord,
-            game_id: -1,
+            game_id: None,
             player_id: -1,
             tile: next_tile,
             rot: compare_move.rot % 4,
@@ -192,7 +192,7 @@ fn compare_evaluate_results(moves: &Vec<Move>, next_tile: Tile, compare_moves: &
         let mmove = MeepleMove {
             id: -1,
             ord: meeple_move_ord,
-            game_id: -1,
+            game_id: None,
             player_id: -1,
             meeple_id,
             meeple_pos: compare_move.meeple_pos,

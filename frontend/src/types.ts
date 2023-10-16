@@ -62,6 +62,7 @@ export interface CompleteEvent {
 }
 
 export interface TileMove {
+  id: number;
   playerID: number;
   ord: number;
   tile: TileKind;
@@ -70,6 +71,7 @@ export interface TileMove {
 }
 
 export interface MeepleMove {
+  id: number;
   playerID: number;
   ord: number;
   meepleID: number;
@@ -77,6 +79,7 @@ export interface MeepleMove {
 }
 
 export interface DiscardMove {
+  id: number;
   playerID: number;
   ord: number;
   tile: TileKind;
@@ -90,4 +93,21 @@ export interface Board {
   tiles: Tile[][];
   meepleablePositions: number[];
   completeEvents: CompleteEvent[];
+}
+
+export interface Problem {
+  id: number;
+  gameID: number;
+  name: string;
+}
+
+export interface Vote {
+  id: number;
+  problemID: number;
+  playerID: number;
+  playerName: string;
+  playerProfileImageURL: string;
+  note: string;
+  tileMove: TileMove;
+  meepleMove: MeepleMove;
 }

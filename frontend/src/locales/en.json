@@ -53,5 +53,14 @@
   "cancel": "Cancel",
   "searching_opponent": "Searching Opponent ...",
   "play_again": "Play Again",
-  "game_result": "Game Result"
+  "game_result": "Game Result",
+  "try_again": "Try Again",
+  "tile_in_hand": "Tile in hand",
+  "comment": "Write comments...",
+  "vote": "Vote!",
+  "vote_results": "Results",
+  "created_by": "created by",
+  "problems": "Problems",
+  "problems_description": "You can consider your own move and vote in various given situations of Carcassonne, and can see what other people's moves as well. Once you have voted, you can see all the results.",
+  "remaining_tiles": "Remaining tiles"
 }
