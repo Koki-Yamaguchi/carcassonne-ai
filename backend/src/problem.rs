@@ -88,10 +88,11 @@ fn create_problem_test() {
     use super::game::decoder;
     use super::game::mov::{MeepleMove, Move::*, TileMove};
 
-    let all_mvs = decoder::decode("src/data/426597340.json".to_string());
-    let remaining_tile_count = 6;
-    let mv_idx = (72 - (remaining_tile_count + 2)) * 2;
+    let all_mvs = decoder::decode("src/data/424613817.json".to_string());
+    let remaining_tile_count = 68;
+    let problem_name = "Road Problem".to_string();
 
+    let mv_idx = (72 - (remaining_tile_count + 2)) * 2;
     let mvs = all_mvs[0..mv_idx].to_vec();
 
     let you = -2;
@@ -182,7 +183,7 @@ fn create_problem_test() {
         }
     }
 
-    create_problem(g.id, "Second Problem".to_string()).unwrap();
+    create_problem(g.id, problem_name).unwrap();
     */
 }
 
