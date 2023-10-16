@@ -12,9 +12,10 @@ const router = useRouter();
 
 <template>
   <div
+    @click="router.push(`/problems/${problem.id}`)"
     class="flex justify-between border rounded-md px-2 py-2 mb-2 bg-white hover:bg-gray-50 hover:cursor-pointer"
   >
-    <div class="" @click="router.push(`/problems/${problem.id}`)">
+    <div>
       {{ problem.name }}
     </div>
     <div v-if="voted">
