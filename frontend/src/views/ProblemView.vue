@@ -6,12 +6,15 @@ import { useRoute } from "vue-router";
 import { store } from "../store";
 import GameBoard from "../components/GameBoard.vue";
 import PlayerInfo from "../components/PlayerInfo.vue";
+import VoteItems from "../components/VoteItems.vue";
+
 import {
   boardSize,
   getInitialBoard,
   idToTileKind,
   newTile,
   Tile,
+  Vote,
 } from "../tiles";
 import WoodImg from "../assets/img/background-wood.png";
 import { translate } from "../locales/translate";
@@ -38,6 +41,11 @@ const canMeeple = ref<boolean>(false);
 const canSubmit = ref<boolean>(false);
 const meeplingPosition = ref<number>(-1);
 const note = ref<string>("");
+
+const voted = ref<boolean>(false);
+const votes = ref<Vote[]>([]);
+const currentVoteID = ref<number>(0);
+const prevVote = ref<Vote | null>(null);
 
 const getPlaceablePositions = (placingTile: Tile): TilePosition[] => {
   const pos = [];
@@ -75,6 +83,10 @@ const getPlaceablePositions = (placingTile: Tile): TilePosition[] => {
 };
 
 const handleTilePositionSelected = (pos: TilePosition) => {
+  if (voted.value) {
+    return;
+  }
+
   placingPosition.value = pos;
   placeableDirections.value = [];
   placingTile.value?.resetDirection();
@@ -148,8 +160,11 @@ const confirm = async () => {
 
   canConfirm.value = false;
 
-  tiles.value[placingPosition.value.y][placingPosition.value.x] =
-    placingTile.value;
+  const posY = placingPosition.value.y;
+  const posX = placingPosition.value.x;
+  tiles.value[posY][posX] = placingTile.value;
+  tiles.value[posY][posX].addFrame("black");
+
   if (player0Meeples.value.size !== 0) {
     meepleablePositions.value = [0, 1, 2, 3, 4, 5, 6, 7];
     canMeeple.value = true;
@@ -186,6 +201,8 @@ const cancel = () => {
     return;
   }
   tiles.value[placingPosition.value.y][placingPosition.value.x] = null;
+  placingPosition.value = null;
+  placingTile.value.addFrame(null);
   meepleablePositions.value = [];
   placeablePositions.value = getPlaceablePositions(placingTile.value);
   canConfirm.value = true;
@@ -232,7 +249,11 @@ const createVote = async () => {
     meepleMove.id
   );
 
-  // Show results
+  placingTile.value = null;
+  placingPosition.value = null;
+
+  voted.value = true;
+  updateVotes();
 };
 
 onMounted(async () => {
@@ -291,7 +312,67 @@ onMounted(async () => {
   const placingTileKind = idToTileKind(placingTileID);
   placingTile.value = newTile(0, placingTileKind, null, -1, -1);
   placeablePositions.value = getPlaceablePositions(placingTile.value);
+
+  // if there's already a vote from the player, show results
+  votes.value = await api.getVotes(problem.value.id);
+  const myVotes = votes.value.filter((v) => v.playerID === player.value.id);
+  if (myVotes.length > 0) {
+    placeablePositions.value = [];
+    voted.value = true;
+    updateVotes();
+  }
 });
+
+const updateVotes = async () => {
+  const api = new API();
+
+  votes.value = await api.getVotes(problem.value.id);
+  const myVotes = votes.value.filter((v) => v.playerID === player.value.id);
+  const otherVotes = votes.value.filter((v) => v.playerID !== player.value.id);
+  votes.value = myVotes.concat(otherVotes);
+
+  handleClickVote(votes.value[0].id);
+};
+
+const handleClickVote = (voteID: number) => {
+  if (currentVoteID.value === voteID) {
+    currentVoteID.value = 0;
+  } else {
+    currentVoteID.value = voteID;
+  }
+  if (currentVoteID.value !== 0) {
+    const vote = votes.value.filter((v) => v.id === currentVoteID.value)[0];
+    updateBoard(vote);
+  } else {
+    updateBoard(null);
+  }
+};
+
+const updateBoard = async (vote: Vote | null) => {
+  if (prevVote.value) {
+    tiles.value[prevVote.value.tileMove.pos[0] + Math.floor(boardSize / 2)][
+      prevVote.value.tileMove.pos[1] + Math.floor(boardSize / 2)
+    ] = null;
+  }
+
+  if (vote) {
+    const tileMove = vote.tileMove;
+    const meepleMove = vote.meepleMove;
+    const tile = newTile(
+      tileMove.rot,
+      tileMove.tile,
+      "yellow",
+      meepleMove.meeple_pos,
+      meepleMove.meeple_id
+    );
+    const posY = tileMove.pos[0] + Math.floor(boardSize / 2);
+    const posX = tileMove.pos[1] + Math.floor(boardSize / 2);
+    tiles.value[posY][posX] = tile;
+    tiles.value[posY][posX].addFrame("black");
+
+    prevVote.value = vote;
+  }
+};
 </script>
 
 <template>
@@ -327,59 +408,87 @@ onMounted(async () => {
     />
   </div>
   <div class="bg-gray-100 rounded text-gray-900 text-sm px-4 py-3 shadow-md">
-    <div class="flex">
-      <div class="flex flex-col justify-center mr-3">
-        <p>{{ translate("tile_in_hand") }}</p>
+    <div v-if="!voted">
+      <div class="flex">
+        <div class="flex flex-col justify-center mr-3">
+          <p>{{ translate("tile_in_hand") }}</p>
+        </div>
+        <div class="flex flex-col justify-center min-w-[30px] mr-3">
+          <img
+            v-if="game?.currentTileID !== -1"
+            class="min-h-[30px]"
+            width="30"
+            height="30"
+            :src="currentTile() ? currentTile()!.src : null"
+          />
+        </div>
+        <div class="flex flex-col justify-center">
+          <button
+            class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
+            v-if="canConfirm"
+            @click.once="confirm"
+          >
+            {{ translate("confirm") }}
+          </button>
+          <button
+            class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
+            v-if="canMeeple"
+            @click.once="skip"
+          >
+            {{ translate("skip") }}
+          </button>
+          <button
+            class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
+            v-if="canCancel"
+            @click="cancel"
+          >
+            {{ translate("try_again") }}
+          </button>
+        </div>
       </div>
-      <div class="flex flex-col justify-center min-w-[30px] mr-3">
-        <img
-          v-if="game?.currentTileID !== -1"
-          class="min-h-[30px]"
-          width="30"
-          height="30"
-          :src="currentTile() ? currentTile()!.src : null"
+      <div class="mt-4">
+        <textarea
+          class="rounded-md p-2 w-full focus:outline-none focus:border-orange-200 border-2"
+          rows="3"
+          cols="30"
+          :placeholder="translate('comment')"
+          v-model="note"
         />
-      </div>
-      <div class="flex flex-col justify-center">
-        <button
-          class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
-          v-if="canConfirm"
-          @click.once="confirm"
-        >
-          {{ translate("confirm") }}
-        </button>
-        <button
-          class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
-          v-if="canMeeple"
-          @click.once="skip"
-        >
-          {{ translate("skip") }}
-        </button>
-        <button
-          class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
-          v-if="canCancel"
-          @click="cancel"
-        >
-          {{ translate("try_again") }}
-        </button>
+        <div class="flex flex-col items-center">
+          <button
+            class="bg-gray-600 hover:bg-gray-500 disabled:bg-gray-300 text-[#eeeeee] rounded px-4 py-2 mt-2"
+            @click.once="createVote"
+            :disabled="!canSubmit"
+          >
+            {{ translate("vote") }}
+          </button>
+        </div>
       </div>
     </div>
-    <div class="mt-4">
-      <textarea
-        class="rounded-md p-2 w-full focus:outline-none focus:border-orange-200 border-2"
-        rows="3"
-        cols="30"
-        :placeholder="translate('comment')"
-        v-model="note"
-      />
-      <div class="flex flex-col items-center">
-        <button
-          class="bg-gray-600 hover:bg-gray-500 disabled:bg-gray-300 text-[#eeeeee] rounded px-4 py-2 mt-2"
-          @click.once="createVote"
-          :disabled="!canSubmit"
-        >
-          {{ translate("vote") }}
-        </button>
+    <div v-else>
+      <div class="flex">
+        <div class="flex flex-col justify-center mr-3">
+          <p>{{ translate("tile_in_hand") }}</p>
+        </div>
+        <div class="flex flex-col justify-center min-w-[30px] mr-3">
+          <img
+            v-if="game?.currentTileID !== -1"
+            class="min-h-[30px]"
+            width="30"
+            height="30"
+            :src="currentTile() ? currentTile()!.src : null"
+          />
+        </div>
+      </div>
+      <p class="mt-4">
+        {{ translate("vote_results") }}
+      </p>
+      <div class="p-2">
+        <VoteItems
+          :votes="votes"
+          :currentVoteID="currentVoteID"
+          @clickVote="handleClickVote"
+        />
       </div>
     </div>
   </div>

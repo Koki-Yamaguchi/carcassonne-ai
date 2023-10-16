@@ -57,5 +57,6 @@
   "try_again": "やり直す",
   "tile_in_hand": "配置タイル",
   "comment": "コメントを書く...",
-  "vote": "投票する！"
+  "vote": "投票する！",
+  "vote_results": "投票結果"
 }

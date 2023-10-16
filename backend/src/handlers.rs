@@ -429,16 +429,22 @@ pub fn create_vote(params: Json<problem::CreateVote>) -> (Status, (ContentType, 
 }
 
 #[get("/votes/<id>", format = "application/json")]
-pub fn get_vote(id: Option<i32>) -> (Status, (ContentType, String)) {
-    match problem::get_vote(id.unwrap()) {
+pub async fn get_vote(
+    id: Option<i32>,
+    storage_client: &State<Client>,
+) -> (Status, (ContentType, String)) {
+    match problem::get_vote(id.unwrap(), storage_client).await {
         Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
 
 #[get("/votes?<problem>", format = "application/json")]
-pub fn get_votes(problem: Option<i32>) -> (Status, (ContentType, String)) {
-    match problem::get_votes(problem) {
+pub async fn get_votes(
+    problem: Option<i32>,
+    storage_client: &State<Client>,
+) -> (Status, (ContentType, String)) {
+    match problem::get_votes(problem, storage_client).await {
         Ok(vs) => (Status::Ok, (ContentType::JSON, to_string(&vs).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }

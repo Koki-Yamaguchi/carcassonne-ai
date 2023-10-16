@@ -106,7 +106,8 @@ export interface Vote {
   problemID: number;
   playerID: number;
   playerName: string;
+  playerProfileImageURL: string;
   note: string;
-  tileMoveID: number;
-  meepleMoveID: number;
+  tileMove: TileMove;
+  meepleMove: MeepleMove;
 }

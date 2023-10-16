@@ -51,7 +51,14 @@ export type TileKind =
 
 type Side = "field" | "road" | "city";
 
-export type Color = "red" | "yellow" | "green" | "black" | "blue" | null;
+export type Color =
+  | "red"
+  | "yellow"
+  | "green"
+  | "black"
+  | "blue"
+  | "black"
+  | null;
 
 export const colorIDToColor = (colorID: number): Color => {
   if (colorID === 0) return "red";

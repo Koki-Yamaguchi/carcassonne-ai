@@ -651,11 +651,36 @@ export class API {
         problemID: res.data.problem_id,
         playerID: res.data.player_id,
         playerName: res.data.player_name,
+        playerProfileImageURL: res.data.player_profile_image_url,
         note: res.data.note,
-        tileMoveID: res.data.tile_move_id,
-        meepleMoveID: res.data.meeple_move_id,
+        tileMove: res.data.tile_move,
+        meepleMove: res.data.meeple_move,
       };
       return vote;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async getVotes(problemID: number): Promise<Vote[]> {
+    try {
+      const url = `${this.base_url}/votes?problem=${problemID}`;
+      const res = await axios.get(url);
+      console.log({ res });
+      const votes: Vote[] = res.data.map((v: any) => {
+        return {
+          id: v.id,
+          problemID: v.problem_id,
+          playerID: v.player_id,
+          playerName: v.player_name,
+          playerProfileImageURL: v.player_profile_image_url,
+          note: v.note,
+          tileMove: v.tile_move,
+          meepleMove: v.meeple_move,
+        };
+      });
+      return votes;
     } catch (e) {
       console.log({ e });
       throw e;
