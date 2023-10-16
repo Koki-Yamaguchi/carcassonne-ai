@@ -4,6 +4,7 @@ import { Problem } from "../types";
 
 defineProps<{
   problem: Problem;
+  voted: boolean;
 }>();
 
 const router = useRouter();
@@ -11,9 +12,14 @@ const router = useRouter();
 
 <template>
   <div
-    class="border rounded-md py-2 bg-white hover:bg-gray-50 hover:cursor-pointer"
-    @click="router.push(`/problems/${problem.id}`)"
+    class="flex justify-between border rounded-md px-2 py-2 mb-2 bg-white hover:bg-gray-50 hover:cursor-pointer"
   >
-    {{ problem.name }}
+    <div class="" @click="router.push(`/problems/${problem.id}`)">
+      {{ problem.name }}
+    </div>
+    <div v-if="voted">
+      <img width="20" src="../assets/img/check.png" />
+    </div>
+    <div v-else></div>
   </div>
 </template>

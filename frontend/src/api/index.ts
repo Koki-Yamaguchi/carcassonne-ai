@@ -646,6 +646,21 @@ export class API {
         tile_move_id: tileMoveID,
         meeple_move_id: meepleMoveID,
       });
+      const tileMove: TileMove = {
+        id: res.data.tile_move.id,
+        playerID: res.data.tile_move.player_id,
+        ord: res.data.tile_move.ord,
+        tile: res.data.tile_move.tile,
+        pos: { y: res.data.tile_move.pos[0], x: res.data.tile_move.pos[1] },
+        rot: res.data.tile_move.rot,
+      };
+      const meepleMove: MeepleMove = {
+        id: res.data.meeple_move.id,
+        playerID: res.data.meeple_move.player_id,
+        ord: res.data.meeple_move.ord,
+        meepleID: res.data.meeple_move.meeple_id,
+        pos: res.data.meeple_move.meeple_pos,
+      };
       const vote: Vote = {
         id: res.data.id,
         problemID: res.data.problem_id,
@@ -653,8 +668,8 @@ export class API {
         playerName: res.data.player_name,
         playerProfileImageURL: res.data.player_profile_image_url,
         note: res.data.note,
-        tileMove: res.data.tile_move,
-        meepleMove: res.data.meeple_move,
+        tileMove,
+        meepleMove,
       };
       return vote;
     } catch (e) {
@@ -663,12 +678,30 @@ export class API {
     }
   }
 
-  async getVotes(problemID: number): Promise<Vote[]> {
+  async getVotes(problemID?: number): Promise<Vote[]> {
     try {
-      const url = `${this.base_url}/votes?problem=${problemID}`;
+      let url = `${this.base_url}/votes`;
+      if (problemID) {
+        url = `${url}?problem=${problemID}`;
+      }
       const res = await axios.get(url);
       console.log({ res });
       const votes: Vote[] = res.data.map((v: any) => {
+        const tileMove: TileMove = {
+          id: v.tile_move.id,
+          playerID: v.tile_move.player_id,
+          ord: v.tile_move.ord,
+          tile: v.tile_move.tile,
+          pos: { y: v.tile_move.pos[0], x: v.tile_move.pos[1] },
+          rot: v.tile_move.rot,
+        };
+        const meepleMove: MeepleMove = {
+          id: v.meeple_move.id,
+          playerID: v.meeple_move.player_id,
+          ord: v.meeple_move.ord,
+          meepleID: v.meeple_move.meeple_id,
+          pos: v.meeple_move.meeple_pos,
+        };
         return {
           id: v.id,
           problemID: v.problem_id,
@@ -676,8 +709,8 @@ export class API {
           playerName: v.player_name,
           playerProfileImageURL: v.player_profile_image_url,
           note: v.note,
-          tileMove: v.tile_move,
-          meepleMove: v.meeple_move,
+          tileMove,
+          meepleMove,
         };
       });
       return votes;

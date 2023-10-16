@@ -24,7 +24,7 @@ defineProps<{
           {{ vote.playerName }}
         </div>
       </div>
-      <div v-if="isOpen" class="pl-2 pt-2 text-xs">
+      <div v-if="isOpen" class="pl-2 pt-2 text-xs break-words">
         {{ vote.note }}
       </div>
     </div>
