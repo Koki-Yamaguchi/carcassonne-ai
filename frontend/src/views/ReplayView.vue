@@ -4,7 +4,6 @@ import { useRoute } from "vue-router";
 import { API } from "../api";
 import { boardSize, getInitialBoard, newTile, Tile, TileKind } from "../tiles";
 import { Board, DiscardMove, Game, TileMove } from "../types";
-import WoodImg from "../assets/img/background-wood.png";
 import { translate } from "../locales/translate";
 import GameBoard from "../components/GameBoard.vue";
 import PlayerInfo from "../components/PlayerInfo.vue";
@@ -131,12 +130,6 @@ const update = async () => {
   }
 };
 
-const boardStyle = computed(() => {
-  return {
-    "background-image": "url(" + WoodImg + ")",
-  };
-});
-
 const winner = computed(() => {
   if (!game.value) {
     return "";
@@ -250,13 +243,14 @@ onMounted(async () => {
       :tileSrc="null"
     />
   </div>
-  <div class="board mt-3" :style="boardStyle">
+  <div class="board mt-3">
     <GameBoard
       :tiles="tiles"
       :placeablePositions="[]"
       :placingTile="null"
       :placingPosition="null"
       :meepleablePositions="[]"
+      :isLarge="true"
     />
   </div>
 </template>
