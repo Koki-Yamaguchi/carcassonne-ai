@@ -105,6 +105,7 @@ pub struct QueryMove {
 pub struct NewProblem {
     pub game_id: i32,
     pub name: String,
+    pub start_at: Option<chrono::NaiveDateTime>,
 }
 
 #[derive(Insertable)]
@@ -617,11 +618,13 @@ pub fn get_problem(prid: i32) -> Result<problem::Problem, Error> {
 }
 pub fn get_problems() -> Result<Vec<problem::Problem>, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
-    use self::schema::problem::dsl::{created_at, problem as p};
+    use self::schema::problem::dsl::{created_at, problem as p, start_at};
+    let now = chrono::Utc::now().naive_utc();
 
     match p
+        .filter(start_at.le(now))
         .order(created_at.desc())
-        .limit(100)
+        .limit(300)
         .load::<problem::Problem>(conn)
     {
         Ok(ps) => {
