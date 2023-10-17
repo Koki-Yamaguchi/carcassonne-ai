@@ -1,0 +1,1 @@
+ALTER TABLE problem ADD COLUMN start_at TIMESTAMP;

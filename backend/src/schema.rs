@@ -87,6 +87,7 @@ diesel::table! {
         game_id -> Int4,
         created_at -> Timestamp,
         name -> Varchar,
+        start_at -> Nullable<Timestamp>,
     }
 }
 
