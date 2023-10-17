@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from "vue";
+import { onMounted, ref } from "vue";
 import {
   Problem,
   Player,
@@ -27,7 +27,6 @@ import {
   TileKind,
   getRemainingTileKinds,
 } from "../tiles";
-import WoodImg from "../assets/img/background-wood.png";
 import { translate } from "../locales/translate";
 
 const problem = ref<Problem | null>(null);
@@ -54,6 +53,7 @@ const meeplingPosition = ref<number>(-1);
 const note = ref<string>("");
 const showRemainingTiles = ref<boolean>(false);
 const remainingTilesSrc = ref<string[]>([]);
+const fixBoard = ref<boolean>(false);
 
 const voted = ref<boolean>(false);
 const votes = ref<Vote[]>([]);
@@ -145,12 +145,6 @@ const handleTurnTile = () => {
     placingTile.value?.rotate();
   }
 };
-
-const boardStyle = computed(() => {
-  return {
-    "background-image": "url(" + WoodImg + ")",
-  };
-});
 
 const currentTile = () => {
   if (!game.value) {
@@ -344,6 +338,14 @@ onMounted(async () => {
     voted.value = true;
     updateVotes();
   }
+
+  document.addEventListener("scroll", () => {
+    if (window.scrollY >= 203) {
+      fixBoard.value = true;
+    } else {
+      fixBoard.value = false;
+    }
+  });
 });
 
 const updateVotes = async () => {
@@ -425,17 +427,23 @@ const updateBoard = async (vote: Vote | null) => {
       :profileImageURL="''"
     />
   </div>
-  <div class="board mt-3" :style="boardStyle">
-    <GameBoard
-      :tiles="tiles"
-      :placeablePositions="placeablePositions"
-      :placingTile="placingTile"
-      :placingPosition="placingPosition"
-      :meepleablePositions="meepleablePositions"
-      @tilePositionSelected="handleTilePositionSelected"
-      @turnTile="handleTurnTile"
-      @placeMeeple="handlePlaceMeeple"
-    />
+  <div class="mt-3">
+    <div :class="fixBoard ? 'fixed top-0 w-full' : ''">
+      <GameBoard
+        :tiles="tiles"
+        :placeablePositions="placeablePositions"
+        :placingTile="placingTile"
+        :placingPosition="placingPosition"
+        :meepleablePositions="meepleablePositions"
+        @tilePositionSelected="handleTilePositionSelected"
+        @turnTile="handleTurnTile"
+        @placeMeeple="handlePlaceMeeple"
+        :isLarge="false"
+      />
+    </div>
+    <div v-if="fixBoard" class="h-[400px]">
+      <!-- keeps height for fixing a board -->
+    </div>
   </div>
   <div class="bg-gray-100 rounded text-gray-900 text-sm px-4 py-3 shadow-md">
     <div class="flex">
@@ -526,9 +534,3 @@ const updateBoard = async (vote: Vote | null) => {
     </div>
   </div>
 </template>
-<style>
-.board {
-  border-radius: 0.5%;
-  height: 400px;
-}
-</style>

@@ -6,7 +6,6 @@ import GameBoard from "../components/GameBoard.vue";
 import PlayerInfo from "../components/PlayerInfo.vue";
 import { translate } from "../locales/translate";
 import { store } from "../store";
-import WoodImg from "../assets/img/background-wood.png";
 import SpinnerIcon from "../components/SpinnerIcon.vue";
 import {
   boardSize,
@@ -671,12 +670,6 @@ const skip = async () => {
   await handlePlaceMeeple(-1);
 };
 
-const boardStyle = computed(() => {
-  return {
-    "background-image": "url(" + WoodImg + ")",
-  };
-});
-
 const placingTileSrc = computed(() => {
   return placingTile.value?.src;
 });
@@ -836,7 +829,7 @@ onMounted(async () => {
         :profileImageURL="player1ProfileImageURL"
       />
     </div>
-    <div class="board mt-3" :style="boardStyle">
+    <div class="mt-3">
       <GameBoard
         :tiles="tiles"
         :placeablePositions="placeablePositions"
@@ -846,6 +839,7 @@ onMounted(async () => {
         @tilePositionSelected="handleTilePositionSelected"
         @turnTile="handleTurnTile"
         @placeMeeple="handlePlaceMeeple"
+        :isLarge="true"
       />
     </div>
     <div class="absolute bottom-36 w-full flex justify-between px-8">
@@ -868,9 +862,3 @@ onMounted(async () => {
     </div>
   </div>
 </template>
-<style scoped>
-.board {
-  border-radius: 0.5%;
-  height: calc(100vh - 215px);
-}
-</style>
