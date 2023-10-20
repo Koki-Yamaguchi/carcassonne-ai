@@ -260,7 +260,7 @@ const createVote = async () => {
   placingPosition.value = null;
 
   voted.value = true;
-  votes.value = await api.getVotes(problem.value.id);
+  votes.value = await api.getVotes(problem.value.id, null);
 };
 
 onMounted(async () => {
@@ -331,7 +331,7 @@ onMounted(async () => {
   );
 
   // if there's already a vote from the player, show results
-  const tmpVotes = await api.getVotes(problem.value.id);
+  const tmpVotes = await api.getVotes(problem.value.id, null);
   const myVotes = tmpVotes.filter((v) => v.playerID === player.value?.id);
   if (myVotes.length > 0) {
     placeablePositions.value = [];
@@ -363,13 +363,13 @@ const handleClickVote = (voteID: number) => {
 };
 
 const updateBoard = async (vote: Vote | null) => {
-  if (prevVote.value) {
+  if (prevVote.value && prevVote.value.tileMove) {
     tiles.value[prevVote.value.tileMove.pos.y + Math.floor(boardSize / 2)][
       prevVote.value.tileMove.pos.x + Math.floor(boardSize / 2)
     ] = null;
   }
 
-  if (vote) {
+  if (vote && vote.tileMove && vote.meepleMove) {
     const tileMove = vote.tileMove;
     const meepleMove = vote.meepleMove;
     const tile = newTile(

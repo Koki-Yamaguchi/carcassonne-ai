@@ -6,7 +6,6 @@ import PersonIcon from "../components/PersonIcon.vue";
 defineProps<{
   problem: Problem;
   voted: boolean;
-  voteCount: number;
 }>();
 
 const router = useRouter();
@@ -26,7 +25,7 @@ const router = useRouter();
           <PersonIcon />
         </div>
         <div class="flex flex-col justify-center">
-          {{ voteCount }}
+          {{ problem.voteCount }}
         </div>
       </div>
       <div class="w-5">

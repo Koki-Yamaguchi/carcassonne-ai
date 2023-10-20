@@ -101,6 +101,7 @@ export interface Problem {
   name: string;
   creatorID: number;
   creatorName: string;
+  voteCount: number;
 }
 
 export interface Vote {
@@ -110,6 +111,6 @@ export interface Vote {
   playerName: string;
   playerProfileImageURL: string;
   note: string;
-  tileMove: TileMove;
-  meepleMove: MeepleMove;
+  tileMove: TileMove | null;
+  meepleMove: MeepleMove | null;
 }

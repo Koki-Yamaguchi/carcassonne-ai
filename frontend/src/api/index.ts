@@ -604,6 +604,7 @@ export class API {
         name: res.data.name,
         creatorID: res.data.creator_id,
         creatorName: res.data.creator_name,
+        voteCount: res.data.vote_count,
       };
       return prob;
     } catch (e) {
@@ -624,6 +625,7 @@ export class API {
           name: p.name,
           creatorID: p.creator_id,
           creatorName: p.creator_name,
+          voteCount: p.vote_count,
         };
       });
       return problems;
@@ -682,30 +684,42 @@ export class API {
     }
   }
 
-  async getVotes(problemID?: number): Promise<Vote[]> {
+  async getVotes(
+    problemID: number | null,
+    playerID: number | null
+  ): Promise<Vote[]> {
     try {
       let url = `${this.base_url}/votes`;
       if (problemID) {
         url = `${url}?problem=${problemID}`;
       }
+      if (playerID) {
+        url = `${url}?player=${playerID}`;
+      }
       const res = await axios.get(url);
       console.log({ res });
       const votes: Vote[] = res.data.map((v: any) => {
-        const tileMove: TileMove = {
-          id: v.tile_move.id,
-          playerID: v.tile_move.player_id,
-          ord: v.tile_move.ord,
-          tile: v.tile_move.tile,
-          pos: { y: v.tile_move.pos[0], x: v.tile_move.pos[1] },
-          rot: v.tile_move.rot,
-        };
-        const meepleMove: MeepleMove = {
-          id: v.meeple_move.id,
-          playerID: v.meeple_move.player_id,
-          ord: v.meeple_move.ord,
-          meepleID: v.meeple_move.meeple_id,
-          pos: v.meeple_move.meeple_pos,
-        };
+        let tileMove: TileMove | null = null;
+        if (v.tile_move) {
+          tileMove = {
+            id: v.tile_move.id,
+            playerID: v.tile_move.player_id,
+            ord: v.tile_move.ord,
+            tile: v.tile_move.tile,
+            pos: { y: v.tile_move.pos[0], x: v.tile_move.pos[1] },
+            rot: v.tile_move.rot,
+          };
+        }
+        let meepleMove: MeepleMove | null = null;
+        if (v.meeple_move) {
+          meepleMove = {
+            id: v.meeple_move.id,
+            playerID: v.meeple_move.player_id,
+            ord: v.meeple_move.ord,
+            meepleID: v.meeple_move.meeple_id,
+            pos: v.meeple_move.meeple_pos,
+          };
+        }
         return {
           id: v.id,
           problemID: v.problem_id,

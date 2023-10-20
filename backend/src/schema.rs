@@ -91,6 +91,7 @@ diesel::table! {
         start_at -> Nullable<Timestamp>,
         creator_id -> Nullable<Int4>,
         creator_name -> Nullable<Varchar>,
+        vote_count -> Int4,
     }
 }
 

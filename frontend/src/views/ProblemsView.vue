@@ -9,7 +9,6 @@ import SpinnerIcon from "../components/SpinnerIcon.vue";
 
 const problems = ref<Problem[]>([]);
 const voted = ref<boolean[]>([]);
-const voteCounts = ref<number[]>([]);
 const player = ref<Player | null>(null);
 const loading = ref<boolean>(false);
 
@@ -20,14 +19,9 @@ onMounted(async () => {
   player.value = await api.getPlayerByUserID(store.userID);
   problems.value = await api.getProblems();
 
-  const votes = await api.getVotes();
-  const votedProblemIDs = votes
-    .filter((v) => v.playerID == player.value?.id)
-    .map((v) => v.problemID);
+  const myVotes = await api.getVotes(null, player.value.id);
+  const votedProblemIDs = myVotes.map((v) => v.problemID);
   voted.value = problems.value.map((p) => votedProblemIDs.includes(p.id));
-  voteCounts.value = problems.value.map(
-    (p) => votes.filter((v) => v.problemID === p.id).length
-  );
 
   loading.value = false;
 });
@@ -45,7 +39,6 @@ onMounted(async () => {
         v-for="(problem, idx) in problems"
         :problem="problem"
         :voted="voted[idx]"
-        :voteCount="voteCounts[idx]"
         :key="problem.id"
       />
     </div>
