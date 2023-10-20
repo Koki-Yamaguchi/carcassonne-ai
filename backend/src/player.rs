@@ -36,31 +36,20 @@ pub struct Player {
 pub fn update_player(player_id: i32, name: String, meeple_color: i32) -> Result<Player, Error> {
     let player = database::get_player(player_id)?;
 
-    database::update_player(player_id, name, meeple_color, player.rating)
+    database::update_player(
+        player_id,
+        name,
+        meeple_color,
+        player.rating,
+        player.profile_image_url,
+    )
 }
 
-pub async fn upload_profile_image(
-    storage_client: &State<Client>,
-    player_id: i32,
-    body: ByteStream,
-) {
-    let key = format!("profile-image/{}", player_id);
-    storage::put_object(storage_client, &key, body).await
+pub fn get_player_by_uid(uid: String) -> Result<Player, Error> {
+    database::get_player_by_uid(uid)
 }
 
-pub async fn get_player_by_uid(
-    storage_client: &State<Client>,
-    uid: String,
-) -> Result<Player, Error> {
-    let mut player = database::get_player_by_uid(uid)?;
-
-    let key = format!("profile-image/{}", player.id);
-    player.profile_image_url = storage::get_object_url(storage_client, &key).await;
-
-    Ok(player)
-}
-
-pub async fn get_players(storage_client: &State<Client>) -> Result<Vec<Player>, Error> {
+pub fn get_players() -> Result<Vec<Player>, Error> {
     let mut players = match database::get_players() {
         Ok(ps) => ps,
         Err(e) => {
@@ -71,22 +60,79 @@ pub async fn get_players(storage_client: &State<Client>) -> Result<Vec<Player>, 
     for player in &mut players {
         player.email = "".to_string();
         player.user_id = "".to_string();
-
-        let key = format!("profile-image/{}", player.id);
-        player.profile_image_url = storage::get_object_url(storage_client, &key).await;
     }
 
     Ok(players)
 }
 
-pub async fn get_player(storage_client: &State<Client>, id: i32) -> Result<Player, Error> {
+pub fn get_player(id: i32) -> Result<Player, Error> {
     let mut player = database::get_player(id)?;
 
     player.email = "".to_string();
     player.user_id = "".to_string();
 
-    let key = format!("profile-image/{}", player.id);
-    player.profile_image_url = storage::get_object_url(storage_client, &key).await;
-
     Ok(player)
+}
+
+pub async fn upload_profile_image(
+    storage_client: &State<Client>,
+    player_id: i32,
+    body: ByteStream,
+) -> Result<(), Error> {
+    let key = format!("profile-image/{}", player_id);
+    storage::put_object(storage_client, &key, body).await;
+
+    let profile_image_url = storage::get_object_url(storage_client, &key).await;
+
+    let player = database::get_player(player_id)?;
+
+    if profile_image_url != "" {
+        let _ = database::update_player(
+            player_id,
+            player.name,
+            player.meeple_color,
+            player.rating,
+            profile_image_url.clone(),
+        );
+
+        let votes = database::get_votes(None, Some(player_id))?;
+        for vote in &votes {
+            database::update_vote(vote.id, profile_image_url.clone())?;
+        }
+    }
+
+    Ok(())
+}
+
+use rocket::tokio;
+#[tokio::test]
+#[allow(dead_code)]
+async fn update_profile_image_test() {
+    use aws_config::meta::region::RegionProviderChain;
+
+    let region_provider = RegionProviderChain::default_provider().or_else("ap-northeast-1");
+    let config = aws_config::from_env().region(region_provider).load().await;
+    let storage_client = Client::new(&config);
+
+    let players = database::get_all_players().unwrap();
+
+    for player in &players {
+        let key = format!("profile-image/{}", player.id);
+        let profile_image_url = storage::get_object_url(State::from(&storage_client), &key).await;
+
+        if profile_image_url != "" {
+            let _ = database::update_player(
+                player.id,
+                player.name.clone(),
+                player.meeple_color,
+                player.rating,
+                profile_image_url.clone(),
+            );
+
+            let votes = database::get_votes(None, Some(player.id)).unwrap();
+            for vote in &votes {
+                database::update_vote(vote.id, profile_image_url.clone()).unwrap();
+            }
+        }
+    }
 }

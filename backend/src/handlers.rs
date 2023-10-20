@@ -80,30 +80,24 @@ pub struct DeleteWaitingGame {
 }
 
 #[get("/players/<player_id>", format = "application/json")]
-pub async fn get_player(
-    storage_client: &State<Client>,
-    player_id: i32,
-) -> (Status, (ContentType, String)) {
-    match player::get_player(storage_client, player_id).await {
+pub fn get_player(player_id: i32) -> (Status, (ContentType, String)) {
+    match player::get_player(player_id) {
         Ok(player) => (Status::Ok, (ContentType::JSON, to_string(&player).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
 
 #[get("/players?<user>", format = "application/json")]
-pub async fn get_player_by_uid(
-    storage_client: &State<Client>,
-    user: String,
-) -> (Status, (ContentType, String)) {
-    match player::get_player_by_uid(storage_client, user).await {
+pub fn get_player_by_uid(user: String) -> (Status, (ContentType, String)) {
+    match player::get_player_by_uid(user) {
         Ok(player) => (Status::Ok, (ContentType::JSON, to_string(&player).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
 
 #[get("/players", format = "application/json")]
-pub async fn get_players(storage_client: &State<Client>) -> (Status, (ContentType, String)) {
-    match player::get_players(storage_client).await {
+pub fn get_players() -> (Status, (ContentType, String)) {
+    match player::get_players() {
         Ok(players) => (
             Status::Ok,
             (ContentType::JSON, to_string(&players).unwrap()),
@@ -393,7 +387,9 @@ pub async fn upload_profile_image(
         let path = &file_field.path;
         let body = ByteStream::from_path(Path::new(path)).await.unwrap();
 
-        player::upload_profile_image(storage_client, player_id, body).await
+        player::upload_profile_image(storage_client, player_id, body)
+            .await
+            .unwrap();
     }
 }
 
@@ -406,7 +402,7 @@ pub async fn get_problem(id: Option<i32>) -> (Status, (ContentType, String)) {
 }
 
 #[get("/problems", format = "application/json")]
-pub async fn get_problems() -> (Status, (ContentType, String)) {
+pub fn get_problems() -> (Status, (ContentType, String)) {
     match problem::get_problems() {
         Ok(ps) => (Status::Ok, (ContentType::JSON, to_string(&ps).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
@@ -429,22 +425,16 @@ pub fn create_vote(params: Json<problem::CreateVote>) -> (Status, (ContentType, 
 }
 
 #[get("/votes/<id>", format = "application/json")]
-pub async fn get_vote(
-    id: Option<i32>,
-    storage_client: &State<Client>,
-) -> (Status, (ContentType, String)) {
-    match problem::get_vote(id.unwrap(), storage_client).await {
+pub fn get_vote(id: Option<i32>) -> (Status, (ContentType, String)) {
+    match problem::get_vote(id.unwrap()) {
         Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
 
-#[get("/votes?<problem>", format = "application/json")]
-pub async fn get_votes(
-    problem: Option<i32>,
-    storage_client: &State<Client>,
-) -> (Status, (ContentType, String)) {
-    match problem::get_votes(problem, storage_client).await {
+#[get("/votes?<problem>&<player>", format = "application/json")]
+pub fn get_votes(problem: Option<i32>, player: Option<i32>) -> (Status, (ContentType, String)) {
+    match problem::get_votes(problem, player) {
         Ok(vs) => (Status::Ok, (ContentType::JSON, to_string(&vs).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }

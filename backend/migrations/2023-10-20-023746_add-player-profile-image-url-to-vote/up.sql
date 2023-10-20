@@ -1,0 +1,3 @@
+ALTER TABLE player ADD COLUMN profile_image_url VARCHAR(256) NOT NULL DEFAULT '';
+ALTER TABLE vote ADD COLUMN player_profile_image_url VARCHAR(256) NOT NULL DEFAULT '';
+

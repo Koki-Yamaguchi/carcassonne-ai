@@ -1,14 +1,9 @@
 use crate::{
     error::Error,
     game::mov::{MeepleMove, TileMove},
-    storage,
 };
-use aws_sdk_s3::Client;
 use diesel::Queryable;
-use rocket::{
-    serde::{Deserialize, Serialize},
-    State,
-};
+use rocket::serde::{Deserialize, Serialize};
 
 use crate::database;
 
@@ -220,6 +215,13 @@ pub fn create_vote(
     tile_move_id: i32,
     meeple_move_id: i32,
 ) -> Result<Vote, Error> {
+    let player = match super::player::get_player(player_id) {
+        Ok(p) => p,
+        Err(e) => {
+            return Err(e);
+        }
+    };
+
     database::create_vote(&database::NewVote {
         problem_id,
         player_id,
@@ -228,29 +230,16 @@ pub fn create_vote(
         favorite_count: 0,
         tile_move_id,
         meeple_move_id,
+        player_profile_image_url: player.profile_image_url,
     })
 }
 
-pub async fn get_vote(id: i32, storage_client: &State<Client>) -> Result<Vote, Error> {
-    let mut vote = database::get_vote(id)?;
-
-    let key = format!("profile-image/{}", vote.player_id);
-    vote.player_profile_image_url = storage::get_object_url(storage_client, &key).await;
-
-    Ok(vote)
+pub fn get_vote(id: i32) -> Result<Vote, Error> {
+    database::get_vote(id)
 }
 
-pub async fn get_votes(
-    problem_id: Option<i32>,
-    storage_client: &State<Client>,
-) -> Result<Vec<Vote>, Error> {
-    let mut votes = database::get_votes(problem_id)?;
-    for v in &mut votes {
-        let key = format!("profile-image/{}", v.player_id);
-        v.player_profile_image_url = storage::get_object_url(storage_client, &key).await;
-    }
-
-    Ok(votes)
+pub fn get_votes(problem_id: Option<i32>, player_id: Option<i32>) -> Result<Vec<Vote>, Error> {
+    database::get_votes(problem_id, player_id)
 }
 
 pub fn create_favorite(

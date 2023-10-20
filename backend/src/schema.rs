@@ -78,6 +78,7 @@ diesel::table! {
         user_id -> Text,
         meeple_color -> Int4,
         rating -> Nullable<Int4>,
+        profile_image_url -> Varchar,
     }
 }
 
@@ -104,6 +105,7 @@ diesel::table! {
         tile_move_id -> Int4,
         meeple_move_id -> Int4,
         created_at -> Timestamp,
+        player_profile_image_url -> Varchar,
     }
 }
 

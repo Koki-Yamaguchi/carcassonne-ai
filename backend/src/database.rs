@@ -31,6 +31,7 @@ pub struct QueryPlayer {
     pub user_id: String,
     pub meeple_color: i32,
     pub rating: Option<i32>,
+    pub profile_image_url: String,
 }
 
 #[derive(Insertable)]
@@ -128,6 +129,7 @@ pub struct NewVote {
     pub favorite_count: i32,
     pub tile_move_id: i32,
     pub meeple_move_id: i32,
+    pub player_profile_image_url: String,
 }
 
 #[derive(Queryable, Clone)]
@@ -142,6 +144,7 @@ pub struct QueryVote {
     pub tile_move_id: i32,
     pub meeple_move_id: i32,
     pub created_at: chrono::NaiveDateTime,
+    pub player_profile_image_url: String,
 }
 
 pub fn get_player(pid: i32) -> Result<player::Player, Error> {
@@ -170,6 +173,25 @@ pub fn get_players() -> Result<Vec<player::Player>, Error> {
         .filter(id.ne(1)) // not AI
         .order(rating.desc())
         .limit(10)
+        .load::<QueryPlayer>(conn)
+    {
+        Ok(ps) => {
+            return Ok(ps.into_iter().map(|v| to_player(v)).collect());
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
+#[allow(dead_code)]
+pub fn get_all_players() -> Result<Vec<player::Player>, Error> {
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    use self::schema::player::dsl::{id, player as p};
+
+    match p
+        .filter(id.ne(1)) // not AI
+        .limit(300)
         .load::<QueryPlayer>(conn)
     {
         Ok(ps) => {
@@ -226,11 +248,17 @@ pub fn update_player(
     nam: String,
     m_color: i32,
     rat: Option<i32>,
+    prof_image_url: String,
 ) -> Result<player::Player, Error> {
-    use self::schema::player::dsl::{meeple_color, name, player, rating};
+    use self::schema::player::dsl::{meeple_color, name, player, profile_image_url, rating};
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     match diesel::update(player.find(pid))
-        .set((name.eq(nam), meeple_color.eq(m_color), rating.eq(rat)))
+        .set((
+            name.eq(nam),
+            meeple_color.eq(m_color),
+            rating.eq(rat),
+            profile_image_url.eq(prof_image_url),
+        ))
         .get_result(conn)
     {
         Ok(p) => {
@@ -667,12 +695,15 @@ pub fn get_vote(vid: i32) -> Result<problem::Vote, Error> {
     }
 }
 
-pub fn get_votes(prid: Option<i32>) -> Result<Vec<problem::Vote>, Error> {
+pub fn get_votes(prid: Option<i32>, plyrid: Option<i32>) -> Result<Vec<problem::Vote>, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
-    use self::schema::vote::dsl::{created_at, problem_id, vote as v};
+    use self::schema::vote::dsl::{created_at, player_id, problem_id, vote as v};
     let mut query = v.order(created_at.desc()).into_boxed();
     if let Some(pr) = prid {
         query = query.filter(problem_id.eq(pr))
+    }
+    if let Some(plyr) = plyrid {
+        query = query.filter(player_id.eq(plyr))
     }
     query = query.limit(100);
 
@@ -683,6 +714,20 @@ pub fn get_votes(prid: Option<i32>) -> Result<Vec<problem::Vote>, Error> {
         Err(e) => {
             return Err(internal_server_error(e.to_string()));
         }
+    }
+}
+
+pub fn update_vote(vid: i32, player_prof_image_url: String) -> Result<problem::Vote, Error> {
+    use self::schema::vote::dsl::{player_profile_image_url, vote};
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    match diesel::update(vote.find(vid))
+        .set((player_profile_image_url.eq(player_prof_image_url),))
+        .get_result(conn)
+    {
+        Ok(v) => {
+            return to_vote(v);
+        }
+        Err(e) => Err(internal_server_error(e.to_string())),
     }
 }
 
@@ -762,7 +807,7 @@ fn to_player(v: QueryPlayer) -> player::Player {
         user_id: v.user_id,
         meeple_color: v.meeple_color,
         rating: v.rating,
-        profile_image_url: "".to_string(),
+        profile_image_url: v.profile_image_url,
     }
 }
 
@@ -772,7 +817,7 @@ fn to_vote(v: QueryVote) -> Result<problem::Vote, Error> {
         problem_id: v.problem_id,
         player_id: v.player_id,
         player_name: v.player_name,
-        player_profile_image_url: "".to_string(),
+        player_profile_image_url: v.player_profile_image_url,
         note: v.note,
         favorite_count: v.favorite_count,
         tile_move_id: v.tile_move_id,
