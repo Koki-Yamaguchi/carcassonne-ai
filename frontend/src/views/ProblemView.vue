@@ -260,7 +260,7 @@ const createVote = async () => {
   placingPosition.value = null;
 
   voted.value = true;
-  updateVotes();
+  votes.value = await api.getVotes(problem.value.id);
 };
 
 onMounted(async () => {
@@ -331,12 +331,12 @@ onMounted(async () => {
   );
 
   // if there's already a vote from the player, show results
-  votes.value = await api.getVotes(problem.value.id);
-  const myVotes = votes.value.filter((v) => v.playerID === player.value?.id);
+  const tmpVotes = await api.getVotes(problem.value.id);
+  const myVotes = tmpVotes.filter((v) => v.playerID === player.value?.id);
   if (myVotes.length > 0) {
     placeablePositions.value = [];
+    votes.value = tmpVotes;
     voted.value = true;
-    updateVotes();
   }
 
   document.addEventListener("scroll", () => {
@@ -347,21 +347,6 @@ onMounted(async () => {
     }
   });
 });
-
-const updateVotes = async () => {
-  if (!problem.value || !player.value) {
-    return;
-  }
-
-  const api = new API();
-
-  votes.value = await api.getVotes(problem.value.id);
-  const myVotes = votes.value.filter((v) => v.playerID === player.value?.id);
-  const otherVotes = votes.value.filter((v) => v.playerID !== player.value?.id);
-  votes.value = myVotes.concat(otherVotes);
-
-  handleClickVote(votes.value[0].id);
-};
 
 const handleClickVote = (voteID: number) => {
   if (currentVoteID.value === voteID) {
