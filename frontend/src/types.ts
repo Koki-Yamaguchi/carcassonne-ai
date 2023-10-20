@@ -99,6 +99,8 @@ export interface Problem {
   id: number;
   gameID: number;
   name: string;
+  creatorID: number;
+  creatorName: string;
 }
 
 export interface Vote {

@@ -602,6 +602,8 @@ export class API {
         id: res.data.id,
         gameID: res.data.game_id,
         name: res.data.name,
+        creatorID: res.data.creator_id,
+        creatorName: res.data.creator_name,
       };
       return prob;
     } catch (e) {
@@ -620,6 +622,8 @@ export class API {
           id: p.id,
           gameID: p.game_id,
           name: p.name,
+          creatorID: p.creator_id,
+          creatorName: p.creator_name,
         };
       });
       return problems;

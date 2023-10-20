@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 import {
   Problem,
   Player,
@@ -402,12 +402,21 @@ const updateBoard = async (vote: Vote | null) => {
     prevVote.value = vote;
   }
 };
+
+const creatorName = computed(() => {
+  if (!problem.value) {
+    return "";
+  }
+  return problem.value.creatorName ?? "admin";
+});
 </script>
 
 <template>
   <div class="mt-4 mx-4 flex justify-between">
     <div>{{ problem ? problem.name : "" }}</div>
-    <div class="text-xs mt-1">{{ translate("created_by") }} <b>admin</b></div>
+    <div class="text-xs mt-1">
+      {{ translate("created_by") }} <b>{{ creatorName }}</b>
+    </div>
   </div>
   <div class="infos flex flex-wrap">
     <PlayerInfo
