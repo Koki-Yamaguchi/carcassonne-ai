@@ -21,6 +21,8 @@ pub struct Problem {
     pub created_at: chrono::NaiveDateTime,
     pub name: String,
     pub start_at: Option<chrono::NaiveDateTime>,
+    pub creator_id: Option<i32>,
+    pub creator_name: Option<String>,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -75,11 +77,15 @@ pub fn create_problem(
     game_id: i32,
     name: String,
     start_at: Option<chrono::NaiveDateTime>,
+    creator_id: Option<i32>,
+    creator_name: Option<String>,
 ) -> Result<Problem, Error> {
     database::create_problem(&database::NewProblem {
         game_id,
         name,
         start_at,
+        creator_id,
+        creator_name,
     })
 }
 
@@ -96,12 +102,14 @@ fn create_problem_test() {
     use super::game::decoder;
     use super::game::mov::{MeepleMove, Move::*, TileMove};
 
-    let all_mvs = decoder::decode("src/data/424613817.json".to_string());
-    let remaining_tile_count = 30;
-    let problem_name = "Next Problem".to_string();
-    let start_at = chrono::DateTime::parse_from_rfc3339("2023-10-18T05:00:00+09:00")
+    let all_mvs = decoder::decode("src/data/411495999.json".to_string());
+    let remaining_tile_count = 60;
+    let problem_name = "Greediest Roads".to_string();
+    let start_at = chrono::DateTime::parse_from_rfc3339("2023-10-20T18:00:00+09:00")
         .unwrap()
         .naive_utc();
+    let creator_id = 133;
+    let creator_name = "RabbitRain".to_string();
 
     let mv_idx = (72 - (remaining_tile_count + 2)) * 2;
     let mvs = all_mvs[0..mv_idx].to_vec();
@@ -194,7 +202,14 @@ fn create_problem_test() {
         }
     }
 
-    create_problem(g.id, problem_name, Some(start_at)).unwrap();
+    create_problem(
+        g.id,
+        problem_name,
+        Some(start_at),
+        Some(creator_id),
+        Some(creator_name),
+    )
+    .unwrap();
 }
 
 pub fn create_vote(

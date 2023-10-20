@@ -106,6 +106,8 @@ pub struct NewProblem {
     pub game_id: i32,
     pub name: String,
     pub start_at: Option<chrono::NaiveDateTime>,
+    pub creator_id: Option<i32>,
+    pub creator_name: Option<String>,
 }
 
 #[derive(Insertable)]
