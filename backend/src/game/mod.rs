@@ -672,6 +672,7 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
                 player0.name,
                 player0.meeple_color,
                 after_player0_rating,
+                player0.profile_image_url,
             ) {
                 Ok(_) => {}
                 Err(e) => {
@@ -683,6 +684,7 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
                 player1.name,
                 player1.meeple_color,
                 after_player1_rating,
+                player1.profile_image_url,
             ) {
                 Ok(_) => {}
                 Err(e) => {
