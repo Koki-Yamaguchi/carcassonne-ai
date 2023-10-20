@@ -18,6 +18,7 @@ pub struct Problem {
     pub start_at: Option<chrono::NaiveDateTime>,
     pub creator_id: Option<i32>,
     pub creator_name: Option<String>,
+    pub vote_count: i32,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -31,9 +32,9 @@ pub struct Vote {
     pub note: String,
     pub favorite_count: i32,
     pub tile_move_id: i32,
-    pub tile_move: TileMove,
+    pub tile_move: Option<TileMove>,
     pub meeple_move_id: i32,
-    pub meeple_move: MeepleMove,
+    pub meeple_move: Option<MeepleMove>,
     pub created_at: chrono::NaiveDateTime,
 }
 
@@ -81,6 +82,7 @@ pub fn create_problem(
         start_at,
         creator_id,
         creator_name,
+        vote_count: 0,
     })
 }
 
@@ -222,7 +224,7 @@ pub fn create_vote(
         }
     };
 
-    database::create_vote(&database::NewVote {
+    let vote = database::create_vote(&database::NewVote {
         problem_id,
         player_id,
         player_name,
@@ -231,7 +233,13 @@ pub fn create_vote(
         tile_move_id,
         meeple_move_id,
         player_profile_image_url: player.profile_image_url,
-    })
+    })?;
+
+    let problem = database::get_problem(problem_id)?;
+
+    database::update_problem(problem_id, problem.vote_count + 1)?;
+
+    Ok(vote)
 }
 
 pub fn get_vote(id: i32) -> Result<Vote, Error> {
@@ -239,7 +247,12 @@ pub fn get_vote(id: i32) -> Result<Vote, Error> {
 }
 
 pub fn get_votes(problem_id: Option<i32>, player_id: Option<i32>) -> Result<Vec<Vote>, Error> {
-    database::get_votes(problem_id, player_id)
+    let mut fill_moves = true;
+    if let Some(_) = player_id {
+        fill_moves = false;
+    }
+
+    database::get_votes(problem_id, player_id, fill_moves)
 }
 
 pub fn create_favorite(

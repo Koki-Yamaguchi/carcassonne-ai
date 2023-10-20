@@ -95,7 +95,7 @@ pub async fn upload_profile_image(
             profile_image_url.clone(),
         );
 
-        let votes = database::get_votes(None, Some(player_id))?;
+        let votes = database::get_votes(None, Some(player_id), false)?;
         for vote in &votes {
             database::update_vote(vote.id, profile_image_url.clone())?;
         }
@@ -129,7 +129,7 @@ async fn update_profile_image_test() {
                 profile_image_url.clone(),
             );
 
-            let votes = database::get_votes(None, Some(player.id)).unwrap();
+            let votes = database::get_votes(None, Some(player.id), false).unwrap();
             for vote in &votes {
                 database::update_vote(vote.id, profile_image_url.clone()).unwrap();
             }

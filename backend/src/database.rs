@@ -109,6 +109,7 @@ pub struct NewProblem {
     pub start_at: Option<chrono::NaiveDateTime>,
     pub creator_id: Option<i32>,
     pub creator_name: Option<String>,
+    pub vote_count: i32,
 }
 
 #[derive(Insertable)]
@@ -666,6 +667,18 @@ pub fn get_problems() -> Result<Vec<problem::Problem>, Error> {
     }
 }
 
+pub fn update_problem(prid: i32, vcount: i32) -> Result<problem::Problem, Error> {
+    use self::schema::problem::dsl::{problem, vote_count};
+    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    match diesel::update(problem.find(prid))
+        .set(vote_count.eq(vcount))
+        .get_result(conn)
+    {
+        Ok(pr) => return Ok(pr),
+        Err(e) => Err(internal_server_error(e.to_string())),
+    }
+}
+
 pub fn create_vote(nv: &NewVote) -> Result<problem::Vote, Error> {
     let conn = &mut establish_connection();
 
@@ -673,7 +686,7 @@ pub fn create_vote(nv: &NewVote) -> Result<problem::Vote, Error> {
         .values(nv)
         .get_result(conn)
     {
-        Ok(v) => to_vote(v),
+        Ok(v) => to_vote(v, true),
         Err(e) => Err(internal_server_error(e.to_string())),
     }
 }
@@ -687,7 +700,7 @@ pub fn get_vote(vid: i32) -> Result<problem::Vote, Error> {
             if vs.len() == 0 {
                 return Err(not_found_error("vote".to_string()));
             }
-            return to_vote(vs[0].clone());
+            return to_vote(vs[0].clone(), true);
         }
         Err(e) => {
             return Err(internal_server_error(e.to_string()));
@@ -695,7 +708,11 @@ pub fn get_vote(vid: i32) -> Result<problem::Vote, Error> {
     }
 }
 
-pub fn get_votes(prid: Option<i32>, plyrid: Option<i32>) -> Result<Vec<problem::Vote>, Error> {
+pub fn get_votes(
+    prid: Option<i32>,
+    plyrid: Option<i32>,
+    fill_moves: bool,
+) -> Result<Vec<problem::Vote>, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     use self::schema::vote::dsl::{created_at, player_id, problem_id, vote as v};
     let mut query = v.order(created_at.desc()).into_boxed();
@@ -705,11 +722,14 @@ pub fn get_votes(prid: Option<i32>, plyrid: Option<i32>) -> Result<Vec<problem::
     if let Some(plyr) = plyrid {
         query = query.filter(player_id.eq(plyr))
     }
-    query = query.limit(100);
+    query = query.limit(300);
 
     match query.load::<QueryVote>(conn) {
         Ok(vts) => {
-            return Ok(vts.into_iter().map(|vt| to_vote(vt).unwrap()).collect());
+            return Ok(vts
+                .into_iter()
+                .map(|vt| to_vote(vt, fill_moves).unwrap())
+                .collect());
         }
         Err(e) => {
             return Err(internal_server_error(e.to_string()));
@@ -725,7 +745,7 @@ pub fn update_vote(vid: i32, player_prof_image_url: String) -> Result<problem::V
         .get_result(conn)
     {
         Ok(v) => {
-            return to_vote(v);
+            return to_vote(v, true);
         }
         Err(e) => Err(internal_server_error(e.to_string())),
     }
@@ -811,7 +831,17 @@ fn to_player(v: QueryPlayer) -> player::Player {
     }
 }
 
-fn to_vote(v: QueryVote) -> Result<problem::Vote, Error> {
+fn to_vote(v: QueryVote, fill_moves: bool) -> Result<problem::Vote, Error> {
+    let tile_move = if fill_moves {
+        Some(get_tile_move(v.tile_move_id)?)
+    } else {
+        None
+    };
+    let meeple_move = if fill_moves {
+        Some(get_meeple_move(v.meeple_move_id)?)
+    } else {
+        None
+    };
     Ok(problem::Vote {
         id: v.id,
         problem_id: v.problem_id,
@@ -821,9 +851,9 @@ fn to_vote(v: QueryVote) -> Result<problem::Vote, Error> {
         note: v.note,
         favorite_count: v.favorite_count,
         tile_move_id: v.tile_move_id,
-        tile_move: get_tile_move(v.tile_move_id)?,
+        tile_move,
         meeple_move_id: v.meeple_move_id,
-        meeple_move: get_meeple_move(v.meeple_move_id)?,
+        meeple_move,
         created_at: v.created_at,
     })
 }
