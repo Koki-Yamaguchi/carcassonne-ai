@@ -1,6 +1,9 @@
 use crate::{
     error::Error,
-    game::mov::{MeepleMove, TileMove},
+    game::{
+        mov::{MeepleMove, Move, TileMove},
+        tile::Tile,
+    },
 };
 use diesel::Queryable;
 use rocket::serde::{Deserialize, Serialize};
@@ -94,19 +97,86 @@ pub fn get_problems() -> Result<Vec<Problem>, Error> {
     database::get_problems()
 }
 
+#[allow(dead_code)]
+fn add_move(
+    mvs: &mut Vec<Move>,
+    tile: Tile,
+    ord0: i32,
+    ord1: i32,
+    rot: i32,
+    pos: (i32, i32),
+    meeple_id: i32,
+    meeple_pos: i32,
+    player_id: i32,
+) {
+    mvs.push(Move::TMove(TileMove {
+        id: -1,
+        ord: ord0,
+        game_id: None,
+        player_id,
+        tile,
+        rot,
+        pos,
+    }));
+    mvs.push(Move::MMove(MeepleMove {
+        id: -1,
+        ord: ord1,
+        game_id: None,
+        player_id,
+        meeple_id: meeple_id,
+        tile_pos: pos,
+        meeple_pos,
+    }));
+}
+
+fn create_moves() -> Vec<Move> {
+    let mut mvs = vec![];
+
+    add_move(&mut mvs, Tile::StartingTile, 0, 1, 0, (0, 0), -1, -1, 0);
+    add_move(
+        &mut mvs,
+        Tile::QuadrupleCityWithCOA,
+        2,
+        3,
+        0,
+        (-1, 0),
+        0,
+        0,
+        1,
+    );
+    add_move(&mut mvs, Tile::QuadrupleRoad, 4, 5, 0, (0, -1), 7, 4, 0);
+    add_move(
+        &mut mvs,
+        Tile::CityCapWithCrossroad,
+        6,
+        7,
+        1,
+        (-1, -1),
+        1,
+        3,
+        1,
+    );
+    add_move(&mut mvs, Tile::Straight, 8, 9, 1, (0, 1), -1, -1, 0);
+    add_move(&mut mvs, Tile::Triangle, 10, 11, 1, (-2, 0), -1, -1, 1);
+
+    mvs
+}
+
 #[test]
 fn create_problem_test() {
     use super::game::decoder;
     use super::game::mov::{MeepleMove, Move::*, TileMove};
 
-    let all_mvs = decoder::decode("src/data/411495999.json".to_string());
-    let remaining_tile_count = 60;
-    let problem_name = "Greediest Roads".to_string();
-    let start_at = chrono::DateTime::parse_from_rfc3339("2023-10-20T18:00:00+09:00")
+    // let all_mvs = decoder::decode("src/data/411495999.json".to_string());
+    let all_mvs = create_moves();
+
+    let remaining_tile_count = 65;
+    let problem_name = "Architecture".to_string();
+    let start_at = chrono::DateTime::parse_from_rfc3339("2023-10-21T18:00:00+09:00")
         .unwrap()
         .naive_utc();
-    let creator_id = 133;
-    let creator_name = "RabbitRain".to_string();
+    let creator_id = 0;
+    let creator_name = "".to_string();
 
     let mv_idx = (72 - (remaining_tile_count + 2)) * 2;
     let mvs = all_mvs[0..mv_idx].to_vec();
