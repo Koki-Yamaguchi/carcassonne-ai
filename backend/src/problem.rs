@@ -167,16 +167,16 @@ fn create_problem_test() {
     use super::game::decoder;
     use super::game::mov::{MeepleMove, Move::*, TileMove};
 
-    // let all_mvs = decoder::decode("src/data/411495999.json".to_string());
-    let all_mvs = create_moves();
+    let all_mvs = decoder::decode("src/data/429154574.json".to_string());
+    // let all_mvs = create_moves();
 
-    let remaining_tile_count = 65;
-    let problem_name = "Architecture".to_string();
-    let start_at = chrono::DateTime::parse_from_rfc3339("2023-10-21T18:00:00+09:00")
+    let remaining_tile_count = 67;
+    let problem_name = "Vacant City Left".to_string();
+    let start_at = chrono::DateTime::parse_from_rfc3339("2023-10-27T18:00:00+09:00")
         .unwrap()
         .naive_utc();
-    let creator_id = 0;
-    let creator_name = "".to_string();
+    let creator_id = None;
+    let creator_name = None;
 
     let mv_idx = (72 - (remaining_tile_count + 2)) * 2;
     let mvs = all_mvs[0..mv_idx].to_vec();
@@ -269,14 +269,7 @@ fn create_problem_test() {
         }
     }
 
-    create_problem(
-        g.id,
-        problem_name,
-        Some(start_at),
-        Some(creator_id),
-        Some(creator_name),
-    )
-    .unwrap();
+    create_problem(g.id, problem_name, Some(start_at), creator_id, creator_name).unwrap();
 }
 
 pub fn create_vote(
