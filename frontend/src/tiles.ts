@@ -166,30 +166,30 @@ export class Tile {
 
 export function getRemainingTileKinds(outTileKinds: TileKind[]): TileKind[] {
   const count = new Map<TileKind, number>();
-  count.set("StartingTile", 4);
-  count.set("Monastery", 4);
   count.set("MonasteryWithRoad", 2);
-  count.set("CityCapWithCrossroad", 3);
-  count.set("TriangleWithRoad", 3);
-  count.set("TriangleWithRoadWithCOA", 2);
-  count.set("Straight", 8);
-  count.set("CityCap", 5);
-  count.set("Separator", 2);
-  count.set("TripleRoad", 4);
-  count.set("Curve", 9);
-  count.set("QuadrupleRoad", 1);
-  count.set("Connector", 1);
-  count.set("ConnectorWithCOA", 2);
-  count.set("Left", 3);
-  count.set("Right", 3);
-  count.set("TripleCity", 3);
-  count.set("TripleCityWithCOA", 1);
-  count.set("VerticalSeparator", 3);
-  count.set("TripleCityWithRoad", 1);
-  count.set("TripleCityWithRoadWithCOA", 2);
-  count.set("Triangle", 3);
-  count.set("TriangleWithCOA", 2);
+  count.set("Monastery", 4);
   count.set("QuadrupleCityWithCOA", 1);
+  count.set("StartingTile", 4);
+  count.set("CityCap", 5);
+  count.set("ConnectorWithCOA", 2);
+  count.set("Connector", 1);
+  count.set("VerticalSeparator", 3);
+  count.set("Separator", 2);
+  count.set("Right", 3);
+  count.set("Left", 3);
+  count.set("CityCapWithCrossroad", 3);
+  count.set("TriangleWithCOA", 2);
+  count.set("Triangle", 3);
+  count.set("TriangleWithRoadWithCOA", 2);
+  count.set("TriangleWithRoad", 3);
+  count.set("TripleCityWithCOA", 1);
+  count.set("TripleCity", 3);
+  count.set("TripleCityWithRoadWithCOA", 2);
+  count.set("TripleCityWithRoad", 1);
+  count.set("Straight", 8);
+  count.set("Curve", 9);
+  count.set("TripleRoad", 4);
+  count.set("QuadrupleRoad", 1);
   outTileKinds.forEach((t) => {
     const c = count.get(t);
     if (c) {

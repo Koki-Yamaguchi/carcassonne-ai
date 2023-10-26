@@ -394,6 +394,18 @@ const creatorName = computed(() => {
   }
   return problem.value.creatorName ?? "admin";
 });
+
+const tweetText = computed(() => {
+  if (!problem.value) {
+    return "";
+  }
+  return (
+    `https://twitter.com/intent/tweet?text=` +
+    `どこ置くの問題に投票しました！%0a%0a${problem.value.name}%0a` +
+    `https://top-carcassonner.com/problems/${problem.value.id}%0a%0a` +
+    `%23TopCarcassonner`
+  );
+});
 </script>
 
 <template>
@@ -524,6 +536,24 @@ const creatorName = computed(() => {
           :currentVoteID="currentVoteID"
           @clickVote="handleClickVote"
         />
+      </div>
+      <div
+        class="border rounded-full w-20 py-2 px-3 bg-gray-200 hover:bg-gray-300"
+      >
+        <a
+          v-if="problem"
+          target="_blank"
+          rel="noopener"
+          :href="tweetText"
+          data-size="large"
+        >
+          <span class="flex gap-2">
+            <div class="w-4 flex flex-col justify-center">
+              <img src="../assets/img/x-logo.png" />
+            </div>
+            <div class="flex flex-col justify-center">Post</div>
+          </span>
+        </a>
       </div>
     </div>
   </div>
