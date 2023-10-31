@@ -1,7 +1,7 @@
 use crate::{
     error::Error,
     game::{
-        mov::{DiscardMove, MeepleMove, Move, TileMove},
+        mov::{MeepleMove, Move, TileMove},
         tile::Tile,
     },
 };
@@ -129,6 +129,7 @@ fn add_move(
     }));
 }
 
+#[allow(dead_code)]
 fn create_moves() -> Vec<Move> {
     let mut mvs = vec![];
 
@@ -165,7 +166,7 @@ fn create_moves() -> Vec<Move> {
 #[test]
 fn create_problem_test() {
     use super::game::decoder;
-    use super::game::mov::{MeepleMove, Move::*, TileMove};
+    use super::game::mov::{DiscardMove, MeepleMove, Move::*, TileMove};
 
     let all_mvs = decoder::decode("src/data/429335153.json".to_string());
     // let all_mvs = create_moves();
