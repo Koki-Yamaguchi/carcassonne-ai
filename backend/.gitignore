@@ -2,7 +2,7 @@ target
 .env
 .envrc
 src/data
-shell/
+scripts/
 
 secret.key
 self-signed.cert

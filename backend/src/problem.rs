@@ -1,7 +1,7 @@
 use crate::{
     error::Error,
     game::{
-        mov::{MeepleMove, Move, TileMove},
+        mov::{DiscardMove, MeepleMove, Move, TileMove},
         tile::Tile,
     },
 };
@@ -167,18 +167,36 @@ fn create_problem_test() {
     use super::game::decoder;
     use super::game::mov::{MeepleMove, Move::*, TileMove};
 
-    let all_mvs = decoder::decode("src/data/429154574.json".to_string());
+    let all_mvs = decoder::decode("src/data/429335153.json".to_string());
     // let all_mvs = create_moves();
 
-    let remaining_tile_count = 67;
-    let problem_name = "Vacant City Left".to_string();
-    let start_at = chrono::DateTime::parse_from_rfc3339("2023-10-27T18:00:00+09:00")
+    let remaining_tile_count = 36;
+    let problem_name = "Versa-tile".to_string();
+    let start_at = chrono::DateTime::parse_from_rfc3339("2023-10-31T18:00:00+09:00")
         .unwrap()
         .naive_utc();
     let creator_id = None;
     let creator_name = None;
 
-    let mv_idx = (72 - (remaining_tile_count + 2)) * 2;
+    let mut tile_count = 0;
+    let mut mv_idx = 0;
+    for mv in &all_mvs {
+        mv_idx += 1;
+        match mv {
+            MMove(_) => {
+                let rem_tile = 72 - tile_count - 2;
+                if remaining_tile_count == rem_tile {
+                    break;
+                }
+
+                continue;
+            }
+            _ => {
+                tile_count += 1;
+            }
+        }
+    }
+
     let mvs = all_mvs[0..mv_idx].to_vec();
 
     let you = -2;
@@ -263,8 +281,18 @@ fn create_problem_test() {
                 }))
                 .unwrap();
             }
+            DMove(dm) => {
+                database::create_move(DMove(DiscardMove {
+                    id: -1, // ignored
+                    ord: dm.ord,
+                    game_id: Some(g.id),
+                    player_id: map[dm.player_id as usize],
+                    tile: dm.tile,
+                }))
+                .unwrap();
+            }
             _ => {
-                panic!("discard move is not supported");
+                panic!("move not supported");
             }
         }
     }
