@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::Read;
 
 use super::calculate::calculate;
-use super::mov::{MeepleMove, Move, TileMove};
+use super::mov::{DiscardMove, MeepleMove, Move, TileMove};
 use super::tile::to_tile;
 use super::tile::Tile;
 
@@ -49,6 +49,56 @@ pub fn decode(file_path: String) -> Vec<Move> {
     match v["data"]["data"].as_array() {
         Some(packets) => {
             for packet in packets {
+                // check if there's a discard move
+                let mut is_discard = false;
+                for d in packet["data"].as_array().unwrap() {
+                    if let "cantPlay" = d["type"].as_str().unwrap() {
+                        is_discard = true;
+                    }
+                }
+                if is_discard {
+                    let prev_move = moves.last().unwrap().clone();
+                    match prev_move {
+                        Move::TMove(t) => {
+                            moves.push(Move::MMove(MeepleMove {
+                                id: -1,
+                                ord,
+                                game_id: None,
+                                player_id,
+                                meeple_id: -1,
+                                tile_pos: t.pos,
+                                meeple_pos: -1,
+                            }));
+                            ord += 1;
+                            player_id = 1 - player_id;
+                        }
+                        Move::MMove(_) => {
+                            player_id = 1 - player_id;
+                        }
+                        _ => {}
+                    }
+
+                    for d in packet["data"].as_array().unwrap() {
+                        if let Some(args0) = d["args"].as_object() {
+                            if !args0.contains_key("args") {
+                                continue;
+                            }
+                            if let Some(args1) = args0["args"].as_object() {
+                                if let Some(tile_type) = args1["tile_id"].as_str() {
+                                    let tile_id = convert_tile(tile_type.parse().unwrap());
+                                    moves.push(Move::DMove(DiscardMove {
+                                        id: -1,
+                                        ord,
+                                        tile: to_tile(tile_id),
+                                        game_id: None,
+                                        player_id,
+                                    }));
+                                    ord += 1;
+                                }
+                            }
+                        }
+                    }
+                }
                 match packet["data"][0]["type"].as_str() {
                     Some(t) => {
                         match t {
@@ -67,6 +117,10 @@ pub fn decode(file_path: String) -> Vec<Move> {
                                             meeple_pos: -1,
                                         }));
                                         ord += 1;
+                                        player_id = 1 - player_id;
+                                    }
+                                    Move::MMove(_) => {
+                                        player_id = 1 - player_id;
                                     }
                                     _ => {}
                                 }
@@ -89,8 +143,6 @@ pub fn decode(file_path: String) -> Vec<Move> {
                                         panic!("Error: {:?}", e.detail);
                                     }
                                 }
-
-                                player_id = 1 - player_id;
 
                                 let tile_type = packet["data"][0]["args"]["type"]
                                     .as_str()
