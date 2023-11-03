@@ -168,16 +168,20 @@ fn create_problem_test() {
     use super::game::decoder;
     use super::game::mov::{DiscardMove, MeepleMove, Move::*, TileMove};
 
-    let all_mvs = decoder::decode("src/data/429335153.json".to_string());
+    let all_mvs = decoder::decode("src/data/432999143.json".to_string());
     // let all_mvs = create_moves();
 
     let remaining_tile_count = 36;
-    let problem_name = "Versa-tile".to_string();
-    let start_at = chrono::DateTime::parse_from_rfc3339("2023-10-31T18:00:00+09:00")
+    let problem_name = "".to_string();
+    let start_at = chrono::DateTime::parse_from_rfc3339("2023-11-10T18:00:00+09:00")
         .unwrap()
         .naive_utc();
-    let creator_id = None;
-    let creator_name = None;
+    let creator_id = Some(21);
+    let mut creator_name = None;
+    if let Some(pid) = creator_id {
+        let player = database::get_player(pid).unwrap();
+        creator_name = Some(player.name);
+    }
 
     let mut tile_count = 0;
     let mut mv_idx = 0;
