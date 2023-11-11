@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from "vue";
+import { onMounted, ref, computed, watch } from "vue";
 import {
   Problem,
   Player,
@@ -259,6 +259,7 @@ const createVote = async () => {
   placingTile.value = null;
   tiles.value[placingPosition.value.y][placingPosition.value.x] = null;
   placingPosition.value = null;
+  localStorage.removeItem(`problem-${problem.value.id}-note`);
 
   voted.value = true;
   votes.value = await api.getVotes(problem.value.id, null);
@@ -347,6 +348,17 @@ onMounted(async () => {
       fixBoard.value = false;
     }
   });
+
+  const cachedNote = localStorage.getItem(`problem-${problem.value.id}-note`);
+  if (cachedNote) {
+    note.value = cachedNote;
+  }
+});
+
+watch(note, (newNote: string) => {
+  if (problem.value) {
+    localStorage.setItem(`problem-${problem.value.id}-note`, newNote);
+  }
 });
 
 const handleClickVote = (voteID: number) => {
