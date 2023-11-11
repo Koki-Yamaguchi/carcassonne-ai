@@ -613,9 +613,17 @@ export class API {
     }
   }
 
-  async getProblems(): Promise<Problem[]> {
+  async getProblems(
+    page: number,
+    orderBy: string,
+    limit: number
+  ): Promise<Problem[]> {
+    const params = new URLSearchParams();
+    params.set("page", `${page}`);
+    params.set("order_by", orderBy);
+    params.set("limit", `${limit}`);
     try {
-      const url = `${this.base_url}/problems`;
+      const url = `${this.base_url}/problems?` + params.toString();
       const res = await axios.get(url);
       console.log({ res });
       const problems: Problem[] = res.data.map((p: any) => {
