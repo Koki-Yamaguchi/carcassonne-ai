@@ -397,15 +397,28 @@ const creatorName = computed(() => {
 });
 
 const tweetText = computed(() => {
-  if (!problem.value) {
+  if (!problem.value || !player.value) {
     return "";
   }
-  return (
-    `https://twitter.com/intent/tweet?text=` +
-    `どこ置くの問題に投票しました！%0a%0a${problem.value.name}%0a` +
-    `https://top-carcassonner.com/problems/${problem.value.id}%0a%0a` +
-    `%23TopCarcassonner`
-  );
+  if (player.value.id === 5) {
+    return (
+      `https://twitter.com/intent/tweet?text=` +
+      `今日のどこ置くの問題に投票しました！%0a` +
+      `%0a` +
+      `${problem.value.name}%0a` +
+      `作成者 ${creatorName.value}%0a` +
+      `https://top-carcassonner.com/problems/${problem.value.id}%0a` +
+      `%0a` +
+      `%23TopCarcassonner`
+    );
+  } else {
+    return (
+      `https://twitter.com/intent/tweet?text=` +
+      `どこ置くの問題に投票しました！%0a%0a${problem.value.name}%0a` +
+      `https://top-carcassonner.com/problems/${problem.value.id}%0a%0a` +
+      `%23TopCarcassonner`
+    );
+  }
 });
 </script>
 
