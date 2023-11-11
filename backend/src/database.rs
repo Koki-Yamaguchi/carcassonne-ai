@@ -647,17 +647,30 @@ pub fn get_problem(prid: i32) -> Result<problem::Problem, Error> {
         }
     }
 }
-pub fn get_problems() -> Result<Vec<problem::Problem>, Error> {
+pub fn get_problems(
+    page: i32,
+    order_by: String,
+    limit: i32,
+) -> Result<Vec<problem::Problem>, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
-    use self::schema::problem::dsl::{created_at, problem as p, start_at};
+    use self::schema::problem::dsl::{id, problem as p, start_at, vote_count};
     let now = chrono::Utc::now().naive_utc();
 
-    match p
-        .filter(start_at.le(now))
-        .order(created_at.desc())
-        .limit(300)
-        .load::<problem::Problem>(conn)
-    {
+    let mut query = p.filter(start_at.le(now)).into_boxed();
+
+    match order_by.as_str() {
+        "id" => query = query.order(id.asc()),
+        "-id" => query = query.order(id.desc()),
+        "vote_count" => query = query.order((vote_count.asc(), id.desc())),
+        "-vote_count" => query = query.order((vote_count.desc(), id.desc())),
+        _ => {}
+    }
+
+    query = query.limit(limit as i64);
+
+    query = query.offset((page * limit) as i64);
+
+    match query.load::<problem::Problem>(conn) {
         Ok(ps) => {
             return Ok(ps);
         }
