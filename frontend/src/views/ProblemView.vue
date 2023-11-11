@@ -461,7 +461,7 @@ const tweetText = computed(() => {
         :isLarge="false"
       />
     </div>
-    <div v-if="fixBoard" class="h-[400px]">
+    <div v-if="fixBoard" class="h-[350px]">
       <!-- keeps height for fixing a board -->
     </div>
   </div>

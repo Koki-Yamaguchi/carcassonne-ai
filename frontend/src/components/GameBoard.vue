@@ -101,7 +101,7 @@ const boardStyle = computed(() => {
 }
 .board-small {
   border-radius: 0.5%;
-  height: 400px;
+  height: 350px;
 }
 .board-large {
   border-radius: 0.5%;
