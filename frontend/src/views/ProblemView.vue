@@ -257,6 +257,7 @@ const createVote = async () => {
   );
 
   placingTile.value = null;
+  tiles.value[placingPosition.value.y][placingPosition.value.x] = null;
   placingPosition.value = null;
 
   voted.value = true;
@@ -340,7 +341,7 @@ onMounted(async () => {
   }
 
   document.addEventListener("scroll", () => {
-    if (window.scrollY >= 203) {
+    if (window.scrollY >= 203 && voted.value) {
       fixBoard.value = true;
     } else {
       fixBoard.value = false;
@@ -501,7 +502,6 @@ const tweetText = computed(() => {
     <div v-if="showRemainingTiles" class="flex flex-wrap gap-1 mt-2">
       <img
         v-for="(src, idx) in remainingTilesSrc"
-        class="min-h-[30px]"
         width="30"
         height="30"
         :src="src"
