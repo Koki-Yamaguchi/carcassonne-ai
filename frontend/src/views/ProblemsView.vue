@@ -7,6 +7,7 @@ import { translate } from "../locales/translate";
 import { store } from "../store";
 import SpinnerIcon from "../components/SpinnerIcon.vue";
 import { useRoute, useRouter } from "vue-router";
+import PaginationBar from "../components/PaginationBar.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -14,22 +15,26 @@ const router = useRouter();
 const problems = ref<Problem[]>([]);
 const voted = ref<boolean[]>([]);
 const player = ref<Player | null>(null);
+const votedProblemIDs = ref<number[]>([]);
 const loading = ref<boolean>(false);
+
 const orderBy = ref<string>("-id");
 const page = ref<number>(0);
+const totalCount = ref<number>(0);
+const LIMIT = 10;
 
 onMounted(async () => {
-  handleQueryString();
-  setQueryString();
   loading.value = true;
+
+  handleQueryString();
   const api = new API();
 
   player.value = await api.getPlayerByUserID(store.userID);
-  problems.value = await api.getProblems(page.value, orderBy.value, 10);
 
   const myVotes = await api.getVotes(null, player.value.id);
-  const votedProblemIDs = myVotes.map((v) => v.problemID);
-  voted.value = problems.value.map((p) => votedProblemIDs.includes(p.id));
+  votedProblemIDs.value = myVotes.map((v) => v.problemID);
+
+  await updateProblems();
 
   loading.value = false;
 });
@@ -39,23 +44,49 @@ const handleQueryString = () => {
     orderBy.value = route.query.order_by;
   }
   if (route.query.page) {
-    page.value = route.query.page;
+    page.value = parseInt(route.query.page, 10);
   }
 };
 
 const setQueryString = () => {
-  router.push({ query: { order_by: orderBy.value, page: page.value } });
+  router.push({
+    query: {
+      order_by: orderBy.value,
+      page: page.value,
+    },
+  });
 };
 
-watch(orderBy, async (newOrderBy) => {
+watch(orderBy, async () => {
   loading.value = true;
-  const api = new API();
 
-  problems.value = await api.getProblems(0, newOrderBy, 10);
-  setQueryString();
+  page.value = 0;
+  await updateProblems();
 
   loading.value = false;
 });
+
+const handlePageClicked = async (pg: number) => {
+  if (pg === page.value) {
+    return;
+  }
+  loading.value = true;
+
+  page.value = pg;
+  await updateProblems();
+
+  loading.value = false;
+};
+
+const updateProblems = async () => {
+  const api = new API();
+
+  const res = await api.getProblems(page.value, orderBy.value, LIMIT);
+  problems.value = res.problems;
+  voted.value = problems.value.map((p) => votedProblemIDs.value.includes(p.id));
+  totalCount.value = res.totalCount;
+  setQueryString();
+};
 </script>
 
 <template>
@@ -74,12 +105,20 @@ watch(orderBy, async (newOrderBy) => {
       <option value="vote_count">投票の少ない順</option>
     </select>
     <div v-if="loading"><SpinnerIcon /></div>
-    <div v-else class="mt-4">
-      <ProblemItem
-        v-for="(problem, idx) in problems"
-        :problem="problem"
-        :voted="voted[idx]"
-        :key="problem.id"
+    <div v-else-if="voted.length > 0">
+      <div class="mt-4">
+        <ProblemItem
+          v-for="(problem, idx) in problems"
+          :problem="problem"
+          :voted="voted[idx]"
+          :key="problem.id"
+        />
+      </div>
+      <PaginationBar
+        :page="page"
+        :limit="LIMIT"
+        :totalCount="totalCount"
+        @pageClicked="handlePageClicked"
       />
     </div>
   </div>

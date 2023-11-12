@@ -104,6 +104,11 @@ export interface Problem {
   voteCount: number;
 }
 
+export interface ProblemsResponse {
+  problems: Problem[];
+  totalCount: number;
+}
+
 export interface Vote {
   id: number;
   problemID: number;

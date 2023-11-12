@@ -19,6 +19,7 @@ import {
   WaitingGame,
   Problem,
   Vote,
+  ProblemsResponse,
 } from "../types";
 
 export class API {
@@ -617,7 +618,7 @@ export class API {
     page: number,
     orderBy: string,
     limit: number
-  ): Promise<Problem[]> {
+  ): Promise<ProblemsResponse> {
     const params = new URLSearchParams();
     params.set("page", `${page}`);
     params.set("order_by", orderBy);
@@ -626,7 +627,7 @@ export class API {
       const url = `${this.base_url}/problems?` + params.toString();
       const res = await axios.get(url);
       console.log({ res });
-      const problems: Problem[] = res.data.map((p: any) => {
+      const problems: Problem[] = res.data.problems.map((p: any) => {
         return {
           id: p.id,
           gameID: p.game_id,
@@ -636,7 +637,11 @@ export class API {
           voteCount: p.vote_count,
         };
       });
-      return problems;
+      const totalCount = res.data.total_count;
+      return {
+        problems,
+        totalCount,
+      };
     } catch (e) {
       console.log({ e });
       throw e;
