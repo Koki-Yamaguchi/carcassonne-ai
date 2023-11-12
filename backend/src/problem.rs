@@ -24,6 +24,13 @@ pub struct Problem {
     pub vote_count: i32,
 }
 
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct ProblemsResponse {
+    pub problems: Vec<Problem>,
+    pub total_count: i32,
+}
+
 #[derive(Serialize, Clone, Debug)]
 #[serde(crate = "rocket::serde")]
 pub struct Vote {
@@ -97,7 +104,8 @@ pub fn get_problems(
     page: Option<i32>,
     order_by: Option<String>,
     limit: Option<i32>,
-) -> Result<Vec<Problem>, Error> {
+    creator: Option<i32>,
+) -> Result<ProblemsResponse, Error> {
     let mut p = 0;
     if let Some(pg) = page {
         if p >= 0 {
@@ -116,7 +124,8 @@ pub fn get_problems(
             l = lm;
         }
     }
-    database::get_problems(p, o, l)
+
+    database::get_problems(p, o, l, creator)
 }
 
 #[allow(dead_code)]

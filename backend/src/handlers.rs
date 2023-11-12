@@ -401,13 +401,14 @@ pub async fn get_problem(id: Option<i32>) -> (Status, (ContentType, String)) {
     }
 }
 
-#[get("/problems?<page>&<order_by>&<limit>", format = "application/json")]
+#[get("/problems?<page>&<order_by>&<limit>&<creator>", format = "application/json")]
 pub fn get_problems(
     page: Option<i32>,
     order_by: Option<String>,
     limit: Option<i32>,
+    creator: Option<i32>,
 ) -> (Status, (ContentType, String)) {
-    match problem::get_problems(page, order_by, limit) {
+    match problem::get_problems(page, order_by, limit, creator) {
         Ok(ps) => (Status::Ok, (ContentType::JSON, to_string(&ps).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }

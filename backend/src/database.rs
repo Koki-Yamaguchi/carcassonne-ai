@@ -651,13 +651,22 @@ pub fn get_problems(
     page: i32,
     order_by: String,
     limit: i32,
-) -> Result<Vec<problem::Problem>, Error> {
+    creator: Option<i32>,
+) -> Result<problem::ProblemsResponse, Error> {
     let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
-    use self::schema::problem::dsl::{id, problem as p, start_at, vote_count};
+    use self::schema::problem::dsl::{creator_id, id, problem as p, start_at, vote_count};
     let now = chrono::Utc::now().naive_utc();
 
-    let mut query = p.filter(start_at.le(now)).into_boxed();
+    let mut count_query = p.filter(start_at.le(now)).into_boxed();
+    if let Some(cid) = creator {
+        count_query = count_query.filter(creator_id.eq(cid))
+    }
+    let total_count: i64 = count_query.count().get_result(conn).unwrap();
 
+    let mut query = p.filter(start_at.le(now)).into_boxed();
+    if let Some(cid) = creator {
+        query = query.filter(creator_id.eq(cid))
+    }
     match order_by.as_str() {
         "id" => query = query.order(id.asc()),
         "-id" => query = query.order(id.desc()),
@@ -665,19 +674,19 @@ pub fn get_problems(
         "-vote_count" => query = query.order((vote_count.desc(), id.desc())),
         _ => {}
     }
-
     query = query.limit(limit as i64);
-
     query = query.offset((page * limit) as i64);
-
-    match query.load::<problem::Problem>(conn) {
-        Ok(ps) => {
-            return Ok(ps);
-        }
+    let problems: Vec<problem::Problem> = match query.load::<problem::Problem>(conn) {
+        Ok(ps) => ps,
         Err(e) => {
             return Err(internal_server_error(e.to_string()));
         }
-    }
+    };
+
+    Ok(problem::ProblemsResponse {
+        problems,
+        total_count: total_count as i32,
+    })
 }
 
 pub fn update_problem(prid: i32, vcount: i32) -> Result<problem::Problem, Error> {
