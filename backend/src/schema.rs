@@ -107,6 +107,7 @@ diesel::table! {
         meeple_move_id -> Int4,
         created_at -> Timestamp,
         player_profile_image_url -> Varchar,
+        problem_name -> Nullable<Varchar>,
     }
 }
 

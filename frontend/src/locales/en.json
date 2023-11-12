@@ -61,6 +61,12 @@
   "vote_results": "Results",
   "created_by": "created by",
   "problems": "Problems",
-  "problems_description": "You can consider your own move and vote in various given situations of Carcassonne, and can see what other people's moves as well. Once you have voted, you can see all the results.",
-  "remaining_tiles": "Remaining tiles"
+  "problems_description": "You can consider your own move and vote in various given situations of Carcassonne, and can see what other people's moves as well. Once you have voted, you can see all the results. New problem is published daily at 6 p.m. (JST).",
+  "remaining_tiles": "Remaining tiles",
+  "recent_votes": "Recent Votes",
+  "problem_list": "Problem List",
+  "newest": "Newest",
+  "oldest": "Oldest",
+  "most_voted": "Most Voted",
+  "least_voted": "Least Voted"
 }

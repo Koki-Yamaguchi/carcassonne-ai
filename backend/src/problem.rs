@@ -24,6 +24,13 @@ pub struct Problem {
     pub vote_count: i32,
 }
 
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct ProblemsResponse {
+    pub problems: Vec<Problem>,
+    pub total_count: i32,
+}
+
 #[derive(Serialize, Clone, Debug)]
 #[serde(crate = "rocket::serde")]
 pub struct Vote {
@@ -39,6 +46,7 @@ pub struct Vote {
     pub meeple_move_id: i32,
     pub meeple_move: Option<MeepleMove>,
     pub created_at: chrono::NaiveDateTime,
+    pub problem_name: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -93,8 +101,32 @@ pub fn get_problem(id: i32) -> Result<Problem, Error> {
     database::get_problem(id)
 }
 
-pub fn get_problems() -> Result<Vec<Problem>, Error> {
-    database::get_problems()
+pub fn get_problems(
+    page: Option<i32>,
+    order_by: Option<String>,
+    limit: Option<i32>,
+    creator: Option<i32>,
+) -> Result<ProblemsResponse, Error> {
+    let mut p = 0;
+    if let Some(pg) = page {
+        if p >= 0 {
+            p = pg;
+        }
+    }
+    let mut o = "-id".to_string();
+    if let Some(ob) = order_by {
+        if ob == "id" || ob == "vote_count" || ob == "-id" || ob == "-vote_count" {
+            o = ob;
+        }
+    }
+    let mut l = 10;
+    if let Some(lm) = limit {
+        if lm >= 1 {
+            l = lm;
+        }
+    }
+
+    database::get_problems(p, o, l, creator)
 }
 
 #[allow(dead_code)]
@@ -320,6 +352,8 @@ pub fn create_vote(
         }
     };
 
+    let problem = database::get_problem(problem_id)?;
+
     let vote = database::create_vote(&database::NewVote {
         problem_id,
         player_id,
@@ -329,9 +363,8 @@ pub fn create_vote(
         tile_move_id,
         meeple_move_id,
         player_profile_image_url: player.profile_image_url,
+        problem_name: Some(problem.name),
     })?;
-
-    let problem = database::get_problem(problem_id)?;
 
     database::update_problem(problem_id, problem.vote_count + 1)?;
 
@@ -343,9 +376,9 @@ pub fn get_vote(id: i32) -> Result<Vote, Error> {
 }
 
 pub fn get_votes(problem_id: Option<i32>, player_id: Option<i32>) -> Result<Vec<Vote>, Error> {
-    let mut fill_moves = true;
-    if let Some(_) = player_id {
-        fill_moves = false;
+    let mut fill_moves = false;
+    if let Some(_) = problem_id {
+        fill_moves = true;
     }
 
     database::get_votes(problem_id, player_id, fill_moves)

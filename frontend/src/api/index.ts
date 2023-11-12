@@ -19,6 +19,7 @@ import {
   WaitingGame,
   Problem,
   Vote,
+  ProblemsResponse,
 } from "../types";
 
 export class API {
@@ -613,12 +614,20 @@ export class API {
     }
   }
 
-  async getProblems(): Promise<Problem[]> {
+  async getProblems(
+    page: number,
+    orderBy: string,
+    limit: number
+  ): Promise<ProblemsResponse> {
+    const params = new URLSearchParams();
+    params.set("page", `${page}`);
+    params.set("order_by", orderBy);
+    params.set("limit", `${limit}`);
     try {
-      const url = `${this.base_url}/problems`;
+      const url = `${this.base_url}/problems?` + params.toString();
       const res = await axios.get(url);
       console.log({ res });
-      const problems: Problem[] = res.data.map((p: any) => {
+      const problems: Problem[] = res.data.problems.map((p: any) => {
         return {
           id: p.id,
           gameID: p.game_id,
@@ -628,7 +637,11 @@ export class API {
           voteCount: p.vote_count,
         };
       });
-      return problems;
+      const totalCount = res.data.total_count;
+      return {
+        problems,
+        totalCount,
+      };
     } catch (e) {
       console.log({ e });
       throw e;
@@ -670,12 +683,14 @@ export class API {
       const vote: Vote = {
         id: res.data.id,
         problemID: res.data.problem_id,
+        problemName: res.data.problem_name,
         playerID: res.data.player_id,
         playerName: res.data.player_name,
         playerProfileImageURL: res.data.player_profile_image_url,
         note: res.data.note,
         tileMove,
         meepleMove,
+        createdAt: new Date(res.data.created_at),
       };
       return vote;
     } catch (e) {
@@ -723,12 +738,14 @@ export class API {
         return {
           id: v.id,
           problemID: v.problem_id,
+          problemName: v.problem_name,
           playerID: v.player_id,
           playerName: v.player_name,
           playerProfileImageURL: v.player_profile_image_url,
           note: v.note,
           tileMove,
           meepleMove,
+          createdAt: new Date(v.created_at),
         };
       });
       return votes;
