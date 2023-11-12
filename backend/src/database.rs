@@ -131,6 +131,7 @@ pub struct NewVote {
     pub tile_move_id: i32,
     pub meeple_move_id: i32,
     pub player_profile_image_url: String,
+    pub problem_name: Option<String>,
 }
 
 #[derive(Queryable, Clone)]
@@ -146,6 +147,7 @@ pub struct QueryVote {
     pub meeple_move_id: i32,
     pub created_at: chrono::NaiveDateTime,
     pub player_profile_image_url: String,
+    pub problem_name: Option<String>,
 }
 
 pub fn get_player(pid: i32) -> Result<player::Player, Error> {
@@ -744,7 +746,12 @@ pub fn get_votes(
     if let Some(plyr) = plyrid {
         query = query.filter(player_id.eq(plyr))
     }
-    query = query.limit(300);
+
+    if prid == None && plyrid == None {
+        query = query.limit(10);
+    } else {
+        query = query.limit(300);
+    }
 
     match query.load::<QueryVote>(conn) {
         Ok(vts) => {
@@ -877,6 +884,7 @@ fn to_vote(v: QueryVote, fill_moves: bool) -> Result<problem::Vote, Error> {
         meeple_move_id: v.meeple_move_id,
         meeple_move,
         created_at: v.created_at,
+        problem_name: v.problem_name,
     })
 }
 

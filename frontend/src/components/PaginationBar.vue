@@ -32,7 +32,7 @@ const pages = computed(() => {
       <div v-for="p in pages" :key="p" class="w-8 h-8">
         <div
           @click="emit('pageClicked', p)"
-          class="w-full h-full rounded-full flex justify-center"
+          class="hover:cursor-pointer w-full h-full rounded-full flex justify-center"
           :class="p === page ? 'bg-green-400 text-white' : ''"
         >
           <div class="flex flex-col justify-center">

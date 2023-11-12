@@ -2,12 +2,13 @@
 import { onMounted, ref, watch } from "vue";
 import ProblemItem from "../components/ProblemItem.vue";
 import { API } from "../api";
-import { Problem, Player } from "../types";
+import { Problem, Player, Vote } from "../types";
 import { translate } from "../locales/translate";
 import { store } from "../store";
 import SpinnerIcon from "../components/SpinnerIcon.vue";
 import { useRoute, useRouter } from "vue-router";
 import PaginationBar from "../components/PaginationBar.vue";
+import RecentVoteItems from "../components/RecentVoteItems.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -23,6 +24,8 @@ const page = ref<number>(0);
 const totalCount = ref<number>(0);
 const LIMIT = 10;
 
+const recentVotes = ref<Vote[]>([]);
+
 onMounted(async () => {
   loading.value = true;
 
@@ -36,15 +39,17 @@ onMounted(async () => {
 
   await updateProblems();
 
+  recentVotes.value = await api.getVotes(null, null);
+
   loading.value = false;
 });
 
 const handleQueryString = () => {
   if (route.query.order_by) {
-    orderBy.value = route.query.order_by;
+    orderBy.value = route.query.order_by as string;
   }
   if (route.query.page) {
-    page.value = parseInt(route.query.page, 10);
+    page.value = parseInt(route.query.page as string, 10);
   }
 };
 
@@ -87,6 +92,10 @@ const updateProblems = async () => {
   totalCount.value = res.totalCount;
   setQueryString();
 };
+
+const handleClickProblemName = (problemID: number) => {
+  router.push(`/problems/${problemID}`);
+};
 </script>
 
 <template>
@@ -95,14 +104,22 @@ const updateProblems = async () => {
     <p class="my-2 text-sm text-gray-700">
       {{ translate("problems_description") }}
     </p>
+    <p>{{ translate("recent_votes") }}</p>
+    <div v-if="recentVotes.length > 0" class="mt-2">
+      <RecentVoteItems
+        :votes="recentVotes"
+        :handleClickProblemName="handleClickProblemName"
+      />
+    </div>
+    <p class="mt-4">{{ translate("problem_list") }}</p>
     <select
-      class="text-xs border-2 rounded py-1 px-2 text-gray-700 focus:outline-none focus:bg-white focus:border-green-300"
+      class="text-xs border-2 rounded py-1 px-2 mt-2 text-gray-700 focus:outline-none focus:bg-white focus:border-green-300"
       v-model="orderBy"
     >
-      <option value="-id">新しい順</option>
-      <option value="id">古い順</option>
-      <option value="-vote_count">投票の多い順</option>
-      <option value="vote_count">投票の少ない順</option>
+      <option value="-id">{{ translate("newest") }}</option>
+      <option value="id">{{ translate("oldest") }}</option>
+      <option value="-vote_count">{{ translate("most_voted") }}</option>
+      <option value="vote_count">{{ translate("least_voted") }}</option>
     </select>
     <div v-if="loading"><SpinnerIcon /></div>
     <div v-else-if="voted.length > 0">

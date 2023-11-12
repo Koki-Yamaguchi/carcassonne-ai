@@ -1,0 +1,1 @@
+ALTER TABLE vote ADD COLUMN problem_name VARCHAR(100);

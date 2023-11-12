@@ -112,10 +112,12 @@ export interface ProblemsResponse {
 export interface Vote {
   id: number;
   problemID: number;
+  problemName: string;
   playerID: number;
   playerName: string;
   playerProfileImageURL: string;
   note: string;
   tileMove: TileMove | null;
   meepleMove: MeepleMove | null;
+  createdAt: Date;
 }

@@ -46,6 +46,7 @@ pub struct Vote {
     pub meeple_move_id: i32,
     pub meeple_move: Option<MeepleMove>,
     pub created_at: chrono::NaiveDateTime,
+    pub problem_name: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -351,6 +352,8 @@ pub fn create_vote(
         }
     };
 
+    let problem = database::get_problem(problem_id)?;
+
     let vote = database::create_vote(&database::NewVote {
         problem_id,
         player_id,
@@ -360,9 +363,8 @@ pub fn create_vote(
         tile_move_id,
         meeple_move_id,
         player_profile_image_url: player.profile_image_url,
+        problem_name: Some(problem.name),
     })?;
-
-    let problem = database::get_problem(problem_id)?;
 
     database::update_problem(problem_id, problem.vote_count + 1)?;
 
@@ -374,9 +376,9 @@ pub fn get_vote(id: i32) -> Result<Vote, Error> {
 }
 
 pub fn get_votes(problem_id: Option<i32>, player_id: Option<i32>) -> Result<Vec<Vote>, Error> {
-    let mut fill_moves = true;
-    if let Some(_) = player_id {
-        fill_moves = false;
+    let mut fill_moves = false;
+    if let Some(_) = problem_id {
+        fill_moves = true;
     }
 
     database::get_votes(problem_id, player_id, fill_moves)

@@ -683,12 +683,14 @@ export class API {
       const vote: Vote = {
         id: res.data.id,
         problemID: res.data.problem_id,
+        problemName: res.data.problem_name,
         playerID: res.data.player_id,
         playerName: res.data.player_name,
         playerProfileImageURL: res.data.player_profile_image_url,
         note: res.data.note,
         tileMove,
         meepleMove,
+        createdAt: new Date(res.data.created_at),
       };
       return vote;
     } catch (e) {
@@ -736,12 +738,14 @@ export class API {
         return {
           id: v.id,
           problemID: v.problem_id,
+          problemName: v.problem_name,
           playerID: v.player_id,
           playerName: v.player_name,
           playerProfileImageURL: v.player_profile_image_url,
           note: v.note,
           tileMove,
           meepleMove,
+          createdAt: new Date(v.created_at),
         };
       });
       return votes;
