@@ -11,6 +11,7 @@ mod player;
 mod problem;
 mod schema;
 mod storage;
+mod translate;
 
 use event::UpdateEvent;
 use handlers::all_options;

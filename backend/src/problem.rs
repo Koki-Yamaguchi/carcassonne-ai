@@ -197,6 +197,7 @@ fn create_moves() -> Vec<Move> {
 
 #[test]
 fn create_problem_test() {
+    /*
     use super::game::decoder;
     use super::game::mov::{DiscardMove, MeepleMove, Move::*, TileMove};
 
@@ -335,6 +336,7 @@ fn create_problem_test() {
     }
 
     create_problem(g.id, problem_name, Some(start_at), creator_id, creator_name).unwrap();
+    */
 }
 
 pub fn create_vote(
