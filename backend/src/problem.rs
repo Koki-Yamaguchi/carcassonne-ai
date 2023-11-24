@@ -1,7 +1,7 @@
 use crate::{
     error::Error,
     game::{
-        mov::{MeepleMove, Move, TileMove},
+        mov::{DiscardMove, MeepleMove, Move, TileMove},
         tile::Tile,
     },
 };
@@ -162,7 +162,44 @@ fn add_move(
 }
 
 #[allow(dead_code)]
-fn create_moves() -> Vec<Move> {
+fn create_moves_from_game_against_ai(game_id: i32) -> Vec<Move> {
+    let src_mvs = database::list_moves(game_id, None).unwrap();
+    let mut mvs = vec![];
+    for mv in src_mvs {
+        match mv {
+            Move::TMove(tm) => mvs.push(Move::TMove(TileMove {
+                id: tm.id,
+                ord: tm.ord,
+                game_id: tm.game_id,
+                player_id: if tm.player_id == 1 { 1 } else { 0 },
+                tile: tm.tile,
+                rot: tm.rot,
+                pos: tm.pos,
+            })),
+            Move::MMove(mm) => mvs.push(Move::MMove(MeepleMove {
+                id: mm.id,
+                ord: mm.ord,
+                game_id: mm.game_id,
+                player_id: if mm.player_id == 1 { 1 } else { 0 },
+                meeple_id: mm.meeple_id,
+                tile_pos: mm.tile_pos,
+                meeple_pos: mm.meeple_pos,
+            })),
+            Move::DMove(dm) => mvs.push(Move::DMove(DiscardMove {
+                id: dm.id,
+                ord: dm.ord,
+                game_id: dm.game_id,
+                player_id: if dm.player_id == 1 { 1 } else { 0 },
+                tile: dm.tile,
+            })),
+            _ => {}
+        }
+    }
+    mvs
+}
+
+#[allow(dead_code)]
+fn create_moves_manually() -> Vec<Move> {
     let mut mvs = vec![];
 
     add_move(&mut mvs, Tile::StartingTile, 0, 1, 0, (0, 0), -1, -1, 0);
@@ -200,15 +237,16 @@ fn create_problem_test() {
     use super::game::decoder;
     use super::game::mov::{DiscardMove, MeepleMove, Move::*, TileMove};
 
-    let all_mvs = decoder::decode("src/data/432999143.json".to_string());
-    // let all_mvs = create_moves();
+    // let all_mvs = decoder::decode("src/data/432999143.json".to_string());
+    // let all_mvs = create_moves_manually();
+    let all_mvs = create_moves_from_game_against_ai(6705);
 
-    let remaining_tile_count = 36;
-    let problem_name = "".to_string();
-    let start_at = chrono::DateTime::parse_from_rfc3339("2023-11-10T18:00:00+09:00")
+    let remaining_tile_count = 66;
+    let problem_name = "Long Road Left".to_string();
+    let start_at = chrono::DateTime::parse_from_rfc3339("2023-11-24T18:00:00+09:00")
         .unwrap()
         .naive_utc();
-    let creator_id = Some(21);
+    let creator_id = Some(22);
     let mut creator_name = None;
     if let Some(pid) = creator_id {
         let player = database::get_player(pid).unwrap();
