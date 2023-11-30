@@ -1,7 +1,8 @@
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use dotenvy::dotenv;
-use std::env;
+use diesel::r2d2::Pool;
+use diesel::r2d2::{ConnectionManager, PooledConnection};
+pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 
 use crate::error::{internal_server_error, not_found_error, Error};
 use crate::game;
@@ -150,8 +151,8 @@ pub struct QueryVote {
     pub problem_name: Option<String>,
 }
 
-pub fn get_player(pid: i32) -> Result<player::Player, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+pub fn get_player(db: &DbPool, pid: i32) -> Result<player::Player, Error> {
+    let conn = &mut db.get().unwrap();
     use self::schema::player::dsl::{id, player as p};
 
     match p.filter(id.eq(pid)).load::<QueryPlayer>(conn) {
@@ -167,8 +168,8 @@ pub fn get_player(pid: i32) -> Result<player::Player, Error> {
     }
 }
 
-pub fn get_players() -> Result<Vec<player::Player>, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+pub fn get_players(db: &DbPool) -> Result<Vec<player::Player>, Error> {
+    let conn = &mut db.get().unwrap();
     use self::schema::player::dsl::{id, player as p, rating};
 
     match p
@@ -188,8 +189,8 @@ pub fn get_players() -> Result<Vec<player::Player>, Error> {
 }
 
 #[allow(dead_code)]
-pub fn get_all_players() -> Result<Vec<player::Player>, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+pub fn get_all_players(db: &DbPool) -> Result<Vec<player::Player>, Error> {
+    let conn = &mut db.get().unwrap();
     use self::schema::player::dsl::{id, player as p};
 
     match p
@@ -206,8 +207,8 @@ pub fn get_all_players() -> Result<Vec<player::Player>, Error> {
     }
 }
 
-pub fn get_player_by_uid(uid: String) -> Result<player::Player, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+pub fn get_player_by_uid(db: &DbPool, uid: String) -> Result<player::Player, Error> {
+    let conn = &mut db.get().unwrap();
     use self::schema::player::dsl::{player as p, user_id};
 
     match p.filter(user_id.eq(uid)).load::<QueryPlayer>(conn) {
@@ -224,12 +225,13 @@ pub fn get_player_by_uid(uid: String) -> Result<player::Player, Error> {
 }
 
 pub fn create_player(
+    db: &DbPool,
     name: String,
     email: String,
     user_id: String,
     meeple_color: i32,
 ) -> Result<player::Player, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    let conn = &mut db.get().unwrap();
     let new_player = NewPlayer {
         name,
         email,
@@ -247,14 +249,15 @@ pub fn create_player(
 }
 
 pub fn update_player(
+    db: &DbPool,
     pid: i32,
     nam: String,
     m_color: i32,
     rat: Option<i32>,
     prof_image_url: String,
 ) -> Result<player::Player, Error> {
+    let conn = &mut db.get().unwrap();
     use self::schema::player::dsl::{meeple_color, name, player, profile_image_url, rating};
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     match diesel::update(player.find(pid))
         .set((
             name.eq(nam),
@@ -274,11 +277,12 @@ pub fn update_player(
 }
 
 pub fn get_games(
+    db: &DbPool,
     player_id: Option<i32>,
     input_is_rated: Option<bool>,
     input_limit: Option<i32>,
 ) -> Result<Vec<game::Game>, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    let conn = &mut db.get().unwrap();
     use self::schema::game::dsl::{created_at, game as g, is_rated, player0_id, player1_id};
     let is_rtd = match input_is_rated {
         Some(i) => i,
@@ -322,8 +326,8 @@ pub fn get_games(
     }
 }
 
-pub fn get_game(gmid: i32) -> Result<game::Game, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+pub fn get_game(db: &DbPool, gmid: i32) -> Result<game::Game, Error> {
+    let conn = &mut db.get().unwrap();
     use self::schema::game::dsl::{game as g, id};
     match g.filter(id.eq(gmid)).limit(1).load::<game::Game>(conn) {
         Ok(games) => {
@@ -338,8 +342,8 @@ pub fn get_game(gmid: i32) -> Result<game::Game, Error> {
     }
 }
 
-pub fn get_waiting_games() -> Result<Vec<game::WaitingGame>, Error> {
-    let conn = &mut establish_connection();
+pub fn get_waiting_games(db: &DbPool) -> Result<Vec<game::WaitingGame>, Error> {
+    let conn = &mut db.get().unwrap();
     use self::schema::waiting_game::dsl::*;
     match waiting_game.load::<game::WaitingGame>(conn) {
         Ok(gs) => Ok(gs),
@@ -347,9 +351,9 @@ pub fn get_waiting_games() -> Result<Vec<game::WaitingGame>, Error> {
     }
 }
 
-pub fn create_waiting_game(player_id: i32) -> Result<game::WaitingGame, Error> {
+pub fn create_waiting_game(db: &DbPool, player_id: i32) -> Result<game::WaitingGame, Error> {
+    let conn = &mut db.get().unwrap();
     let new_waiting_game = NewWaitingGame { player_id };
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     match diesel::insert_into(schema::waiting_game::table)
         .values(&new_waiting_game)
         .get_result(conn)
@@ -363,9 +367,9 @@ pub fn create_waiting_game(player_id: i32) -> Result<game::WaitingGame, Error> {
     }
 }
 
-pub fn update_waiting_game(wid: i32, gid: i32) -> Result<game::WaitingGame, Error> {
+pub fn update_waiting_game(db: &DbPool, wid: i32, gid: i32) -> Result<game::WaitingGame, Error> {
+    let conn = &mut db.get().unwrap();
     use self::schema::waiting_game::dsl::*;
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
     match diesel::update(waiting_game.find(wid))
         .set(game_id.eq(gid))
         .get_result(conn)
@@ -379,9 +383,9 @@ pub fn update_waiting_game(wid: i32, gid: i32) -> Result<game::WaitingGame, Erro
     }
 }
 
-pub fn delete_waiting_game(pid: i32) -> Result<(), Error> {
+pub fn delete_waiting_game(db: &DbPool, pid: i32) -> Result<(), Error> {
     use self::schema::waiting_game::dsl::*;
-    let conn = &mut establish_connection();
+    let conn = &mut db.get().unwrap();
     match diesel::delete(waiting_game.filter(player_id.eq(pid))).execute(conn) {
         Ok(_) => Ok(()),
         Err(e) => {
@@ -391,6 +395,7 @@ pub fn delete_waiting_game(pid: i32) -> Result<(), Error> {
 }
 
 pub fn create_game(
+    db: &DbPool,
     player0_id: i32,
     player1_id: i32,
     next_tile_id: Option<i32>,
@@ -425,7 +430,7 @@ pub fn create_game(
         first_player_id,
         winner_player_id: None,
     };
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    let conn = &mut db.get().unwrap();
     match diesel::insert_into(schema::game::table)
         .values(&new_game)
         .get_result(conn)
@@ -440,6 +445,7 @@ pub fn create_game(
 }
 
 pub fn update_game(
+    db: &DbPool,
     gmid: i32,
     next_tid: i32,
     next_pid: i32,
@@ -459,7 +465,7 @@ pub fn update_game(
         current_player_id, current_tile_id, first_player_id, game, next_player_id, next_tile_id,
         player0_point, player1_point, winner_player_id,
     };
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    let conn = &mut db.get().unwrap();
     match diesel::update(game.find(gmid))
         .set((
             player0_point.eq(p0_point),
@@ -486,22 +492,30 @@ pub fn update_game(
     }
 }
 
-pub fn get_tile_move(mid: i32) -> Result<mov::TileMove, Error> {
-    match get_move(mid)? {
+pub fn get_tile_move(
+    conn: &mut PooledConnection<ConnectionManager<PgConnection>>,
+    mid: i32,
+) -> Result<mov::TileMove, Error> {
+    match get_move(conn, mid)? {
         mov::Move::TMove(tm) => Ok(tm),
         _ => return Err(not_found_error("tile_move".to_string())),
     }
 }
 
-pub fn get_meeple_move(mid: i32) -> Result<mov::MeepleMove, Error> {
-    match get_move(mid)? {
+pub fn get_meeple_move(
+    conn: &mut PooledConnection<ConnectionManager<PgConnection>>,
+    mid: i32,
+) -> Result<mov::MeepleMove, Error> {
+    match get_move(conn, mid)? {
         mov::Move::MMove(mm) => Ok(mm),
         _ => return Err(not_found_error("meeple_move".to_string())),
     }
 }
 
-pub fn get_move(mid: i32) -> Result<mov::Move, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+pub fn get_move(
+    conn: &mut PooledConnection<ConnectionManager<PgConnection>>,
+    mid: i32,
+) -> Result<mov::Move, Error> {
     use self::schema::move_::dsl::{id, move_ as m};
 
     match m.filter(id.eq(mid)).limit(1).load::<QueryMove>(conn) {
@@ -517,8 +531,8 @@ pub fn get_move(mid: i32) -> Result<mov::Move, Error> {
     }
 }
 
-pub fn list_moves(gmid: i32, move_id: Option<i32>) -> Result<Vec<mov::Move>, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+pub fn list_moves(db: &DbPool, gmid: i32, move_id: Option<i32>) -> Result<Vec<mov::Move>, Error> {
+    let conn = &mut db.get().unwrap();
     use self::schema::move_::dsl::*;
     let max_ord = match move_id {
         Some(mid) => mid,
@@ -540,8 +554,8 @@ pub fn list_moves(gmid: i32, move_id: Option<i32>) -> Result<Vec<mov::Move>, Err
     }
 }
 
-pub fn create_move(mv: mov::Move) -> Result<mov::Move, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+pub fn create_move(db: &DbPool, mv: mov::Move) -> Result<mov::Move, Error> {
+    let conn = &mut db.get().unwrap();
 
     let new_move = match mv {
         mov::Move::TMove(m) => InsertMove {
@@ -596,12 +610,13 @@ pub fn create_move(mv: mov::Move) -> Result<mov::Move, Error> {
 }
 
 pub fn create_optimal_move(
+    db: &DbPool,
     game_id: i32,
     last_n: i32,
     tile_move_id: i32,
     meeple_move_id: i32,
 ) -> Result<optimal_move::OptimalMove, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    let conn = &mut db.get().unwrap();
     let nom = NewOptimalMove {
         game_id,
         last_n,
@@ -617,8 +632,8 @@ pub fn create_optimal_move(
     }
 }
 
-pub fn create_problem(new_problem: &NewProblem) -> Result<problem::Problem, Error> {
-    let conn = &mut establish_connection();
+pub fn create_problem(db: &DbPool, new_problem: &NewProblem) -> Result<problem::Problem, Error> {
+    let conn = &mut db.get().unwrap();
 
     match diesel::insert_into(schema::problem::table)
         .values(new_problem)
@@ -629,8 +644,8 @@ pub fn create_problem(new_problem: &NewProblem) -> Result<problem::Problem, Erro
     }
 }
 
-pub fn get_problem(prid: i32) -> Result<problem::Problem, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+pub fn get_problem(db: &DbPool, prid: i32) -> Result<problem::Problem, Error> {
+    let conn = &mut db.get().unwrap();
     use self::schema::problem::dsl::{id, problem as p};
 
     match p
@@ -650,12 +665,13 @@ pub fn get_problem(prid: i32) -> Result<problem::Problem, Error> {
     }
 }
 pub fn get_problems(
+    db: &DbPool,
     page: i32,
     order_by: String,
     limit: i32,
     creator: Option<i32>,
 ) -> Result<problem::ProblemsResponse, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    let conn = &mut db.get().unwrap();
     use self::schema::problem::dsl::{creator_id, id, problem as p, start_at, vote_count};
     let now = chrono::Utc::now().naive_utc();
 
@@ -691,9 +707,9 @@ pub fn get_problems(
     })
 }
 
-pub fn update_problem(prid: i32, vcount: i32) -> Result<problem::Problem, Error> {
+pub fn update_problem(db: &DbPool, prid: i32, vcount: i32) -> Result<problem::Problem, Error> {
     use self::schema::problem::dsl::{problem, vote_count};
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    let conn = &mut db.get().unwrap();
     match diesel::update(problem.find(prid))
         .set(vote_count.eq(vcount))
         .get_result(conn)
@@ -703,20 +719,20 @@ pub fn update_problem(prid: i32, vcount: i32) -> Result<problem::Problem, Error>
     }
 }
 
-pub fn create_vote(nv: &NewVote) -> Result<problem::Vote, Error> {
-    let conn = &mut establish_connection();
+pub fn create_vote(db: &DbPool, nv: &NewVote) -> Result<problem::Vote, Error> {
+    let conn = &mut db.get().unwrap();
 
     match diesel::insert_into(schema::vote::table)
         .values(nv)
         .get_result(conn)
     {
-        Ok(v) => to_vote(v, true),
+        Ok(v) => to_vote(conn, v, true),
         Err(e) => Err(internal_server_error(e.to_string())),
     }
 }
 
-pub fn get_vote(vid: i32) -> Result<problem::Vote, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+pub fn get_vote(db: &DbPool, vid: i32) -> Result<problem::Vote, Error> {
+    let conn = &mut db.get().unwrap();
     use self::schema::vote::dsl::{id, vote as v};
 
     match v.filter(id.eq(vid)).limit(1).load::<QueryVote>(conn) {
@@ -724,7 +740,7 @@ pub fn get_vote(vid: i32) -> Result<problem::Vote, Error> {
             if vs.len() == 0 {
                 return Err(not_found_error("vote".to_string()));
             }
-            return to_vote(vs[0].clone(), true);
+            return to_vote(conn, vs[0].clone(), true);
         }
         Err(e) => {
             return Err(internal_server_error(e.to_string()));
@@ -733,11 +749,12 @@ pub fn get_vote(vid: i32) -> Result<problem::Vote, Error> {
 }
 
 pub fn get_votes(
+    db: &DbPool,
     prid: Option<i32>,
     plyrid: Option<i32>,
     fill_moves: bool,
 ) -> Result<Vec<problem::Vote>, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    let conn = &mut db.get().unwrap();
     use self::schema::vote::dsl::{created_at, player_id, problem_id, vote as v};
     let mut query = v.order(created_at.desc()).into_boxed();
     if let Some(pr) = prid {
@@ -757,7 +774,7 @@ pub fn get_votes(
         Ok(vts) => {
             return Ok(vts
                 .into_iter()
-                .map(|vt| to_vote(vt, fill_moves).unwrap())
+                .map(|vt| to_vote(conn, vt, fill_moves).unwrap())
                 .collect());
         }
         Err(e) => {
@@ -766,22 +783,26 @@ pub fn get_votes(
     }
 }
 
-pub fn update_vote(vid: i32, player_prof_image_url: String) -> Result<problem::Vote, Error> {
+pub fn update_vote(
+    db: &DbPool,
+    vid: i32,
+    player_prof_image_url: String,
+) -> Result<problem::Vote, Error> {
     use self::schema::vote::dsl::{player_profile_image_url, vote};
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+    let conn = &mut db.get().unwrap();
     match diesel::update(vote.find(vid))
         .set((player_profile_image_url.eq(player_prof_image_url),))
         .get_result(conn)
     {
         Ok(v) => {
-            return to_vote(v, true);
+            return to_vote(conn, v, true);
         }
         Err(e) => Err(internal_server_error(e.to_string())),
     }
 }
 
-pub fn create_favorite(nf: &NewFavorite) -> Result<problem::Favorite, Error> {
-    let conn = &mut establish_connection();
+pub fn create_favorite(db: &DbPool, nf: &NewFavorite) -> Result<problem::Favorite, Error> {
+    let conn = &mut db.get().unwrap();
 
     match diesel::insert_into(schema::favorite::table)
         .values(nf)
@@ -792,8 +813,12 @@ pub fn create_favorite(nf: &NewFavorite) -> Result<problem::Favorite, Error> {
     }
 }
 
-pub fn get_favorites(vid: Option<i32>, pid: Option<i32>) -> Result<Vec<problem::Favorite>, Error> {
-    let conn = &mut establish_connection(); // FIXME: establish connection once, not every time
+pub fn get_favorites(
+    db: &DbPool,
+    vid: Option<i32>,
+    pid: Option<i32>,
+) -> Result<Vec<problem::Favorite>, Error> {
+    let conn = &mut db.get().unwrap();
     use self::schema::favorite::dsl::{created_at, favorite as f, player_id, vote_id};
 
     let mut query = f.order(created_at.desc()).into_boxed();
@@ -860,14 +885,18 @@ fn to_player(v: QueryPlayer) -> player::Player {
     }
 }
 
-fn to_vote(v: QueryVote, fill_moves: bool) -> Result<problem::Vote, Error> {
+fn to_vote(
+    conn: &mut PooledConnection<ConnectionManager<PgConnection>>,
+    v: QueryVote,
+    fill_moves: bool,
+) -> Result<problem::Vote, Error> {
     let tile_move = if fill_moves {
-        Some(get_tile_move(v.tile_move_id)?)
+        Some(get_tile_move(conn, v.tile_move_id)?)
     } else {
         None
     };
     let meeple_move = if fill_moves {
-        Some(get_meeple_move(v.meeple_move_id)?)
+        Some(get_meeple_move(conn, v.meeple_move_id)?)
     } else {
         None
     };
@@ -886,11 +915,4 @@ fn to_vote(v: QueryVote, fill_moves: bool) -> Result<problem::Vote, Error> {
         created_at: v.created_at,
         problem_name: v.problem_name,
     })
-}
-
-fn establish_connection() -> PgConnection {
-    dotenv().ok();
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    PgConnection::establish(&database_url)
-        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }

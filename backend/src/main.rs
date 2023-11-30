@@ -37,10 +37,16 @@ use handlers::{get_problem, get_problems};
 
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::Client;
+use diesel::r2d2::ConnectionManager;
+use diesel::r2d2::Pool;
+use diesel::PgConnection;
+use dotenvy::dotenv;
 use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Header;
 use rocket::tokio::sync::broadcast::channel;
 use rocket::{Request, Response};
+use std::env;
+use std::time::Duration;
 
 pub struct CORS;
 
@@ -66,6 +72,15 @@ impl Fairing for CORS {
 
 #[launch]
 async fn rocket() -> _ {
+    dotenv().ok();
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    let pool = Pool::builder()
+        .max_size(5) // FIXME: Didn't think about this number carefully
+        .connection_timeout(Duration::from_secs(300))
+        .build(manager)
+        .expect("Creating a pool failed");
+
     let region_provider = RegionProviderChain::default_provider().or_else("ap-northeast-1");
     let config = aws_config::from_env().region(region_provider).load().await;
     let storage_client = Client::new(&config);
@@ -73,6 +88,7 @@ async fn rocket() -> _ {
     let r = rocket::build()
         .manage(channel::<UpdateEvent>(1024).0)
         .manage(storage_client)
+        .manage(pool)
         .attach(CORS)
         .mount(
             "/",
