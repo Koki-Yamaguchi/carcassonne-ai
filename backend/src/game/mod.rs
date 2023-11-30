@@ -10,10 +10,13 @@ pub mod rating;
 pub mod solver;
 pub mod tile;
 
+use diesel::pg::PgConnection;
 use diesel::prelude::*;
+use diesel::r2d2::ConnectionManager;
+use diesel::r2d2::Pool;
 use rocket::serde::{Deserialize, Serialize};
 
-use crate::database::{self, get_player, update_player};
+use crate::database;
 use crate::error::{bad_request_error, Error};
 use crate::game::rating::calculate_rating;
 use crate::game::solver::SolveResult;
@@ -89,23 +92,26 @@ pub struct MeepleMoveResult {
     pub current_player_id: i32,
 }
 
-pub fn get_waiting_games() -> Result<Vec<WaitingGame>, Error> {
-    database::get_waiting_games()
+pub type DbPool = Pool<ConnectionManager<PgConnection>>;
+
+pub fn get_waiting_games(db: &DbPool) -> Result<Vec<WaitingGame>, Error> {
+    database::get_waiting_games(db)
 }
 
-pub fn create_waiting_game(player_id: i32) -> Result<WaitingGame, Error> {
-    database::create_waiting_game(player_id)
+pub fn create_waiting_game(db: &DbPool, player_id: i32) -> Result<WaitingGame, Error> {
+    database::create_waiting_game(db, player_id)
 }
 
-pub fn update_waiting_game(id: i32, game_id: i32) -> Result<WaitingGame, Error> {
-    database::update_waiting_game(id, game_id)
+pub fn update_waiting_game(db: &DbPool, id: i32, game_id: i32) -> Result<WaitingGame, Error> {
+    database::update_waiting_game(db, id, game_id)
 }
 
-pub fn delete_waiting_games(player_id: i32) -> Result<(), Error> {
-    database::delete_waiting_game(player_id)
+pub fn delete_waiting_games(db: &DbPool, player_id: i32) -> Result<(), Error> {
+    database::delete_waiting_game(db, player_id)
 }
 
 pub fn create_game(
+    db: &DbPool,
     player0_id: i32,
     player1_id: i32,
     player0_color: i32,
@@ -129,13 +135,13 @@ pub fn create_game(
     let rem_tiles = remaining_tiles(vec![cur_tile]);
     let next_tile = rem_tiles[rng.gen_range(0..rem_tiles.len())];
 
-    let player0_name = match database::get_player(player0_id) {
+    let player0_name = match database::get_player(db, player0_id) {
         Ok(p) => p.name,
         Err(e) => {
             return Err(e);
         }
     };
-    let player1_name = match database::get_player(player1_id) {
+    let player1_name = match database::get_player(db, player1_id) {
         Ok(p) => p.name,
         Err(e) => {
             return Err(e);
@@ -143,6 +149,7 @@ pub fn create_game(
     };
 
     let g = match database::create_game(
+        db,
         player0_id,
         player1_id,
         Some(next_tile.to_id()),
@@ -181,11 +188,11 @@ pub fn create_game(
         meeple_pos: -1,
     });
 
-    match database::create_move(mv0.clone()) {
+    match database::create_move(db, mv0.clone()) {
         Err(e) => return Err(e),
         _ => {}
     }
-    match database::create_move(mv1.clone()) {
+    match database::create_move(db, mv1.clone()) {
         Err(e) => return Err(e),
         _ => {}
     }
@@ -194,6 +201,7 @@ pub fn create_game(
 }
 
 pub fn create_tile_move(
+    db: &DbPool,
     game_id: Option<i32>,
     player_id: i32,
     tile: tile::Tile,
@@ -202,18 +210,21 @@ pub fn create_tile_move(
 ) -> Result<mov::Move, Error> {
     // dangling move for voting
     if let None = game_id {
-        return database::create_move(TMove(TileMove {
-            id: -1, // ignored
-            ord: -1,
-            game_id,
-            player_id,
-            tile,
-            rot,
-            pos,
-        }));
+        return database::create_move(
+            db,
+            TMove(TileMove {
+                id: -1, // ignored
+                ord: -1,
+                game_id,
+                player_id,
+                tile,
+                rot,
+                pos,
+            }),
+        );
     }
 
-    let mut moves = match database::list_moves(game_id.unwrap(), None) {
+    let mut moves = match database::list_moves(db, game_id.unwrap(), None) {
         Ok(mvs) => mvs,
         Err(e) => {
             return Err(e);
@@ -253,10 +264,11 @@ pub fn create_tile_move(
 
     calculate::calculate(&moves, false)?;
 
-    database::create_move(mv)
+    database::create_move(db, mv)
 }
 
 pub fn create_meeple_move(
+    db: &DbPool,
     game_id: Option<i32>,
     player_id: i32,
     meeple_id: i32,
@@ -265,18 +277,21 @@ pub fn create_meeple_move(
 ) -> Result<mov::Move, Error> {
     // dangling move for voting
     if let None = game_id {
-        return database::create_move(MMove(MeepleMove {
-            id: -1, // ignored
-            ord: -1,
-            game_id,
-            player_id,
-            meeple_id,
-            tile_pos,
-            meeple_pos,
-        }));
+        return database::create_move(
+            db,
+            MMove(MeepleMove {
+                id: -1, // ignored
+                ord: -1,
+                game_id,
+                player_id,
+                meeple_id,
+                tile_pos,
+                meeple_pos,
+            }),
+        );
     }
 
-    let gm = match database::get_game(game_id.unwrap()) {
+    let gm = match database::get_game(db, game_id.unwrap()) {
         Ok(game) => game,
         Err(e) => {
             return Err(e);
@@ -284,7 +299,7 @@ pub fn create_meeple_move(
     };
 
     let mut rng = rand::thread_rng();
-    let mut moves = match database::list_moves(game_id.unwrap(), None) {
+    let mut moves = match database::list_moves(db, game_id.unwrap(), None) {
         Ok(mvs) => mvs,
         Err(e) => {
             return Err(e);
@@ -374,6 +389,7 @@ pub fn create_meeple_move(
     };
 
     match database::update_game(
+        db,
         game_id.unwrap(),
         next_tile.to_id(),
         next_player_id,
@@ -394,35 +410,39 @@ pub fn create_meeple_move(
         Ok(_) => {}
     }
 
-    database::create_move(mv)
+    database::create_move(db, mv)
 }
 
 pub fn create_discard_move(
+    db: &DbPool,
     game_id: Option<i32>,
     player_id: i32,
     tile: tile::Tile,
 ) -> Result<mov::Move, Error> {
     // dangling move for voting (although discard move is not really used)
     if let None = game_id {
-        return database::create_move(DMove(DiscardMove {
-            id: -1, // ignored
-            ord: -1,
-            game_id,
-            player_id,
-            tile,
-        }));
+        return database::create_move(
+            db,
+            DMove(DiscardMove {
+                id: -1, // ignored
+                ord: -1,
+                game_id,
+                player_id,
+                tile,
+            }),
+        );
     }
 
     let mut rng = rand::thread_rng();
 
-    let gm = match database::get_game(game_id.unwrap()) {
+    let gm = match database::get_game(db, game_id.unwrap()) {
         Ok(game) => game,
         Err(e) => {
             return Err(e);
         }
     };
 
-    let mut moves = match database::list_moves(game_id.unwrap(), None) {
+    let mut moves = match database::list_moves(db, game_id.unwrap(), None) {
         Ok(mvs) => mvs,
         Err(e) => {
             return Err(e);
@@ -472,6 +492,7 @@ pub fn create_discard_move(
     // TODO: what if thre's no tile to draw on the second last turn?
 
     match database::update_game(
+        db,
         game_id.unwrap(),
         gm.next_tile_id.unwrap(),
         gm.next_player_id.unwrap(),
@@ -492,18 +513,18 @@ pub fn create_discard_move(
         Ok(_) => {}
     }
 
-    database::create_move(mv)
+    database::create_move(db, mv)
 }
 
-pub fn wait_ai_move(game_id: i32) -> Result<(), Error> {
-    let game = match database::get_game(game_id) {
+pub fn wait_ai_move(db: &DbPool, game_id: i32) -> Result<(), Error> {
+    let game = match database::get_game(db, game_id) {
         Ok(gm) => gm,
         Err(e) => {
             return Err(e);
         }
     };
 
-    let moves = match database::list_moves(game.id, None) {
+    let moves = match database::list_moves(db, game.id, None) {
         Ok(mvs) => mvs,
         Err(e) => {
             return Err(e);
@@ -522,9 +543,17 @@ pub fn wait_ai_move(game_id: i32) -> Result<(), Error> {
         placing_tile,
     ) {
         Some((tile_move, meeple_move)) => {
-            create_tile_move(Some(game.id), 1, placing_tile, tile_move.rot, tile_move.pos)?;
+            create_tile_move(
+                db,
+                Some(game.id),
+                1,
+                placing_tile,
+                tile_move.rot,
+                tile_move.pos,
+            )?;
 
             create_meeple_move(
+                db,
                 Some(game.id),
                 1,
                 meeple_move.meeple_id,
@@ -535,35 +564,40 @@ pub fn wait_ai_move(game_id: i32) -> Result<(), Error> {
             Ok(())
         }
         None => {
-            create_discard_move(Some(game.id), 1, placing_tile)?;
+            create_discard_move(db, Some(game.id), 1, placing_tile)?;
 
             Ok(())
         }
     }
 }
 
-pub fn get_game(game_id: i32) -> Result<Game, Error> {
-    database::get_game(game_id)
+pub fn get_game(db: &DbPool, game_id: i32) -> Result<Game, Error> {
+    database::get_game(db, game_id)
 }
 
 pub fn get_games(
+    db: &DbPool,
     player_id: Option<i32>,
     is_rated: Option<bool>,
     limit: Option<i32>,
 ) -> Result<Vec<Game>, Error> {
-    database::get_games(player_id, is_rated, limit)
+    database::get_games(db, player_id, is_rated, limit)
 }
 
-pub fn get_moves(game_id: Option<i32>, move_id: Option<i32>) -> Result<Vec<mov::Move>, Error> {
+pub fn get_moves(
+    db: &DbPool,
+    game_id: Option<i32>,
+    move_id: Option<i32>,
+) -> Result<Vec<mov::Move>, Error> {
     match game_id {
-        Some(gid) => database::list_moves(gid, move_id),
+        Some(gid) => database::list_moves(db, gid, move_id),
         None => Err(bad_request_error(
             "parameter `game_id` is required".to_string(),
         )),
     }
 }
 
-pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error> {
+pub fn get_final_events(db: &DbPool, game_id: Option<i32>) -> Result<MeepleMoveResult, Error> {
     let gid = match game_id {
         Some(gid) => gid,
         None => {
@@ -573,14 +607,14 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
         }
     };
 
-    let gm = match database::get_game(gid) {
+    let gm = match database::get_game(db, gid) {
         Ok(game) => game,
         Err(e) => {
             return Err(e);
         }
     };
 
-    let moves = match database::list_moves(gid, None) {
+    let moves = match database::list_moves(db, gid, None) {
         Ok(mvs) => mvs,
         Err(e) => {
             return Err(e);
@@ -618,13 +652,13 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
     };
 
     if gm.winner_player_id == None {
-        let player0 = match get_player(gm.player0_id) {
+        let player0 = match database::get_player(db, gm.player0_id) {
             Ok(p) => p,
             Err(e) => {
                 return Err(e);
             }
         };
-        let player1 = match get_player(gm.player1_id) {
+        let player1 = match database::get_player(db, gm.player1_id) {
             Ok(p) => p,
             Err(e) => {
                 return Err(e);
@@ -667,7 +701,8 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
                 after_player1_rating = Some(1500);
             }
 
-            match update_player(
+            match database::update_player(
+                db,
                 player0.id,
                 player0.name,
                 player0.meeple_color,
@@ -679,7 +714,8 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
                     return Err(e);
                 }
             }
-            match update_player(
+            match database::update_player(
+                db,
                 player1.id,
                 player1.name,
                 player1.meeple_color,
@@ -694,6 +730,7 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
         }
 
         match database::update_game(
+            db,
             gm.id,
             gm.next_tile_id.unwrap(),
             gm.next_player_id.unwrap(),
@@ -731,8 +768,8 @@ pub fn get_final_events(game_id: Option<i32>) -> Result<MeepleMoveResult, Error>
 }
 
 #[allow(dead_code, unused_assignments)]
-fn create_optimal_move(game_id: i32, last_n: i32, player0_id: i32, player1_id: i32) {
-    let mut moves = match database::list_moves(game_id, None) {
+fn create_optimal_move(db: &DbPool, game_id: i32, last_n: i32, player0_id: i32, player1_id: i32) {
+    let mut moves = match database::list_moves(db, game_id, None) {
         Ok(mvs) => mvs,
         Err(_) => {
             return;
@@ -773,7 +810,7 @@ fn create_optimal_move(game_id: i32, last_n: i32, player0_id: i32, player1_id: i
     tile_move.ord = -1;
     meeple_move.ord = -1;
 
-    let tile_move_id = match database::create_move(TMove(tile_move)) {
+    let tile_move_id = match database::create_move(db, TMove(tile_move)) {
         Ok(m) => match m {
             TMove(tm) => tm.id,
             _ => {
@@ -784,7 +821,7 @@ fn create_optimal_move(game_id: i32, last_n: i32, player0_id: i32, player1_id: i
             panic!("{:?}", e.detail.msg);
         }
     };
-    let meeple_move_id = match database::create_move(MMove(meeple_move)) {
+    let meeple_move_id = match database::create_move(db, MMove(meeple_move)) {
         Ok(m) => match m {
             MMove(mm) => mm.id,
             _ => {
@@ -796,7 +833,7 @@ fn create_optimal_move(game_id: i32, last_n: i32, player0_id: i32, player1_id: i
         }
     };
 
-    match database::create_optimal_move(game_id, last_n, tile_move_id, meeple_move_id) {
+    match database::create_optimal_move(db, game_id, last_n, tile_move_id, meeple_move_id) {
         Ok(_) => {}
         Err(e) => {
             panic!("{:?}", e.detail.msg);
@@ -804,7 +841,7 @@ fn create_optimal_move(game_id: i32, last_n: i32, player0_id: i32, player1_id: i
     }
 }
 
-pub fn get_board(game_id: Option<i32>, move_id: Option<i32>) -> Result<Board, Error> {
+pub fn get_board(db: &DbPool, game_id: Option<i32>, move_id: Option<i32>) -> Result<Board, Error> {
     let gid = match game_id {
         Some(gid) => gid,
         None => {
@@ -814,7 +851,7 @@ pub fn get_board(game_id: Option<i32>, move_id: Option<i32>) -> Result<Board, Er
         }
     };
 
-    let moves = match database::list_moves(gid, move_id) {
+    let moves = match database::list_moves(db, gid, move_id) {
         Ok(mvs) => mvs,
         Err(e) => {
             return Err(e);

@@ -2,9 +2,13 @@ use crate::storage;
 use crate::{database, error::Error};
 use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::Client;
+use diesel::pg::PgConnection;
 use diesel::prelude::*;
+use diesel::r2d2::ConnectionManager;
+use diesel::r2d2::Pool;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::State;
+pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
@@ -33,10 +37,16 @@ pub struct Player {
     pub profile_image_url: String,
 }
 
-pub fn update_player(player_id: i32, name: String, meeple_color: i32) -> Result<Player, Error> {
-    let player = database::get_player(player_id)?;
+pub fn update_player(
+    db: &DbPool,
+    player_id: i32,
+    name: String,
+    meeple_color: i32,
+) -> Result<Player, Error> {
+    let player = database::get_player(db, player_id)?;
 
     database::update_player(
+        db,
         player_id,
         name,
         meeple_color,
@@ -45,12 +55,15 @@ pub fn update_player(player_id: i32, name: String, meeple_color: i32) -> Result<
     )
 }
 
-pub fn get_player_by_uid(uid: String) -> Result<Player, Error> {
-    database::get_player_by_uid(uid)
+pub fn get_player_by_uid(db: &DbPool, uid: String) -> Result<Player, Error> {
+    println!("database::get_player begins");
+    let p = database::get_player_by_uid(db, uid);
+    println!("database::get_player ends");
+    p
 }
 
-pub fn get_players() -> Result<Vec<Player>, Error> {
-    let mut players = match database::get_players() {
+pub fn get_players(db: &DbPool) -> Result<Vec<Player>, Error> {
+    let mut players = match database::get_players(db) {
         Ok(ps) => ps,
         Err(e) => {
             return Err(e);
@@ -65,8 +78,8 @@ pub fn get_players() -> Result<Vec<Player>, Error> {
     Ok(players)
 }
 
-pub fn get_player(id: i32) -> Result<Player, Error> {
-    let mut player = database::get_player(id)?;
+pub fn get_player(db: &DbPool, id: i32) -> Result<Player, Error> {
+    let mut player = database::get_player(db, id)?;
 
     player.email = "".to_string();
     player.user_id = "".to_string();
@@ -75,6 +88,7 @@ pub fn get_player(id: i32) -> Result<Player, Error> {
 }
 
 pub async fn upload_profile_image(
+    db: &DbPool,
     storage_client: &State<Client>,
     player_id: i32,
     body: ByteStream,
@@ -84,10 +98,11 @@ pub async fn upload_profile_image(
 
     let profile_image_url = storage::get_object_url(storage_client, &key).await;
 
-    let player = database::get_player(player_id)?;
+    let player = database::get_player(db, player_id)?;
 
     if profile_image_url != "" {
         let _ = database::update_player(
+            db,
             player_id,
             player.name,
             player.meeple_color,
@@ -95,44 +110,11 @@ pub async fn upload_profile_image(
             profile_image_url.clone(),
         );
 
-        let votes = database::get_votes(None, Some(player_id), false)?;
+        let votes = database::get_votes(db, None, Some(player_id), false)?;
         for vote in &votes {
-            database::update_vote(vote.id, profile_image_url.clone())?;
+            database::update_vote(db, vote.id, profile_image_url.clone())?;
         }
     }
 
     Ok(())
-}
-
-use rocket::tokio;
-#[tokio::test]
-#[allow(dead_code)]
-async fn update_profile_image_test() {
-    use aws_config::meta::region::RegionProviderChain;
-
-    let region_provider = RegionProviderChain::default_provider().or_else("ap-northeast-1");
-    let config = aws_config::from_env().region(region_provider).load().await;
-    let storage_client = Client::new(&config);
-
-    let players = database::get_all_players().unwrap();
-
-    for player in &players {
-        let key = format!("profile-image/{}", player.id);
-        let profile_image_url = storage::get_object_url(State::from(&storage_client), &key).await;
-
-        if profile_image_url != "" {
-            let _ = database::update_player(
-                player.id,
-                player.name.clone(),
-                player.meeple_color,
-                player.rating,
-                profile_image_url.clone(),
-            );
-
-            let votes = database::get_votes(None, Some(player.id), false).unwrap();
-            for vote in &votes {
-                database::update_vote(vote.id, profile_image_url.clone()).unwrap();
-            }
-        }
-    }
 }

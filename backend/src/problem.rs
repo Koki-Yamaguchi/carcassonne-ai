@@ -5,10 +5,15 @@ use crate::{
         tile::Tile,
     },
 };
+use diesel::pg::PgConnection;
+use diesel::r2d2::ConnectionManager;
+use diesel::r2d2::Pool;
 use diesel::Queryable;
 use rocket::serde::{Deserialize, Serialize};
 
 use crate::database;
+
+pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 
 #[derive(Serialize, Queryable, Clone, Debug)]
 #[serde(crate = "rocket::serde")]
@@ -81,27 +86,32 @@ pub struct CreateFavorite {
 
 #[allow(dead_code)]
 pub fn create_problem(
+    db: &DbPool,
     game_id: i32,
     name: String,
     start_at: Option<chrono::NaiveDateTime>,
     creator_id: Option<i32>,
     creator_name: Option<String>,
 ) -> Result<Problem, Error> {
-    database::create_problem(&database::NewProblem {
-        game_id,
-        name,
-        start_at,
-        creator_id,
-        creator_name,
-        vote_count: 0,
-    })
+    database::create_problem(
+        db,
+        &database::NewProblem {
+            game_id,
+            name,
+            start_at,
+            creator_id,
+            creator_name,
+            vote_count: 0,
+        },
+    )
 }
 
-pub fn get_problem(id: i32) -> Result<Problem, Error> {
-    database::get_problem(id)
+pub fn get_problem(db: &DbPool, id: i32) -> Result<Problem, Error> {
+    database::get_problem(db, id)
 }
 
 pub fn get_problems(
+    db: &DbPool,
     page: Option<i32>,
     order_by: Option<String>,
     limit: Option<i32>,
@@ -126,7 +136,7 @@ pub fn get_problems(
         }
     }
 
-    database::get_problems(p, o, l, creator)
+    database::get_problems(db, p, o, l, creator)
 }
 
 #[allow(dead_code)]
@@ -162,8 +172,8 @@ fn add_move(
 }
 
 #[allow(dead_code)]
-fn create_moves_from_game_against_ai(game_id: i32) -> Vec<Move> {
-    let src_mvs = database::list_moves(game_id, None).unwrap();
+fn create_moves_from_game_against_ai(db: &DbPool, game_id: i32) -> Vec<Move> {
+    let src_mvs = database::list_moves(db, game_id, None).unwrap();
     let mut mvs = vec![];
     for mv in src_mvs {
         match mv {
@@ -236,20 +246,32 @@ fn create_moves_manually() -> Vec<Move> {
 fn create_problem_test() {
     use super::game::decoder;
     use super::game::mov::{DiscardMove, MeepleMove, Move::*, TileMove};
+    use dotenvy::dotenv;
+    use std::env;
+    use std::time::Duration;
 
-    // let all_mvs = decoder::decode("src/data/432999143.json".to_string());
+    dotenv().ok();
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    let db = Pool::builder()
+        .max_size(1) // FIXME: Didn't think about this number carefully
+        .connection_timeout(Duration::from_secs(300))
+        .build(manager)
+        .expect("Creating a pool failed");
+
+    let all_mvs = decoder::decode("src/data/444659653.json".to_string());
     // let all_mvs = create_moves_manually();
-    let all_mvs = create_moves_from_game_against_ai(6705);
+    // let all_mvs = create_moves_from_game_against_ai(&db, 6705);
 
-    let remaining_tile_count = 66;
-    let problem_name = "Long Road Left".to_string();
-    let start_at = chrono::DateTime::parse_from_rfc3339("2023-11-24T18:00:00+09:00")
+    let remaining_tile_count = 57;
+    let problem_name = "Better Monastery 2".to_string();
+    let start_at = chrono::DateTime::parse_from_rfc3339("2023-11-30T18:00:00+09:00")
         .unwrap()
         .naive_utc();
-    let creator_id = Some(22);
+    let creator_id = None;
     let mut creator_name = None;
     if let Some(pid) = creator_id {
-        let player = database::get_player(pid).unwrap();
+        let player = database::get_player(&db, pid).unwrap();
         creator_name = Some(player.name);
     }
 
@@ -296,6 +318,7 @@ fn create_problem_test() {
     let first_player_id = map[mvs[2].player_id() as usize];
 
     let g = database::create_game(
+        &db,
         you,
         opponent,
         None,
@@ -314,15 +337,18 @@ fn create_problem_test() {
     for mv in &mvs {
         match mv {
             TMove(tm) => {
-                database::create_move(TMove(TileMove {
-                    id: -1, // ignored
-                    ord: tm.ord,
-                    game_id: Some(g.id),
-                    player_id: map[tm.player_id as usize],
-                    tile: tm.tile,
-                    rot: tm.rot,
-                    pos: tm.pos,
-                }))
+                database::create_move(
+                    &db,
+                    TMove(TileMove {
+                        id: -1, // ignored
+                        ord: tm.ord,
+                        game_id: Some(g.id),
+                        player_id: map[tm.player_id as usize],
+                        tile: tm.tile,
+                        rot: tm.rot,
+                        pos: tm.pos,
+                    }),
+                )
                 .unwrap();
             }
             MMove(mm) => {
@@ -345,25 +371,31 @@ fn create_problem_test() {
                     }
                 };
                 println!();
-                database::create_move(MMove(MeepleMove {
-                    id: -1, // ignored
-                    ord: mm.ord,
-                    game_id: Some(g.id),
-                    player_id: map[mm.player_id as usize],
-                    meeple_id,
-                    tile_pos: mm.tile_pos,
-                    meeple_pos: mm.meeple_pos,
-                }))
+                database::create_move(
+                    &db,
+                    MMove(MeepleMove {
+                        id: -1, // ignored
+                        ord: mm.ord,
+                        game_id: Some(g.id),
+                        player_id: map[mm.player_id as usize],
+                        meeple_id,
+                        tile_pos: mm.tile_pos,
+                        meeple_pos: mm.meeple_pos,
+                    }),
+                )
                 .unwrap();
             }
             DMove(dm) => {
-                database::create_move(DMove(DiscardMove {
-                    id: -1, // ignored
-                    ord: dm.ord,
-                    game_id: Some(g.id),
-                    player_id: map[dm.player_id as usize],
-                    tile: dm.tile,
-                }))
+                database::create_move(
+                    &db,
+                    DMove(DiscardMove {
+                        id: -1, // ignored
+                        ord: dm.ord,
+                        game_id: Some(g.id),
+                        player_id: map[dm.player_id as usize],
+                        tile: dm.tile,
+                    }),
+                )
                 .unwrap();
             }
             _ => {
@@ -372,10 +404,19 @@ fn create_problem_test() {
         }
     }
 
-    create_problem(g.id, problem_name, Some(start_at), creator_id, creator_name).unwrap();
+    create_problem(
+        &db,
+        g.id,
+        problem_name,
+        Some(start_at),
+        creator_id,
+        creator_name,
+    )
+    .unwrap();
 }
 
 pub fn create_vote(
+    db: &DbPool,
     problem_id: i32,
     player_id: i32,
     player_name: String,
@@ -383,57 +424,72 @@ pub fn create_vote(
     tile_move_id: i32,
     meeple_move_id: i32,
 ) -> Result<Vote, Error> {
-    let player = match super::player::get_player(player_id) {
+    let player = match super::player::get_player(db, player_id) {
         Ok(p) => p,
         Err(e) => {
             return Err(e);
         }
     };
 
-    let problem = database::get_problem(problem_id)?;
+    let problem = database::get_problem(db, problem_id)?;
 
-    let vote = database::create_vote(&database::NewVote {
-        problem_id,
-        player_id,
-        player_name,
-        note,
-        favorite_count: 0,
-        tile_move_id,
-        meeple_move_id,
-        player_profile_image_url: player.profile_image_url,
-        problem_name: Some(problem.name),
-    })?;
+    let vote = database::create_vote(
+        db,
+        &database::NewVote {
+            problem_id,
+            player_id,
+            player_name,
+            note,
+            favorite_count: 0,
+            tile_move_id,
+            meeple_move_id,
+            player_profile_image_url: player.profile_image_url,
+            problem_name: Some(problem.name),
+        },
+    )?;
 
-    database::update_problem(problem_id, problem.vote_count + 1)?;
+    database::update_problem(db, problem_id, problem.vote_count + 1)?;
 
     Ok(vote)
 }
 
-pub fn get_vote(id: i32) -> Result<Vote, Error> {
-    database::get_vote(id)
+pub fn get_vote(db: &DbPool, id: i32) -> Result<Vote, Error> {
+    database::get_vote(db, id)
 }
 
-pub fn get_votes(problem_id: Option<i32>, player_id: Option<i32>) -> Result<Vec<Vote>, Error> {
+pub fn get_votes(
+    db: &DbPool,
+    problem_id: Option<i32>,
+    player_id: Option<i32>,
+) -> Result<Vec<Vote>, Error> {
     let mut fill_moves = false;
     if let Some(_) = problem_id {
         fill_moves = true;
     }
 
-    database::get_votes(problem_id, player_id, fill_moves)
+    database::get_votes(db, problem_id, player_id, fill_moves)
 }
 
 pub fn create_favorite(
+    db: &DbPool,
     vote_id: i32,
     player_id: i32,
     player_name: String,
 ) -> Result<Favorite, Error> {
-    database::create_favorite(&database::NewFavorite {
-        vote_id,
-        player_id,
-        player_name,
-    })
+    database::create_favorite(
+        db,
+        &database::NewFavorite {
+            vote_id,
+            player_id,
+            player_name,
+        },
+    )
 }
 
-pub fn get_favorites(vote_id: Option<i32>, player_id: Option<i32>) -> Result<Vec<Favorite>, Error> {
-    database::get_favorites(vote_id, player_id)
+pub fn get_favorites(
+    db: &DbPool,
+    vote_id: Option<i32>,
+    player_id: Option<i32>,
+) -> Result<Vec<Favorite>, Error> {
+    database::get_favorites(db, vote_id, player_id)
 }
