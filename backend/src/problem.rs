@@ -4,6 +4,7 @@ use crate::{
         mov::{DiscardMove, MeepleMove, Move, TileMove},
         tile::Tile,
     },
+    translate,
 };
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
@@ -52,6 +53,8 @@ pub struct Vote {
     pub meeple_move: Option<MeepleMove>,
     pub created_at: chrono::NaiveDateTime,
     pub problem_name: Option<String>,
+    pub lang: Option<String>,
+    pub translation: String,
 }
 
 #[derive(Deserialize)]
@@ -259,16 +262,16 @@ fn create_problem_test() {
         .build(manager)
         .expect("Creating a pool failed");
 
-    let all_mvs = decoder::decode("src/data/444659653.json".to_string());
+    let all_mvs = decoder::decode("src/data/441437812.json".to_string());
     // let all_mvs = create_moves_manually();
     // let all_mvs = create_moves_from_game_against_ai(&db, 6705);
 
-    let remaining_tile_count = 57;
-    let problem_name = "Better Monastery 2".to_string();
-    let start_at = chrono::DateTime::parse_from_rfc3339("2023-11-30T18:00:00+09:00")
+    let remaining_tile_count = 22;
+    let problem_name = "Versa-tile 2".to_string();
+    let start_at = chrono::DateTime::parse_from_rfc3339("2023-12-01T18:00:00+09:00")
         .unwrap()
         .naive_utc();
-    let creator_id = None;
+    let creator_id = Some(89);
     let mut creator_name = None;
     if let Some(pid) = creator_id {
         let player = database::get_player(&db, pid).unwrap();
@@ -445,6 +448,8 @@ pub fn create_vote(
             meeple_move_id,
             player_profile_image_url: player.profile_image_url,
             problem_name: Some(problem.name),
+            lang: None,
+            translation: "".to_string(),
         },
     )?;
 
@@ -468,6 +473,31 @@ pub fn get_votes(
     }
 
     database::get_votes(db, problem_id, player_id, fill_moves)
+}
+
+pub fn update_vote_translation(db: &DbPool, vote_id: i32) {
+    let v = database::get_vote(db, vote_id).unwrap();
+    println!("before update vote = {:?}", v);
+
+    let t = translate::Translator::new();
+    let lang = t.detect_language(v.note.clone());
+
+    let translation = t.translate(v.note.replace("\n", ""), lang.clone());
+
+    let v = database::update_vote(
+        db,
+        v.id,
+        v.player_profile_image_url,
+        if lang == translate::Lang::Japanese {
+            Some("ja".to_string())
+        } else {
+            Some("en".to_string())
+        },
+        translation,
+    )
+    .unwrap();
+
+    println!("after update vote = {:?}", v);
 }
 
 pub fn create_favorite(

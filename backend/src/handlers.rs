@@ -472,6 +472,7 @@ pub fn create_vote(
     params: Json<problem::CreateVote>,
     db: &State<DbPool>,
 ) -> (Status, (ContentType, String)) {
+    let cloned_db = db.inner().clone();
     match problem::create_vote(
         db.inner(),
         params.problem_id,
@@ -481,7 +482,11 @@ pub fn create_vote(
         params.tile_move_id,
         params.meeple_move_id,
     ) {
-        Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
+        Ok(v) => {
+            thread::spawn(move || problem::update_vote_translation(&cloned_db, v.id));
+
+            (Status::Ok, (ContentType::JSON, to_string(&v).unwrap()))
+        }
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }

@@ -108,6 +108,8 @@ diesel::table! {
         created_at -> Timestamp,
         player_profile_image_url -> Varchar,
         problem_name -> Nullable<Varchar>,
+        lang -> Nullable<Varchar>,
+        translation -> Text,
     }
 }
 

@@ -133,6 +133,8 @@ pub struct NewVote {
     pub meeple_move_id: i32,
     pub player_profile_image_url: String,
     pub problem_name: Option<String>,
+    pub lang: Option<String>,
+    pub translation: String,
 }
 
 #[derive(Queryable, Clone)]
@@ -149,6 +151,8 @@ pub struct QueryVote {
     pub created_at: chrono::NaiveDateTime,
     pub player_profile_image_url: String,
     pub problem_name: Option<String>,
+    pub lang: Option<String>,
+    pub translation: String,
 }
 
 pub fn get_player(db: &DbPool, pid: i32) -> Result<player::Player, Error> {
@@ -787,11 +791,17 @@ pub fn update_vote(
     db: &DbPool,
     vid: i32,
     player_prof_image_url: String,
+    lng: Option<String>,
+    trns: String,
 ) -> Result<problem::Vote, Error> {
-    use self::schema::vote::dsl::{player_profile_image_url, vote};
+    use self::schema::vote::dsl::{lang, player_profile_image_url, translation, vote};
     let conn = &mut db.get().unwrap();
     match diesel::update(vote.find(vid))
-        .set((player_profile_image_url.eq(player_prof_image_url),))
+        .set((
+            player_profile_image_url.eq(player_prof_image_url),
+            lang.eq(lng),
+            translation.eq(trns),
+        ))
         .get_result(conn)
     {
         Ok(v) => {
@@ -914,5 +924,7 @@ fn to_vote(
         meeple_move,
         created_at: v.created_at,
         problem_name: v.problem_name,
+        lang: v.lang,
+        translation: v.translation,
     })
 }

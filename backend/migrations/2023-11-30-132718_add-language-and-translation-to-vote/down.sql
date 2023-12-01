@@ -1,0 +1,2 @@
+ALTER TABLE vote DROP COLUMN lang;
+ALTER TABLE vote DROP COLUMN translation;
