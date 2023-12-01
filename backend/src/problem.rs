@@ -477,14 +477,11 @@ pub fn get_votes(
 
 pub fn update_vote_translation(db: &DbPool, vote_id: i32) {
     let v = database::get_vote(db, vote_id).unwrap();
-    println!("before update vote = {:?}", v);
-
     let t = translate::Translator::new();
     let lang = t.detect_language(v.note.clone());
-
     let translation = t.translate(v.note.replace("\n", ""), lang.clone());
 
-    let v = database::update_vote(
+    let _ = database::update_vote(
         db,
         v.id,
         v.player_profile_image_url,
@@ -496,9 +493,6 @@ pub fn update_vote_translation(db: &DbPool, vote_id: i32) {
         translation,
     )
     .unwrap();
-
-    println!("after update vote = {:?}", v);
-    println!("");
 }
 
 pub fn create_favorite(
