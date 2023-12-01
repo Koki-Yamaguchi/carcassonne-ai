@@ -498,6 +498,7 @@ pub fn update_vote_translation(db: &DbPool, vote_id: i32) {
     .unwrap();
 
     println!("after update vote = {:?}", v);
+    println!("");
 }
 
 pub fn create_favorite(
@@ -522,4 +523,32 @@ pub fn get_favorites(
     player_id: Option<i32>,
 ) -> Result<Vec<Favorite>, Error> {
     database::get_favorites(db, vote_id, player_id)
+}
+
+#[test]
+fn update_all_vote_translation() {
+    /*
+    use dotenvy::dotenv;
+    use std::env;
+    use std::time::Duration;
+
+    dotenv().ok();
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    let db = Pool::builder()
+        .max_size(1) // FIXME: Didn't think about this number carefully
+        .connection_timeout(Duration::from_secs(300))
+        .build(manager)
+        .expect("Creating a pool failed");
+
+    for problem_id in 1..39 {
+        println!("problem id = {:?}", problem_id);
+        let votes = database::get_votes(&db, Some(problem_id), None, false).unwrap();
+        for vote in &votes {
+            if vote.note != "".to_string() {
+                update_vote_translation(&db, vote.id);
+            }
+        }
+    }
+    */
 }
