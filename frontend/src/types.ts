@@ -120,4 +120,6 @@ export interface Vote {
   tileMove: TileMove | null;
   meepleMove: MeepleMove | null;
   createdAt: Date;
+  lang: string | null;
+  translation: string;
 }

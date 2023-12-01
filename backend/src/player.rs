@@ -56,10 +56,7 @@ pub fn update_player(
 }
 
 pub fn get_player_by_uid(db: &DbPool, uid: String) -> Result<Player, Error> {
-    println!("database::get_player begins");
-    let p = database::get_player_by_uid(db, uid);
-    println!("database::get_player ends");
-    p
+    database::get_player_by_uid(db, uid)
 }
 
 pub fn get_players(db: &DbPool) -> Result<Vec<Player>, Error> {
@@ -112,7 +109,13 @@ pub async fn upload_profile_image(
 
         let votes = database::get_votes(db, None, Some(player_id), false)?;
         for vote in &votes {
-            database::update_vote(db, vote.id, profile_image_url.clone())?;
+            database::update_vote(
+                db,
+                vote.id,
+                profile_image_url.clone(),
+                vote.lang.clone(),
+                vote.translation.clone(),
+            )?;
         }
     }
 

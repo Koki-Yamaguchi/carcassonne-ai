@@ -4,6 +4,7 @@ use crate::{
         mov::{DiscardMove, MeepleMove, Move, TileMove},
         tile::Tile,
     },
+    translate,
 };
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
@@ -52,6 +53,8 @@ pub struct Vote {
     pub meeple_move: Option<MeepleMove>,
     pub created_at: chrono::NaiveDateTime,
     pub problem_name: Option<String>,
+    pub lang: Option<String>,
+    pub translation: String,
 }
 
 #[derive(Deserialize)]
@@ -259,16 +262,16 @@ fn create_problem_test() {
         .build(manager)
         .expect("Creating a pool failed");
 
-    let all_mvs = decoder::decode("src/data/444659653.json".to_string());
+    let all_mvs = decoder::decode("src/data/441437812.json".to_string());
     // let all_mvs = create_moves_manually();
     // let all_mvs = create_moves_from_game_against_ai(&db, 6705);
 
-    let remaining_tile_count = 57;
-    let problem_name = "Better Monastery 2".to_string();
-    let start_at = chrono::DateTime::parse_from_rfc3339("2023-11-30T18:00:00+09:00")
+    let remaining_tile_count = 22;
+    let problem_name = "Versa-tile 2".to_string();
+    let start_at = chrono::DateTime::parse_from_rfc3339("2023-12-01T18:00:00+09:00")
         .unwrap()
         .naive_utc();
-    let creator_id = None;
+    let creator_id = Some(89);
     let mut creator_name = None;
     if let Some(pid) = creator_id {
         let player = database::get_player(&db, pid).unwrap();
@@ -445,6 +448,8 @@ pub fn create_vote(
             meeple_move_id,
             player_profile_image_url: player.profile_image_url,
             problem_name: Some(problem.name),
+            lang: None,
+            translation: "".to_string(),
         },
     )?;
 
@@ -470,6 +475,26 @@ pub fn get_votes(
     database::get_votes(db, problem_id, player_id, fill_moves)
 }
 
+pub fn update_vote_translation(db: &DbPool, vote_id: i32) {
+    let v = database::get_vote(db, vote_id).unwrap();
+    let t = translate::Translator::new();
+    let lang = t.detect_language(v.note.clone());
+    let translation = t.translate(v.note.replace("\n", ""), lang.clone());
+
+    let _ = database::update_vote(
+        db,
+        v.id,
+        v.player_profile_image_url,
+        if lang == translate::Lang::Japanese {
+            Some("ja".to_string())
+        } else {
+            Some("en".to_string())
+        },
+        translation,
+    )
+    .unwrap();
+}
+
 pub fn create_favorite(
     db: &DbPool,
     vote_id: i32,
@@ -492,4 +517,32 @@ pub fn get_favorites(
     player_id: Option<i32>,
 ) -> Result<Vec<Favorite>, Error> {
     database::get_favorites(db, vote_id, player_id)
+}
+
+#[test]
+fn update_all_vote_translation() {
+    /*
+    use dotenvy::dotenv;
+    use std::env;
+    use std::time::Duration;
+
+    dotenv().ok();
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    let db = Pool::builder()
+        .max_size(1) // FIXME: Didn't think about this number carefully
+        .connection_timeout(Duration::from_secs(300))
+        .build(manager)
+        .expect("Creating a pool failed");
+
+    for problem_id in 1..39 {
+        println!("problem id = {:?}", problem_id);
+        let votes = database::get_votes(&db, Some(problem_id), None, false).unwrap();
+        for vote in &votes {
+            if vote.note != "".to_string() {
+                update_vote_translation(&db, vote.id);
+            }
+        }
+    }
+    */
 }
