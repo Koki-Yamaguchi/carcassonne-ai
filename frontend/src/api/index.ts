@@ -691,6 +691,8 @@ export class API {
         tileMove,
         meepleMove,
         createdAt: new Date(res.data.created_at),
+        lang: res.data.lang,
+        translation: res.data.translation,
       };
       return vote;
     } catch (e) {
@@ -746,6 +748,8 @@ export class API {
           tileMove,
           meepleMove,
           createdAt: new Date(v.created_at),
+          lang: v.lang,
+          translation: v.translation,
         };
       });
       return votes;
