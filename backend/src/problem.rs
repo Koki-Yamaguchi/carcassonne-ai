@@ -262,16 +262,16 @@ fn create_problem_test() {
         .build(manager)
         .expect("Creating a pool failed");
 
-    let all_mvs = decoder::decode("src/data/441437812.json".to_string());
+    let all_mvs = decoder::decode("src/data/444626489.json".to_string());
     // let all_mvs = create_moves_manually();
     // let all_mvs = create_moves_from_game_against_ai(&db, 6705);
 
-    let remaining_tile_count = 22;
-    let problem_name = "Versa-tile 2".to_string();
-    let start_at = chrono::DateTime::parse_from_rfc3339("2023-12-01T18:00:00+09:00")
+    let remaining_tile_count = 41;
+    let problem_name = "Urgent Destruction".to_string();
+    let start_at = chrono::DateTime::parse_from_rfc3339("2023-12-03T18:00:00+09:00")
         .unwrap()
         .naive_utc();
-    let creator_id = Some(89);
+    let creator_id = None;
     let mut creator_name = None;
     if let Some(pid) = creator_id {
         let player = database::get_player(&db, pid).unwrap();
@@ -519,9 +519,9 @@ pub fn get_favorites(
     database::get_favorites(db, vote_id, player_id)
 }
 
+/*
 #[test]
 fn update_all_vote_translation() {
-    /*
     use dotenvy::dotenv;
     use std::env;
     use std::time::Duration;
@@ -535,7 +535,7 @@ fn update_all_vote_translation() {
         .build(manager)
         .expect("Creating a pool failed");
 
-    for problem_id in 1..39 {
+    for problem_id in 1..47 {
         println!("problem id = {:?}", problem_id);
         let votes = database::get_votes(&db, Some(problem_id), None, false).unwrap();
         for vote in &votes {
@@ -544,5 +544,53 @@ fn update_all_vote_translation() {
             }
         }
     }
-    */
 }
+*/
+
+/*
+#[test]
+fn list_daily_number_of_vote() {
+    use dotenvy::dotenv;
+    use std::env;
+    use std::time::Duration;
+
+    dotenv().ok();
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    let db = Pool::builder()
+        .max_size(1) // FIXME: Didn't think about this number carefully
+        .connection_timeout(Duration::from_secs(300))
+        .build(manager)
+        .expect("Creating a pool failed");
+
+    let mut votes = vec![];
+    for problem_id in 1..48 {
+        let mut vs = database::get_votes(&db, Some(problem_id), None, false).unwrap();
+        votes.append(&mut vs);
+    }
+
+    votes.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+
+    let mut cur = 0;
+    let mut cur_t = chrono::DateTime::parse_from_rfc3339("2023-10-16T00:00:00+00:00")
+        .unwrap()
+        .naive_utc();
+    let end_t = chrono::DateTime::parse_from_rfc3339("2023-12-04T00:00:00+00:00")
+        .unwrap()
+        .naive_utc();
+    loop {
+        loop {
+            if cur >= votes.len() || votes[cur].created_at > cur_t {
+                break;
+            }
+            cur += 1;
+        }
+        println!("{:?},{:?}", cur_t, cur);
+        cur_t += chrono::Duration::days(1);
+        if cur_t > end_t {
+            break;
+        }
+    }
+    assert!(false);
+}
+*/
