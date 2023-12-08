@@ -69,5 +69,9 @@
   "oldest": "Oldest",
   "most_voted": "Most Voted",
   "least_voted": "Least Voted",
-  "propose_problem": "Proposal"
+  "propose_problem": "Proposal",
+  "remaining_tile_count": "Number of remaining tiles",
+  "table_id": "Table ID",
+  "propose": "Submit",
+  "placing_tile": "Placing tile"
 }

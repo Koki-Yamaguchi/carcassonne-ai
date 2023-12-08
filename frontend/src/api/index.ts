@@ -20,6 +20,7 @@ import {
   Problem,
   Vote,
   ProblemsResponse,
+  ProblemProposal,
 } from "../types";
 
 export class API {
@@ -753,6 +754,36 @@ export class API {
         };
       });
       return votes;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async createProblemProposal(
+    tableID: number,
+    remainingTileCount: number,
+    creatorID: number,
+    tileID: number
+  ): Promise<ProblemProposal> {
+    try {
+      const res = await axios.post(
+        `${this.base_url}/problem-proposals/create`,
+        {
+          table_id: tableID,
+          remaining_tile_count: Number(remainingTileCount),
+          creator_id: creatorID,
+          tile_id: tileID,
+        }
+      );
+      const proposal: ProblemProposal = {
+        id: res.data.id,
+        tableID: res.data.table_id,
+        remainingTileCount: res.data.remaining_tile_count,
+        creatorID: res.data.creator_id,
+        tileID: res.data.tile_id,
+      };
+      return proposal;
     } catch (e) {
       console.log({ e });
       throw e;

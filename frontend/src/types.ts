@@ -123,3 +123,11 @@ export interface Vote {
   lang: string | null;
   translation: string;
 }
+
+export interface ProblemProposal {
+  id: number;
+  tableID: string;
+  remainingTileCount: number;
+  creatorID: number;
+  tileID: number;
+}
