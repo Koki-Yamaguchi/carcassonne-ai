@@ -6,7 +6,7 @@ use super::tile;
 use super::tile::Tile;
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Win {
     pos: (i32, i32),
     rot: i32,
@@ -274,6 +274,8 @@ pub fn solve(
     let mut win_count = HashMap::<(i32, i32, i32, i32), i32>::new();
     let mut total_wins = vec![];
 
+    let mut memo = HashMap::<Vec<Tile>, Vec<Win>>::new();
+
     loop {
         let mut ordered_remaining_tiles = remaining_tiles_idx
             .clone()
@@ -283,24 +285,33 @@ pub fn solve(
         let mut ordered_tiles = vec![next_tile];
         ordered_tiles.append(&mut ordered_remaining_tiles);
 
-        let (wins, _) = search(
-            game_id,
-            &moves,
-            ordered_tiles,
-            next_player_id,
-            other_player_id,
-            player0_id,
-            player1_id,
-            0,
-            second_player_id,
-            is_last_1_or_2,
-        );
+        // println!("ordered_tiles = {:?}", ordered_tiles);
 
-        for win in wins {
+        let wins = if memo.contains_key(&ordered_tiles) {
+            memo.get(&ordered_tiles).unwrap().clone().to_vec()
+        } else {
+            let ws = search(
+                game_id,
+                &moves,
+                ordered_tiles.clone(),
+                next_player_id,
+                other_player_id,
+                player0_id,
+                player1_id,
+                0,
+                second_player_id,
+                is_last_1_or_2,
+            )
+            .0;
+            memo.insert(ordered_tiles.clone(), ws.clone());
+            ws.clone()
+        };
+
+        for win in &wins {
             if win.win_player_id != next_player_id {
                 continue;
             }
-            total_wins.push(win);
+            total_wins.push(*win);
         }
 
         order_count += 1;
@@ -367,7 +378,6 @@ pub fn solve(
         }
     }
 
-    /*
     println!("====== Winnable Moves ======");
     for (key, value) in &win_count {
         println!(
@@ -380,7 +390,6 @@ pub fn solve(
         );
     }
     println!();
-    */
 
     let solve_result = if max_count == order_count {
         SolveResult::AlwaysWin
@@ -471,5 +480,122 @@ fn solve_test1() {
     assert_eq!(tm.pos, (-2, -1));
     assert_eq!(tm.rot, 1);
     assert_eq!(mm.meeple_pos, -1);
+    */
+}
+
+#[test]
+fn solve_test2() {
+    // actual game here: https://boardgamearena.com/table?table=443543294
+    /*
+    use super::decoder;
+    let mut mvs = decoder::decode("src/data/443543294.json".to_string());
+
+    for _ in 0..10 {
+        mvs.pop();
+    }
+
+    for mv in &mvs {
+        println!("mv = {:?}", mv);
+    }
+    let cand_mvs = vec![
+        vec![
+            TMove(TileMove {
+                id: -1,
+                ord: 134,
+                game_id: None,
+                player_id: 1,
+                tile: Tile::Curve,
+                rot: 0,
+                pos: (-5, 7),
+            }),
+            MMove(MeepleMove {
+                id: -1,
+                ord: 135,
+                game_id: None,
+                player_id: 1,
+                meeple_id: 13,
+                meeple_pos: 1,
+                tile_pos: (-5, 7),
+            }),
+        ],
+        vec![
+            TMove(TileMove {
+                id: -1,
+                ord: 134,
+                game_id: None,
+                player_id: 1,
+                tile: Tile::Curve,
+                rot: 2,
+                pos: (-1, 8),
+            }),
+            MMove(MeepleMove {
+                id: -1,
+                ord: 135,
+                game_id: None,
+                player_id: 1,
+                meeple_id: 13,
+                meeple_pos: 0,
+                tile_pos: (-1, 8),
+            }),
+        ],
+        vec![
+            TMove(TileMove {
+                id: -1,
+                ord: 134,
+                game_id: None,
+                player_id: 1,
+                tile: Tile::Curve,
+                rot: 1,
+                pos: (2, 7),
+            }),
+            MMove(MeepleMove {
+                id: -1,
+                ord: 135,
+                game_id: None,
+                player_id: 1,
+                meeple_id: 13,
+                meeple_pos: 1,
+                tile_pos: (2, 7),
+            }),
+        ],
+        vec![
+            TMove(TileMove {
+                id: -1,
+                ord: 134,
+                game_id: None,
+                player_id: 1,
+                tile: Tile::Curve,
+                rot: 3,
+                pos: (-1, -4),
+            }),
+            MMove(MeepleMove {
+                id: -1,
+                ord: 135,
+                game_id: None,
+                player_id: 1,
+                meeple_id: 13,
+                meeple_pos: 1,
+                tile_pos: (-1, -4),
+            }),
+        ],
+    ];
+
+    for cand_mv in &cand_mvs {
+        mvs.push(cand_mv[0].clone());
+        mvs.push(cand_mv[1].clone());
+
+        let next_tiles = vec![Tile::Curve, Tile::TripleCityWithRoad, Tile::Right];
+        println!("move = {:?}, {:?}", cand_mv[0], cand_mv[1]);
+
+        for next_tile in &next_tiles {
+            println!("next_tile = {:?}", next_tile);
+            let ((_, _), _) = solve(&mvs, None, 0, 1, next_tile.clone(), false);
+        }
+
+        mvs.pop();
+        mvs.pop();
+
+        println!("");
+    }
     */
 }
