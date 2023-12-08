@@ -10,7 +10,7 @@ use crate::game::mov;
 use crate::game::tile;
 use crate::optimal_move;
 use crate::player::{self};
-use crate::problem;
+use crate::problem::{self, ProblemProposal};
 use crate::schema;
 
 #[derive(Insertable)]
@@ -871,6 +871,22 @@ pub fn create_problem_proposal(
     {
         Ok(prb) => Ok(prb),
         Err(e) => Err(internal_server_error(e.to_string())),
+    }
+}
+
+pub fn get_problem_proposals(db: &DbPool) -> Result<Vec<problem::ProblemProposal>, Error> {
+    let conn = &mut db.get().unwrap();
+    use self::schema::problem_proposal::dsl::{problem_proposal as pp, used_at};
+
+    match pp
+        .filter(used_at.is_null())
+        .limit(100)
+        .load::<ProblemProposal>(conn)
+    {
+        Ok(pps) => return Ok(pps),
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
     }
 }
 

@@ -631,3 +631,7 @@ pub fn create_problem_proposal(
         },
     )
 }
+
+pub fn get_problem_proposals(db: &DbPool) -> Result<Vec<ProblemProposal>, Error> {
+    database::get_problem_proposals(db)
+}

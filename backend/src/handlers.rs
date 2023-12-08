@@ -554,6 +554,16 @@ pub fn create_problem(
 }
 */
 
+#[get("/problem-proposals", format = "application/json")]
+pub fn get_problem_proposals(
+    db: &State<DbPool>,
+) -> (Status, (ContentType, String)) {
+    match problem::get_problem_proposals(db.inner()) {
+        Ok(vs) => (Status::Ok, (ContentType::JSON, to_string(&vs).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
 #[post(
     "/problem-proposals/create",
     format = "application/json",

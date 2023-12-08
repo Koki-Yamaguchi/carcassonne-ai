@@ -24,6 +24,7 @@ use handlers::get_moves;
 use handlers::get_player;
 use handlers::get_player_by_uid;
 use handlers::get_players;
+use handlers::get_problem_proposals;
 use handlers::health;
 use handlers::send_event;
 use handlers::update_player;
@@ -126,6 +127,7 @@ async fn rocket() -> _ {
                 create_favorite,
                 get_favorites,
                 create_problem_proposal,
+                get_problem_proposals,
             ],
         );
     r
