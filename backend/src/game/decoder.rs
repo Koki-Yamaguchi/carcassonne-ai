@@ -8,11 +8,7 @@ use super::mov::{DiscardMove, MeepleMove, Move, TileMove};
 use super::tile::to_tile;
 use super::tile::Tile;
 
-#[allow(dead_code)]
-pub fn decode(file_path: String) -> Vec<Move> {
-    let mut file = File::open(file_path).unwrap();
-    let mut data = String::new();
-    file.read_to_string(&mut data).unwrap();
+pub fn decode(data: String) -> Vec<Move> {
     let v: Value = serde_json::from_str(&data).unwrap();
 
     let mut ord = 0;
@@ -245,6 +241,15 @@ pub fn decode(file_path: String) -> Vec<Move> {
     }
 
     moves
+}
+
+#[allow(dead_code)]
+pub fn decode_from_file_path(file_path: String) -> Vec<Move> {
+    let mut file = File::open(file_path).unwrap();
+    let mut data = String::new();
+    file.read_to_string(&mut data).unwrap();
+
+    decode(data)
 }
 
 fn convert_tile(typ: i32) -> i32 {

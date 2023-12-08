@@ -12,6 +12,8 @@ use diesel::r2d2::Pool;
 use diesel::Queryable;
 use rocket::serde::{Deserialize, Serialize};
 
+use super::game::decoder;
+use super::game::mov::Move::*;
 use crate::database;
 
 pub type DbPool = Pool<ConnectionManager<PgConnection>>;
@@ -69,6 +71,14 @@ pub struct CreateVote {
     pub meeple_move_id: i32,
 }
 
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct CreateProblem {
+    pub creator_id: i32,
+    pub remaining_tile_count: i32,
+    pub moves: String,
+}
+
 #[derive(Serialize, Queryable, Clone, Debug)]
 #[serde(crate = "rocket::serde")]
 #[diesel(table_name = schema::favorite)]
@@ -109,24 +119,155 @@ pub struct ProblemProposal {
     pub created_at: chrono::NaiveDateTime,
 }
 
-#[allow(dead_code)]
-pub fn create_problem(
-    db: &DbPool,
-    game_id: i32,
-    name: String,
-    start_at: Option<chrono::NaiveDateTime>,
-    creator_id: Option<i32>,
-    creator_name: Option<String>,
-) -> Result<Problem, Error> {
+pub fn create_draft_problem(db: &DbPool, params: &CreateProblem) -> Result<Problem, Error> {
+    let all_mvs = decoder::decode(params.moves.clone());
+    let remaining_tile_count = params.remaining_tile_count;
+    let problem_name = "".to_string();
+    let creator_id = Some(params.creator_id);
+    let mut creator_name = None;
+    if let Some(pid) = creator_id {
+        let player = database::get_player(&db, pid).unwrap();
+        creator_name = Some(player.name);
+    }
+
+    let mut tile_count = 0;
+    let mut mv_idx = 0;
+    for mv in &all_mvs {
+        mv_idx += 1;
+        match mv {
+            MMove(_) => {
+                let rem_tile = 72 - tile_count - 2;
+                if remaining_tile_count == rem_tile {
+                    break;
+                }
+
+                continue;
+            }
+            _ => {
+                tile_count += 1;
+            }
+        }
+    }
+
+    let mvs = all_mvs[0..mv_idx].to_vec();
+
+    let you = -2;
+    let opponent = -3;
+    let (cur_tile_id, map) = match &all_mvs[mv_idx] {
+        TMove(tm) => {
+            if tm.player_id == 0 {
+                (tm.tile.to_id(), vec![-2, -3])
+            } else {
+                (tm.tile.to_id(), vec![-3, -2])
+            }
+        }
+        _ => {
+            panic!("something wrong");
+        }
+    };
+
+    let you_name = "You".to_string();
+    let opponent_name = "Opponent".to_string();
+
+    let first_player_id = map[mvs[2].player_id() as usize];
+
+    let g = database::create_game(
+        &db,
+        you,
+        opponent,
+        None,
+        Some(opponent),
+        Some(cur_tile_id),
+        Some(you),
+        you_name,
+        opponent_name,
+        1,
+        0,
+        false,
+        Some(first_player_id),
+    )
+    .unwrap();
+
+    for mv in &mvs {
+        match mv {
+            TMove(tm) => {
+                database::create_move(
+                    &db,
+                    TMove(TileMove {
+                        id: -1, // ignored
+                        ord: tm.ord,
+                        game_id: Some(g.id),
+                        player_id: map[tm.player_id as usize],
+                        tile: tm.tile,
+                        rot: tm.rot,
+                        pos: tm.pos,
+                    }),
+                )
+                .unwrap();
+            }
+            MMove(mm) => {
+                // FIXME
+                let meeple_id = if mm.meeple_id == -1 {
+                    -1
+                } else {
+                    if you /* player0 */ == map[mm.player_id as usize] {
+                        if mm.meeple_id >= 7 {
+                            mm.meeple_id - 7
+                        } else {
+                            mm.meeple_id
+                        }
+                    } else {
+                        if mm.meeple_id < 7 {
+                            mm.meeple_id + 7
+                        } else {
+                            mm.meeple_id
+                        }
+                    }
+                };
+                println!();
+                database::create_move(
+                    &db,
+                    MMove(MeepleMove {
+                        id: -1, // ignored
+                        ord: mm.ord,
+                        game_id: Some(g.id),
+                        player_id: map[mm.player_id as usize],
+                        meeple_id,
+                        tile_pos: mm.tile_pos,
+                        meeple_pos: mm.meeple_pos,
+                    }),
+                )
+                .unwrap();
+            }
+            DMove(dm) => {
+                database::create_move(
+                    &db,
+                    DMove(DiscardMove {
+                        id: -1, // ignored
+                        ord: dm.ord,
+                        game_id: Some(g.id),
+                        player_id: map[dm.player_id as usize],
+                        tile: dm.tile,
+                    }),
+                )
+                .unwrap();
+            }
+            _ => {
+                panic!("move not supported");
+            }
+        }
+    }
+
     database::create_problem(
         db,
         &database::NewProblem {
-            game_id,
-            name,
-            start_at,
+            game_id: g.id,
+            name: problem_name,
+            start_at: None,
             creator_id,
             creator_name,
             vote_count: 0,
+            is_draft: true,
         },
     )
 }
@@ -284,7 +425,7 @@ fn create_problem_test() {
         .build(manager)
         .expect("Creating a pool failed");
 
-    let all_mvs = decoder::decode("src/data/444626489.json".to_string());
+    let all_mvs = decoder::decode_from_file_path("src/data/444626489.json".to_string());
     // let all_mvs = create_moves_manually();
     // let all_mvs = create_moves_from_game_against_ai(&db, 6705);
 
@@ -429,13 +570,17 @@ fn create_problem_test() {
         }
     }
 
-    create_problem(
+    database::create_problem(
         &db,
-        g.id,
-        problem_name,
-        Some(start_at),
-        creator_id,
-        creator_name,
+        &database::NewProblem {
+            game_id: g.id,
+            name: problem_name,
+            start_at: Some(start_at),
+            creator_id,
+            creator_name,
+            vote_count: 0,
+            is_draft: false,
+        },
     )
     .unwrap();
 }

@@ -111,6 +111,7 @@ pub struct NewProblem {
     pub creator_id: Option<i32>,
     pub creator_name: Option<String>,
     pub vote_count: i32,
+    pub is_draft: bool,
 }
 
 #[derive(Insertable)]

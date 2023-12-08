@@ -436,7 +436,7 @@ fn solve_test0() {
     // actual game here: https://boardgamearena.com/table?table=367130620
     /*
     use super::decoder;
-    let mut mvs = decoder::decode("src/data/367130620.json".to_string());
+    let mut mvs = decoder::decode_from_file_path("src/data/367130620.json".to_string());
 
     mvs.pop();
     mvs.pop();
@@ -468,7 +468,7 @@ fn solve_test1() {
     // actual game here: https://boardgamearena.com/table?table=318762179
     /*
     use super::decoder;
-    let mut mvs = decoder::decode("src/data/318762179.json".to_string());
+    let mut mvs = decoder::decode_from_file_path("src/data/318762179.json".to_string());
 
     for _ in 0..10 {
         mvs.pop();
@@ -488,7 +488,7 @@ fn solve_test2() {
     // actual game here: https://boardgamearena.com/table?table=443543294
     /*
     use super::decoder;
-    let mut mvs = decoder::decode("src/data/443543294.json".to_string());
+    let mut mvs = decoder::decode_from_file_path("src/data/443543294.json".to_string());
 
     for _ in 0..10 {
         mvs.pop();

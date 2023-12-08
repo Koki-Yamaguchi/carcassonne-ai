@@ -13,9 +13,19 @@ def get_problem_proposals():
     proposals = res.json()
     return proposals
 
+def create_problem(creator_id, remaining_tile_count, moves):
+    headers = {'Content-Type': 'application/json'}
+    data = {
+        'creator_id': creator_id,
+        'remaining_tile_count': remaining_tile_count,
+        'moves': moves,
+    }
+    res = requests.post('http://0.0.0.0:8000/problems/create', headers=headers, json=data)
+    problem = res.json()
+    return problem
+
 def main():
     proposals = get_problem_proposals()
-    print(proposals)
     if len(proposals) == 0:
         return
 
@@ -51,9 +61,9 @@ def main():
 
         moves = re.match('.*g_gamelogs = (.*?);\n.*', html, re.S).group(1)
 
-        # TODO: save moves in postgres
-
-        # TODO: create draft problem
+        creator_id = proposal['creator_id']
+        remaining_tile_count = proposal['remaining_tile_count']
+        problem = create_problem(creator_id, remaining_tile_count, moves)
 
     driver.quit()
 

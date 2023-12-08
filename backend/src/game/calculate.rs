@@ -3620,7 +3620,7 @@ fn calculate_test_for_field0() {
 
 #[test]
 fn calculate_test_for_field1() {
-    let mut mvs = decoder::decode("src/data/388947581.json".to_string());
+    let mut mvs = decoder::decode_from_file_path("src/data/388947581.json".to_string());
     for _ in 0..48 {
         mvs.pop();
     }
@@ -3696,7 +3696,7 @@ fn calculate_test_with_bga_json_data() {
         let exp_player0_point = d.1;
         let exp_player1_point = d.2;
 
-        let mvs = decoder::decode(file_path.to_string());
+        let mvs = decoder::decode_from_file_path(file_path.to_string());
         let status = calculate(&mvs, true);
         match status {
             Ok(res) => {

@@ -234,7 +234,8 @@ pub fn calculate_next_move(
 
 #[test]
 fn calculate_next_move_invade_test0() {
-    let src_mvs = super::decoder::decode("src/data/365601037/moves.json".to_string());
+    let src_mvs =
+        super::decoder::decode_from_file_path("src/data/365601037/moves.json".to_string());
     let mvs = src_mvs[0..10].to_vec();
 
     // 365601037/0.png

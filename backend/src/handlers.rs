@@ -539,25 +539,19 @@ pub fn get_favorites(
     }
 }
 
-/*
 #[post("/problems/create", format = "application/json", data = "<params>")]
 pub fn create_problem(
     params: Json<problem::CreateProblem>,
     db: &State<DbPool>,
 ) -> (Status, (ContentType, String)) {
-    match problem::create_problem(
-        db.inner(),
-    ) {
+    match problem::create_draft_problem(db.inner(), &params) {
         Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
-*/
 
 #[get("/problem-proposals", format = "application/json")]
-pub fn get_problem_proposals(
-    db: &State<DbPool>,
-) -> (Status, (ContentType, String)) {
+pub fn get_problem_proposals(db: &State<DbPool>) -> (Status, (ContentType, String)) {
     match problem::get_problem_proposals(db.inner()) {
         Ok(vs) => (Status::Ok, (ContentType::JSON, to_string(&vs).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
