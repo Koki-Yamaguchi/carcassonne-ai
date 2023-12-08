@@ -155,6 +155,15 @@ pub struct QueryVote {
     pub translation: String,
 }
 
+#[derive(Insertable)]
+#[diesel(table_name = schema::problem_proposal)]
+pub struct NewProblemProposal {
+    pub table_id: String,
+    pub remaining_tile_count: i32,
+    pub tile_id: i32,
+    pub creator_id: Option<i32>,
+}
+
 pub fn get_player(db: &DbPool, pid: i32) -> Result<player::Player, Error> {
     let conn = &mut db.get().unwrap();
     use self::schema::player::dsl::{id, player as p};
@@ -847,6 +856,21 @@ pub fn get_favorites(
         Err(e) => {
             return Err(internal_server_error(e.to_string()));
         }
+    }
+}
+
+pub fn create_problem_proposal(
+    db: &DbPool,
+    new_problem_proposal: &NewProblemProposal,
+) -> Result<problem::ProblemProposal, Error> {
+    let conn = &mut db.get().unwrap();
+
+    match diesel::insert_into(schema::problem_proposal::table)
+        .values(new_problem_proposal)
+        .get_result(conn)
+    {
+        Ok(prb) => Ok(prb),
+        Err(e) => Err(internal_server_error(e.to_string())),
     }
 }
 

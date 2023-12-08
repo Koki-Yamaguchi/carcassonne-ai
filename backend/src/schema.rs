@@ -92,6 +92,19 @@ diesel::table! {
         creator_id -> Nullable<Int4>,
         creator_name -> Nullable<Varchar>,
         vote_count -> Int4,
+        is_draft -> Bool,
+    }
+}
+
+diesel::table! {
+    problem_proposal (id) {
+        id -> Int4,
+        table_id -> Varchar,
+        remaining_tile_count -> Int4,
+        tile_id -> Int4,
+        creator_id -> Nullable<Int4>,
+        used_at -> Nullable<Timestamp>,
+        created_at -> Timestamp,
     }
 }
 
@@ -134,6 +147,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     optimal_move,
     player,
     problem,
+    problem_proposal,
     vote,
     waiting_game,
 );

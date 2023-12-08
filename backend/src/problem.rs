@@ -28,6 +28,7 @@ pub struct Problem {
     pub creator_id: Option<i32>,
     pub creator_name: Option<String>,
     pub vote_count: i32,
+    pub is_draft: bool,
 }
 
 #[derive(Serialize)]
@@ -85,6 +86,27 @@ pub struct CreateFavorite {
     pub vote_id: i32,
     pub player_id: i32,
     pub player_name: String,
+}
+
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct CreateProblemProposal {
+    pub table_id: String,
+    pub remaining_tile_count: i32,
+    pub tile_id: i32,
+    pub creator_id: i32,
+}
+
+#[derive(Serialize, Queryable, Clone, Debug)]
+#[serde(crate = "rocket::serde")]
+pub struct ProblemProposal {
+    pub id: i32,
+    pub table_id: String,
+    pub remaining_tile_count: i32,
+    pub tile_id: i32,
+    pub creator_id: Option<i32>,
+    pub used_at: Option<chrono::NaiveDateTime>,
+    pub created_at: chrono::NaiveDateTime,
 }
 
 #[allow(dead_code)]
@@ -594,3 +616,18 @@ fn list_daily_number_of_vote() {
     assert!(false);
 }
 */
+
+pub fn create_problem_proposal(
+    db: &DbPool,
+    params: &CreateProblemProposal,
+) -> Result<ProblemProposal, Error> {
+    database::create_problem_proposal(
+        db,
+        &database::NewProblemProposal {
+            table_id: params.table_id.clone(),
+            remaining_tile_count: params.remaining_tile_count,
+            tile_id: params.tile_id,
+            creator_id: Some(params.creator_id),
+        },
+    )
+}

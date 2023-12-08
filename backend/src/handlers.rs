@@ -538,3 +538,33 @@ pub fn get_favorites(
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
+
+/*
+#[post("/problems/create", format = "application/json", data = "<params>")]
+pub fn create_problem(
+    params: Json<problem::CreateProblem>,
+    db: &State<DbPool>,
+) -> (Status, (ContentType, String)) {
+    match problem::create_problem(
+        db.inner(),
+    ) {
+        Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+*/
+
+#[post(
+    "/problem-proposals/create",
+    format = "application/json",
+    data = "<params>"
+)]
+pub fn create_problem_proposal(
+    params: Json<problem::CreateProblemProposal>,
+    db: &State<DbPool>,
+) -> (Status, (ContentType, String)) {
+    match problem::create_problem_proposal(db.inner(), &params) {
+        Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}

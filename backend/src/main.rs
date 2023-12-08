@@ -16,6 +16,7 @@ mod translate;
 use event::UpdateEvent;
 use handlers::all_options;
 use handlers::create_player;
+use handlers::create_problem_proposal;
 use handlers::events;
 use handlers::get_board;
 use handlers::get_final_events;
@@ -124,6 +125,7 @@ async fn rocket() -> _ {
                 get_votes,
                 create_favorite,
                 get_favorites,
+                create_problem_proposal,
             ],
         );
     r
