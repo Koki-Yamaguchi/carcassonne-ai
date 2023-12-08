@@ -5,46 +5,58 @@ import time
 import chromedriver_binary
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+import requests
 
-table_id = sys.argv[1]
-username = os.environ["BGA_USERNAME"]
-password = os.environ["BGA_PASSWORD"]
-base_url = os.environ["BGA_BASE_URL"]
+def get_problem_proposals():
+    headers = {'Content-Type': 'application/json'}
+    res = requests.get('http://0.0.0.0:8000/problem-proposals', headers=headers)
+    proposals = res.json()
+    return proposals
 
-driver = webdriver.Chrome()
+def main():
+    proposals = get_problem_proposals()
+    print(proposals)
+    if len(proposals) == 0:
+        return
 
-driver.get(f'{base_url}/account')
+    driver = webdriver.Chrome()
 
-time.sleep(1)
+    for proposal in proposals:
+        table_id = proposal['table_id']
+        username = os.environ["BGA_USERNAME"]
+        password = os.environ["BGA_PASSWORD"]
+        base_url = os.environ["BGA_BASE_URL"]
 
-user_input = driver.find_element(By.ID, 'username_input')
-user_input.send_keys(username)
+        driver.get(f'{base_url}/account')
+        time.sleep(1)
 
-user_pass = driver.find_element(By.ID, 'password_input')
-user_pass.send_keys(password)
+        user_input = driver.find_element(By.ID, 'username_input')
+        user_input.send_keys(username)
+        user_pass = driver.find_element(By.ID, 'password_input')
+        user_pass.send_keys(password)
+        time.sleep(1)
 
-time.sleep(1)
+        submit_button = driver.find_element(By.ID, 'submit_login_button')
+        submit_button.click()
+        time.sleep(3)
 
-submit_button = driver.find_element(By.ID, 'submit_login_button')
-submit_button.click()
+        driver.get(f'{base_url}/gamereview?table={table_id}')
+        time.sleep(1)
 
-time.sleep(3)
+        choose_player_button = driver.find_element(By.CLASS_NAME, 'choosePlayerLink')
+        choose_player_button.click()
+        time.sleep(3)
 
-driver.get(f'{base_url}/gamereview?table={table_id}')
+        html = driver.page_source
 
-time.sleep(1)
+        moves = re.match('.*g_gamelogs = (.*?);\n.*', html, re.S).group(1)
 
-choose_player_button = driver.find_element(By.CLASS_NAME, 'choosePlayerLink')
+        # TODO: save moves in postgres
 
-choose_player_button.click()
+        # TODO: create draft problem
 
-time.sleep(3)
+    driver.quit()
 
-html = driver.page_source
-
-moves = re.match('.*g_gamelogs = (.*?);\n.*', html, re.S).group(1)
-
-f = open(f'./src/data/{table_id}.json', "w")
-f.write(moves)
-f.close()
+if __name__ == '__main__':
+    main()
 
