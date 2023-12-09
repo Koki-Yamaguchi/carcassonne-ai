@@ -773,7 +773,7 @@ pub fn get_votes(
     }
 
     if prid == None && plyrid == None {
-        query = query.limit(10);
+        query = query.filter(player_id.ne(2) /* not admin */).limit(10);
     } else {
         query = query.limit(300);
     }
