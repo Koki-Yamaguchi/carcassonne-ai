@@ -69,5 +69,6 @@
   "oldest": "Oldest",
   "most_voted": "Most Voted",
   "least_voted": "Least Voted",
-  "propose_problem": "Proposal"
+  "propose_problem": "Proposal",
+  "tested_by": "tested by"
 }

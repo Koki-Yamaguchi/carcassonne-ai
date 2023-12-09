@@ -102,6 +102,10 @@ export interface Problem {
   creatorID: number;
   creatorName: string;
   voteCount: number;
+  isSolved: boolean;
+  optimalMoveCount: number | null;
+  testerID: number | null;
+  testerName: string | null;
 }
 
 export interface ProblemsResponse {

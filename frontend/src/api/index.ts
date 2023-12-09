@@ -606,6 +606,10 @@ export class API {
         creatorID: res.data.creator_id,
         creatorName: res.data.creator_name,
         voteCount: res.data.vote_count,
+        isSolved: res.data.is_solved,
+        optimalMoveCount: res.data.optimal_move_count,
+        testerID: res.data.tester_id,
+        testerName: res.data.tester_name,
       };
       return prob;
     } catch (e) {
@@ -635,6 +639,10 @@ export class API {
           creatorID: p.creator_id,
           creatorName: p.creator_name,
           voteCount: p.vote_count,
+          isSolved: p.is_solved,
+          optimalMoveCount: p.optimal_move_count,
+          testerID: p.tester_id,
+          testerName: p.tester_name,
         };
       });
       const totalCount = res.data.total_count;
