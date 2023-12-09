@@ -69,5 +69,6 @@
   "oldest": "古い順",
   "most_voted": "投票の多い順",
   "least_voted": "投票の少ない順",
-  "propose_problem": "問題案の提供"
+  "propose_problem": "問題案の提供",
+  "tested_by": "テスター"
 }
