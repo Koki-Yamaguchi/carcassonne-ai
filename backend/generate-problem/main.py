@@ -6,6 +6,7 @@ import chromedriver_binary
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import requests
+from get_chrome_driver import GetChromeDriver
 
 def get_problem_proposals():
     headers = {'Content-Type': 'application/json'}
@@ -68,7 +69,15 @@ def main():
     driver.quit()
 
 def test():
-    driver = webdriver.Chrome()
+    # os.environ['WDM_SSL_VERIFY'] = '0'
+
+    get_driver = GetChromeDriver()
+    get_driver.install()
+
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')
+
+    driver = webdriver.Chrome(options=options)
 
     table_id = "447137094"
 
