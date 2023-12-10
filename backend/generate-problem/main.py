@@ -67,6 +67,44 @@ def main():
 
     driver.quit()
 
+def test():
+    driver = webdriver.Chrome()
+
+    table_id = "447137094"
+
+    username = os.environ["BGA_USERNAME"]
+    password = os.environ["BGA_PASSWORD"]
+    base_url = "https://boardgamearena.com"
+
+    driver.get(f'{base_url}/account')
+    time.sleep(1)
+
+    user_input = driver.find_element(By.ID, 'username_input')
+    user_input.send_keys(username)
+    user_pass = driver.find_element(By.ID, 'password_input')
+    user_pass.send_keys(password)
+    time.sleep(1)
+
+    submit_button = driver.find_element(By.ID, 'submit_login_button')
+    submit_button.click()
+    time.sleep(3)
+
+    driver.get(f'{base_url}/gamereview?table={table_id}')
+    time.sleep(1)
+
+    choose_player_button = driver.find_element(By.CLASS_NAME, 'choosePlayerLink')
+    choose_player_button.click()
+    time.sleep(3)
+
+    html = driver.page_source
+
+    moves = re.match('.*g_gamelogs = (.*?);\n.*', html, re.S).group(1)
+    print(moves)
+
+    driver.quit()
+
+
 if __name__ == '__main__':
-    main()
+    # main()
+    test()
 
