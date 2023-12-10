@@ -99,7 +99,7 @@ def test():
     time.sleep(3)
 
     driver.get(f'{base_url}/gamereview?table={table_id}')
-    time.sleep(1)
+    time.sleep(3)
 
     choose_player_button = driver.find_element(By.CLASS_NAME, 'choosePlayerLink')
     choose_player_button.click()
