@@ -30,6 +30,10 @@ pub struct Problem {
     pub creator_id: Option<i32>,
     pub creator_name: Option<String>,
     pub vote_count: i32,
+    pub is_solved: bool,
+    pub optimal_move_count: Option<i32>,
+    pub tester_id: Option<i32>,
+    pub tester_name: Option<String>,
     pub is_draft: bool,
 }
 
@@ -267,6 +271,10 @@ pub fn create_draft_problem(db: &DbPool, params: &CreateProblem) -> Result<Probl
             creator_id,
             creator_name,
             vote_count: 0,
+            is_solved: false,
+            optimal_move_count: None,
+            tester_id: None,
+            tester_name: None,
             is_draft: true,
         },
     )
@@ -425,13 +433,14 @@ fn create_problem_test() {
         .build(manager)
         .expect("Creating a pool failed");
 
+    // should-be-modified lines start
     let all_mvs = decoder::decode_from_file_path("src/data/444626489.json".to_string());
     // let all_mvs = create_moves_manually();
     // let all_mvs = create_moves_from_game_against_ai(&db, 6705);
 
-    let remaining_tile_count = 41;
-    let problem_name = "Urgent Destruction".to_string();
-    let start_at = chrono::DateTime::parse_from_rfc3339("2023-12-03T18:00:00+09:00")
+    let remaining_tile_count = 3;
+    let problem_name = "Endgame".to_string();
+    let start_at = chrono::DateTime::parse_from_rfc3339("2023-12-09T18:00:00+09:00")
         .unwrap()
         .naive_utc();
     let creator_id = None;
@@ -440,6 +449,16 @@ fn create_problem_test() {
         let player = database::get_player(&db, pid).unwrap();
         creator_name = Some(player.name);
     }
+    // for solved problems
+    let is_solved = true;
+    let optimal_move_count = Some(2);
+    let tester_id = None;
+    let mut tester_name = None;
+    if let Some(pid) = tester_id {
+        let player = database::get_player(&db, pid).unwrap();
+        tester_name = Some(player.name);
+    }
+    // should-be-modified lines end
 
     let mut tile_count = 0;
     let mut mv_idx = 0;
@@ -579,6 +598,10 @@ fn create_problem_test() {
             creator_id,
             creator_name,
             vote_count: 0,
+            is_solved,
+            optimal_move_count,
+            tester_id,
+            tester_name,
             is_draft: false,
         },
     )

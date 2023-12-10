@@ -15,7 +15,7 @@ const player = ref<Player | null>(null);
 import { store } from "../store";
 
 const propose = async () => {
-  if (!player.value) {
+  if (!player.value || !remainingTileCount.value) {
     return;
   }
   console.log({ tableID, tileID, remainingTileCount });

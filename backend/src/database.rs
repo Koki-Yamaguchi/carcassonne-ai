@@ -111,6 +111,10 @@ pub struct NewProblem {
     pub creator_id: Option<i32>,
     pub creator_name: Option<String>,
     pub vote_count: i32,
+    pub is_solved: bool,
+    pub optimal_move_count: Option<i32>,
+    pub tester_id: Option<i32>,
+    pub tester_name: Option<String>,
     pub is_draft: bool,
 }
 
@@ -779,7 +783,7 @@ pub fn get_votes(
     }
 
     if prid == None && plyrid == None {
-        query = query.limit(10);
+        query = query.filter(player_id.ne(2) /* not admin */).limit(10);
     } else {
         query = query.limit(300);
     }

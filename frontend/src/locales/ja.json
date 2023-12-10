@@ -70,6 +70,7 @@
   "most_voted": "投票の多い順",
   "least_voted": "投票の少ない順",
   "propose_problem": "問題案の提供",
+  "tested_by": "テスター",
   "remaining_tile_count": "残りタイル数",
   "table_id": "テーブル ID",
   "propose": "提案する",

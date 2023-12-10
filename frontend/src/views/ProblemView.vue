@@ -17,6 +17,7 @@ import GameBoard from "../components/GameBoard.vue";
 import PlayerInfo from "../components/PlayerInfo.vue";
 import VoteItems from "../components/VoteItems.vue";
 import ChevronIcon from "../components/ChevronIcon.vue";
+import SolvedSign from "../components/SolvedSign.vue";
 
 import {
   boardSize,
@@ -27,7 +28,7 @@ import {
   TileKind,
   getRemainingTileKinds,
 } from "../tiles";
-import { translate } from "../locales/translate";
+import { translate, translate_with_arg } from "../locales/translate";
 
 const problem = ref<Problem | null>(null);
 const game = ref<Game | null>(null);
@@ -261,7 +262,7 @@ const createVote = async () => {
   placingPosition.value = null;
   localStorage.removeItem(`problem-${problem.value.id}-note`);
 
-  voted.value = true;
+  voted.value = player.value.id !== 2;
   votes.value = await api.getVotes(problem.value.id, null);
 };
 
@@ -335,7 +336,7 @@ onMounted(async () => {
   // if there's already a vote from the player, show results
   const tmpVotes = await api.getVotes(problem.value.id, null);
   const myVotes = tmpVotes.filter((v) => v.playerID === player.value?.id);
-  if (myVotes.length > 0) {
+  if (myVotes.length > 0 && player.value.id !== 2) {
     placeablePositions.value = [];
     votes.value = tmpVotes;
     voted.value = true;
@@ -436,9 +437,24 @@ const tweetText = computed(() => {
 
 <template>
   <div class="mt-4 mx-4 flex justify-between">
-    <div>{{ problem ? problem.name : "" }}</div>
-    <div class="text-xs mt-1">
-      {{ translate("created_by") }} <b>{{ creatorName }}</b>
+    <div class="flex">
+      <div class="flex flex-col justify-center items-center">
+        {{ problem ? problem.name : "" }}
+      </div>
+      <div
+        v-if="problem && problem.isSolved"
+        class="flex flex-col justify-center items-center ml-2"
+      >
+        <SolvedSign />
+      </div>
+    </div>
+    <div class="text-xs ml-1 mt-1 flex">
+      <div>
+        {{ translate("created_by") }} <b>{{ creatorName }}</b>
+      </div>
+      <div v-if="problem && problem.isSolved" class="ml-2">
+        {{ translate("tested_by") }} <b>admin</b>
+      </div>
     </div>
   </div>
   <div class="infos flex flex-wrap">
@@ -478,6 +494,17 @@ const tweetText = computed(() => {
     </div>
   </div>
   <div class="bg-gray-100 rounded text-gray-900 text-sm px-4 py-3 shadow-md">
+    <div
+      v-if="problem && problem.isSolved"
+      class="bg-green-200 rounded-md p-2 mb-2"
+    >
+      {{
+        translate_with_arg(
+          "solved_problem_description",
+          problem.optimalMoveCount
+        )
+      }}
+    </div>
     <div class="flex">
       <div class="flex flex-col justify-center mr-3">
         <p>{{ translate("tile_in_hand") }}</p>

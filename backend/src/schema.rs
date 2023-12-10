@@ -92,6 +92,10 @@ diesel::table! {
         creator_id -> Nullable<Int4>,
         creator_name -> Nullable<Varchar>,
         vote_count -> Int4,
+        is_solved -> Bool,
+        optimal_move_count -> Nullable<Int4>,
+        tester_id -> Nullable<Int4>,
+        tester_name -> Nullable<Varchar>,
         is_draft -> Bool,
     }
 }
