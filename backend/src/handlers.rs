@@ -451,7 +451,7 @@ pub async fn get_problem(id: Option<i32>, db: &State<DbPool>) -> (Status, (Conte
 }
 
 #[get(
-    "/problems?<page>&<order_by>&<limit>&<creator>",
+    "/problems?<page>&<order_by>&<limit>&<creator>&<is_draft>",
     format = "application/json"
 )]
 pub fn get_problems(
@@ -459,9 +459,10 @@ pub fn get_problems(
     order_by: Option<String>,
     limit: Option<i32>,
     creator: Option<i32>,
+    is_draft: Option<bool>,
     db: &State<DbPool>,
 ) -> (Status, (ContentType, String)) {
-    match problem::get_problems(db.inner(), page, order_by, limit, creator) {
+    match problem::get_problems(db.inner(), page, order_by, limit, creator, is_draft) {
         Ok(ps) => (Status::Ok, (ContentType::JSON, to_string(&ps).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
@@ -545,6 +546,22 @@ pub fn create_problem(
     db: &State<DbPool>,
 ) -> (Status, (ContentType, String)) {
     match problem::create_draft_problem(db.inner(), &params) {
+        Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[post(
+    "/problems/<id>/update",
+    format = "application/json",
+    data = "<params>"
+)]
+pub fn update_problem(
+    id: i32,
+    params: Json<problem::UpdateProblem>,
+    db: &State<DbPool>,
+) -> (Status, (ContentType, String)) {
+    match problem::update_problem(db.inner(), id, &params) {
         Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }

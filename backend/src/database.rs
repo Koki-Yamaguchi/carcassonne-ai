@@ -688,9 +688,12 @@ pub fn get_problems(
     order_by: String,
     limit: i32,
     creator: Option<i32>,
+    is_drft: bool,
 ) -> Result<problem::ProblemsResponse, Error> {
     let conn = &mut db.get().unwrap();
-    use self::schema::problem::dsl::{creator_id, id, problem as p, start_at, vote_count};
+    use self::schema::problem::dsl::{
+        creator_id, id, is_draft, problem as p, start_at, vote_count,
+    };
     let now = chrono::Utc::now().naive_utc();
 
     let mut count_query = p.filter(start_at.le(now)).into_boxed();
@@ -699,7 +702,12 @@ pub fn get_problems(
     }
     let total_count: i64 = count_query.count().get_result(conn).unwrap();
 
-    let mut query = p.filter(start_at.le(now)).into_boxed();
+    let mut query = p.filter(is_draft.eq(is_drft)).into_boxed();
+
+    if !is_drft {
+        query = query.filter(start_at.le(now));
+    }
+
     if let Some(cid) = creator {
         query = query.filter(creator_id.eq(cid))
     }
@@ -725,11 +733,23 @@ pub fn get_problems(
     })
 }
 
-pub fn update_problem(db: &DbPool, prid: i32, vcount: i32) -> Result<problem::Problem, Error> {
-    use self::schema::problem::dsl::{problem, vote_count};
+pub fn update_problem(
+    db: &DbPool,
+    prid: i32,
+    nm: String,
+    start: Option<chrono::NaiveDateTime>,
+    draft: bool,
+    vcount: i32,
+) -> Result<problem::Problem, Error> {
+    use self::schema::problem::dsl::{is_draft, name, problem, start_at, vote_count};
     let conn = &mut db.get().unwrap();
     match diesel::update(problem.find(prid))
-        .set(vote_count.eq(vcount))
+        .set((
+            name.eq(nm),
+            start_at.eq(start),
+            is_draft.eq(draft),
+            vote_count.eq(vcount),
+        ))
         .get_result(conn)
     {
         Ok(pr) => return Ok(pr),

@@ -83,6 +83,14 @@ pub struct CreateProblem {
     pub moves: String,
 }
 
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct UpdateProblem {
+    pub name: String,
+    pub start_at: chrono::NaiveDateTime,
+    pub is_draft: bool,
+}
+
 #[derive(Serialize, Queryable, Clone, Debug)]
 #[serde(crate = "rocket::serde")]
 #[diesel(table_name = schema::favorite)]
@@ -290,6 +298,7 @@ pub fn get_problems(
     order_by: Option<String>,
     limit: Option<i32>,
     creator: Option<i32>,
+    is_draft: Option<bool>,
 ) -> Result<ProblemsResponse, Error> {
     let mut p = 0;
     if let Some(pg) = page {
@@ -310,7 +319,12 @@ pub fn get_problems(
         }
     }
 
-    database::get_problems(db, p, o, l, creator)
+    let mut is_drft = false;
+    if let Some(isd) = is_draft {
+        is_drft = isd;
+    }
+
+    database::get_problems(db, p, o, l, creator, is_drft)
 }
 
 #[allow(dead_code)]
@@ -637,13 +651,20 @@ pub fn create_vote(
             tile_move_id,
             meeple_move_id,
             player_profile_image_url: player.profile_image_url,
-            problem_name: Some(problem.name),
+            problem_name: Some(problem.name.clone()),
             lang: None,
             translation: "".to_string(),
         },
     )?;
 
-    database::update_problem(db, problem_id, problem.vote_count + 1)?;
+    database::update_problem(
+        db,
+        problem_id,
+        problem.name,
+        problem.start_at,
+        problem.is_draft,
+        problem.vote_count + 1,
+    )?;
 
     Ok(vote)
 }
@@ -797,6 +818,19 @@ pub fn create_problem_proposal(
             tile_id: params.tile_id,
             creator_id: Some(params.creator_id),
         },
+    )
+}
+
+pub fn update_problem(db: &DbPool, id: i32, params: &UpdateProblem) -> Result<Problem, Error> {
+    let prb = database::get_problem(db, id)?;
+
+    database::update_problem(
+        db,
+        id,
+        params.name.clone(),
+        Some(params.start_at),
+        params.is_draft,
+        prb.vote_count,
     )
 }
 
