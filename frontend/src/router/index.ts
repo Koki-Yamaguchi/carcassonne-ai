@@ -12,6 +12,8 @@ import LobbyView from "../views/LobbyView.vue";
 import ReplayView from "../views/ReplayView.vue";
 import ResultView from "../views/ResultView.vue";
 import ProposeProblemView from "../views/ProposeProblemView.vue";
+import EditProblemView from "../views/EditProblemView.vue";
+import DraftProblemsView from "../views/DraftProblemsView.vue";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { store } from "../store";
 
@@ -64,9 +66,19 @@ const router = createRouter({
       component: ProblemView,
     },
     {
+      path: "/problems/:id/edit",
+      name: "edit problem",
+      component: EditProblemView,
+    },
+    {
       path: "/problems",
       name: "problems",
       component: ProblemsView,
+    },
+    {
+      path: "/draft-problems",
+      name: "draft problems",
+      component: DraftProblemsView,
     },
     {
       path: "/settings",

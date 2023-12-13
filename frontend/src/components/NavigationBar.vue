@@ -58,6 +58,15 @@ const isOpen = ref<boolean>(false);
             {{ translate("problems") }}
           </div>
           <div
+            @click="
+              isOpen = false;
+              router.push('/problems/propose');
+            "
+            class="p-2 md:p-0"
+          >
+            {{ translate("propose_problem") }}
+          </div>
+          <div
             class="p-2 md:p-0"
             v-if="store.authenticated"
             @click="

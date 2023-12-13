@@ -611,6 +611,8 @@ export class API {
         optimalMoveCount: res.data.optimal_move_count,
         testerID: res.data.tester_id,
         testerName: res.data.tester_name,
+        startAt: res.data.start_at ? new Date(res.data.start_at) : null,
+        isDraft: res.data.is_draft,
       };
       return prob;
     } catch (e) {
@@ -644,6 +646,45 @@ export class API {
           optimalMoveCount: p.optimal_move_count,
           testerID: p.tester_id,
           testerName: p.tester_name,
+          startAt: p.start_at ? new Date(p.start_at) : null,
+          isDraft: p.is_draft,
+        };
+      });
+      const totalCount = res.data.total_count;
+      return {
+        problems,
+        totalCount,
+      };
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async getDraftProblems(creatorID?: number): Promise<ProblemsResponse> {
+    const params = new URLSearchParams();
+    if (creatorID) {
+      params.set("creator", `${creatorID}`);
+    }
+    params.set("is_draft", "true");
+    try {
+      const url = `${this.base_url}/problems?` + params.toString();
+      const res = await axios.get(url);
+      console.log({ res });
+      const problems: Problem[] = res.data.problems.map((p: any) => {
+        return {
+          id: p.id,
+          gameID: p.game_id,
+          name: p.name,
+          creatorID: p.creator_id,
+          creatorName: p.creator_name,
+          voteCount: p.vote_count,
+          isSolved: p.is_solved,
+          optimalMoveCount: p.optimal_move_count,
+          testerID: p.tester_id,
+          testerName: p.tester_name,
+          startAt: p.start_at ? new Date(p.start_at) : null,
+          isDraft: p.is_draft,
         };
       });
       const totalCount = res.data.total_count;
@@ -779,7 +820,7 @@ export class API {
         `${this.base_url}/problem-proposals/create`,
         {
           table_id: tableID,
-          remaining_tile_count: Number(remainingTileCount),
+          remaining_tile_count: remainingTileCount,
           creator_id: creatorID,
           tile_id: tileID,
         }
@@ -790,8 +831,67 @@ export class API {
         remainingTileCount: res.data.remaining_tile_count,
         creatorID: res.data.creator_id,
         tileID: res.data.tile_id,
+        createdAt: res.data.created_at,
       };
       return proposal;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async getProblemProposals(playerID: number): Promise<ProblemProposal[]> {
+    try {
+      let url = `${this.base_url}/problem-proposals`;
+      if (playerID) {
+        url = `${url}?player=${playerID}`;
+      }
+      const res = await axios.get(url);
+      console.log({ res });
+      const pps: ProblemProposal[] = res.data.map((v: any) => {
+        return {
+          id: v.id,
+          tableID: v.table_id,
+          remainingTileCount: v.remaining_tile_count,
+          creatorID: v.creator_id,
+          tileID: v.tile_id,
+          createdAt: v.created_at,
+        };
+      });
+      return pps;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async updateProblem(
+    id: number,
+    name: string,
+    strtAt: Date | null
+  ): Promise<Problem> {
+    const startAt = strtAt ?? new Date();
+    try {
+      const res = await axios.post(`${this.base_url}/problems/${id}/update`, {
+        name,
+        start_at: startAt,
+        is_draft: false,
+      });
+      const problem: Problem = {
+        id: res.data.id,
+        gameID: res.data.game_id,
+        name: res.data.name,
+        creatorID: res.data.creator_id,
+        creatorName: res.data.creator_name,
+        voteCount: res.data.vote_count,
+        isSolved: res.data.is_solved,
+        optimalMoveCount: res.data.optimal_move_count,
+        testerID: res.data.tester_id,
+        testerName: res.data.tester_name,
+        startAt: res.data.start_at ? new Date(res.data.start_at) : null,
+        isDraft: res.data.is_draft,
+      };
+      return problem;
     } catch (e) {
       console.log({ e });
       throw e;

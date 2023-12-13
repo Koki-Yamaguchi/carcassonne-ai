@@ -433,179 +433,192 @@ const tweetText = computed(() => {
     );
   }
 });
+
+const isDraft = computed(() => {
+  return problem.value && problem.value.isDraft;
+});
+
+const isAdmin = computed(() => {
+  return player.value && player.value.id === 2;
+});
 </script>
 
 <template>
-  <div class="mt-4 mx-4 flex justify-between">
-    <div class="flex">
-      <div class="flex flex-col justify-center items-center">
-        {{ problem ? problem.name : "" }}
+  <div v-if="isDraft && !isAdmin" class="p-4">
+    {{ translate("not_authorized") }}
+  </div>
+  <div v-else>
+    <div class="mt-4 mx-4 flex justify-between">
+      <div class="flex">
+        <div class="flex flex-col justify-center items-center">
+          {{ problem ? problem.name : "" }}
+        </div>
+        <div
+          v-if="problem && problem.isSolved"
+          class="flex flex-col justify-center items-center ml-2"
+        >
+          <SolvedSign />
+        </div>
       </div>
+      <div class="text-xs ml-1 mt-1 flex">
+        <div>
+          {{ translate("created_by") }} <b>{{ creatorName }}</b>
+        </div>
+        <div v-if="problem && problem.isSolved" class="ml-2">
+          {{ translate("tested_by") }} <b>admin</b>
+        </div>
+      </div>
+    </div>
+    <div class="infos flex flex-wrap">
+      <PlayerInfo
+        :name="game ? game.player0Name : ''"
+        :point="player0Point"
+        :meepleNumber="player0Meeples.size"
+        :meepleColor="game ? game.player0Color : null"
+        :tileSrc="null"
+        :profileImageURL="player ? player.profileImageURL : ''"
+      />
+      <PlayerInfo
+        :name="game ? game.player1Name : ''"
+        :point="player1Point"
+        :meepleNumber="player1Meeples.size"
+        :meepleColor="game ? game.player1Color : null"
+        :tileSrc="null"
+        :profileImageURL="''"
+      />
+    </div>
+    <div class="mt-3">
+      <div :class="fixBoard ? 'fixed top-0 w-full' : ''">
+        <GameBoard
+          :tiles="tiles"
+          :placeablePositions="placeablePositions"
+          :placingTile="placingTile"
+          :placingPosition="placingPosition"
+          :meepleablePositions="meepleablePositions"
+          @tilePositionSelected="handleTilePositionSelected"
+          @turnTile="handleTurnTile"
+          @placeMeeple="handlePlaceMeeple"
+          :isLarge="false"
+        />
+      </div>
+      <div v-if="fixBoard" class="h-[350px]">
+        <!-- keeps height for fixing a board -->
+      </div>
+    </div>
+    <div class="bg-gray-100 rounded text-gray-900 text-sm px-4 py-3 shadow-md">
       <div
         v-if="problem && problem.isSolved"
-        class="flex flex-col justify-center items-center ml-2"
+        class="bg-green-200 rounded-md p-2 mb-2"
       >
-        <SolvedSign />
+        {{
+          translate_with_arg(
+            "solved_problem_description",
+            problem.optimalMoveCount
+          )
+        }}
       </div>
-    </div>
-    <div class="text-xs ml-1 mt-1 flex">
-      <div>
-        {{ translate("created_by") }} <b>{{ creatorName }}</b>
-      </div>
-      <div v-if="problem && problem.isSolved" class="ml-2">
-        {{ translate("tested_by") }} <b>admin</b>
-      </div>
-    </div>
-  </div>
-  <div class="infos flex flex-wrap">
-    <PlayerInfo
-      :name="game ? game.player0Name : ''"
-      :point="player0Point"
-      :meepleNumber="player0Meeples.size"
-      :meepleColor="game ? game.player0Color : null"
-      :tileSrc="null"
-      :profileImageURL="player ? player.profileImageURL : ''"
-    />
-    <PlayerInfo
-      :name="game ? game.player1Name : ''"
-      :point="player1Point"
-      :meepleNumber="player1Meeples.size"
-      :meepleColor="game ? game.player1Color : null"
-      :tileSrc="null"
-      :profileImageURL="''"
-    />
-  </div>
-  <div class="mt-3">
-    <div :class="fixBoard ? 'fixed top-0 w-full' : ''">
-      <GameBoard
-        :tiles="tiles"
-        :placeablePositions="placeablePositions"
-        :placingTile="placingTile"
-        :placingPosition="placingPosition"
-        :meepleablePositions="meepleablePositions"
-        @tilePositionSelected="handleTilePositionSelected"
-        @turnTile="handleTurnTile"
-        @placeMeeple="handlePlaceMeeple"
-        :isLarge="false"
-      />
-    </div>
-    <div v-if="fixBoard" class="h-[350px]">
-      <!-- keeps height for fixing a board -->
-    </div>
-  </div>
-  <div class="bg-gray-100 rounded text-gray-900 text-sm px-4 py-3 shadow-md">
-    <div
-      v-if="problem && problem.isSolved"
-      class="bg-green-200 rounded-md p-2 mb-2"
-    >
-      {{
-        translate_with_arg(
-          "solved_problem_description",
-          problem.optimalMoveCount
-        )
-      }}
-    </div>
-    <div class="flex">
-      <div class="flex flex-col justify-center mr-3">
-        <p>{{ translate("tile_in_hand") }}</p>
-      </div>
-      <div class="flex flex-col justify-center min-w-[30px] mr-3">
-        <img
-          v-if="game?.currentTileID !== -1"
-          class="min-h-[30px]"
-          width="30"
-          height="30"
-          :src="currentTile() ? currentTile()!.src : null"
-        />
-      </div>
-      <div v-if="!voted" class="flex flex-col justify-center">
-        <button
-          class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
-          v-if="canConfirm"
-          @click.once="confirm"
-        >
-          {{ translate("confirm") }}
-        </button>
-        <button
-          class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
-          v-if="canMeeple"
-          @click.once="skip"
-        >
-          {{ translate("skip") }}
-        </button>
-        <button
-          class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
-          v-if="canCancel"
-          @click="cancel"
-        >
-          {{ translate("try_again") }}
-        </button>
-      </div>
-    </div>
-    <div
-      class="flex mt-2 hover:cursor-pointer"
-      @click="showRemainingTiles = !showRemainingTiles"
-    >
-      <div class="flex flex-col justify-center mr-2">
-        <ChevronIcon :direction="showRemainingTiles ? 'bottom' : 'right'" />
-      </div>
-      <div>{{ translate("remaining_tiles") }}</div>
-    </div>
-    <div v-if="showRemainingTiles" class="flex flex-wrap gap-1 mt-2">
-      <img
-        v-for="(src, idx) in remainingTilesSrc"
-        width="30"
-        height="30"
-        :src="src"
-        :key="idx"
-      />
-    </div>
-    <div v-if="!voted" class="mt-4">
-      <textarea
-        class="rounded-md p-2 w-full focus:outline-none focus:border-orange-200 border-2"
-        rows="3"
-        cols="30"
-        :placeholder="translate('comment')"
-        v-model="note"
-      />
-      <div class="flex flex-col items-center">
-        <button
-          class="bg-gray-600 hover:bg-gray-500 disabled:bg-gray-300 text-[#eeeeee] rounded px-4 py-2 mt-2"
-          @click.once="createVote"
-          :disabled="!canSubmit"
-        >
-          {{ translate("vote") }}
-        </button>
-      </div>
-    </div>
-    <div v-else>
-      <p class="mt-4">
-        {{ translate("vote_results") }}
-      </p>
-      <div class="p-2">
-        <VoteItems
-          :votes="votes"
-          :currentVoteID="currentVoteID"
-          @clickVote="handleClickVote"
-        />
+      <div class="flex">
+        <div class="flex flex-col justify-center mr-3">
+          <p>{{ translate("tile_in_hand") }}</p>
+        </div>
+        <div class="flex flex-col justify-center min-w-[30px] mr-3">
+          <img
+            v-if="game?.currentTileID !== -1"
+            class="min-h-[30px]"
+            width="30"
+            height="30"
+            :src="currentTile() ? currentTile()!.src : null"
+          />
+        </div>
+        <div v-if="!voted" class="flex flex-col justify-center">
+          <button
+            class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
+            v-if="canConfirm"
+            @click.once="confirm"
+          >
+            {{ translate("confirm") }}
+          </button>
+          <button
+            class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
+            v-if="canMeeple"
+            @click.once="skip"
+          >
+            {{ translate("skip") }}
+          </button>
+          <button
+            class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
+            v-if="canCancel"
+            @click="cancel"
+          >
+            {{ translate("try_again") }}
+          </button>
+        </div>
       </div>
       <div
-        class="border rounded-full w-20 py-2 px-3 bg-gray-200 hover:bg-gray-300"
+        class="flex mt-2 hover:cursor-pointer"
+        @click="showRemainingTiles = !showRemainingTiles"
       >
-        <a
-          v-if="problem"
-          target="_blank"
-          rel="noopener"
-          :href="tweetText"
-          data-size="large"
+        <div class="flex flex-col justify-center mr-2">
+          <ChevronIcon :direction="showRemainingTiles ? 'bottom' : 'right'" />
+        </div>
+        <div>{{ translate("remaining_tiles") }}</div>
+      </div>
+      <div v-if="showRemainingTiles" class="flex flex-wrap gap-1 mt-2">
+        <img
+          v-for="(src, idx) in remainingTilesSrc"
+          width="30"
+          height="30"
+          :src="src"
+          :key="idx"
+        />
+      </div>
+      <div v-if="!voted" class="mt-4">
+        <textarea
+          class="rounded-md p-2 w-full focus:outline-none focus:border-orange-200 border-2"
+          rows="3"
+          cols="30"
+          :placeholder="translate('comment')"
+          v-model="note"
+        />
+        <div class="flex flex-col items-center">
+          <button
+            class="bg-gray-600 hover:bg-gray-500 disabled:bg-gray-300 text-[#eeeeee] rounded px-4 py-2 mt-2"
+            @click.once="createVote"
+            :disabled="!canSubmit"
+          >
+            {{ translate("vote") }}
+          </button>
+        </div>
+      </div>
+      <div v-else>
+        <p class="mt-4">
+          {{ translate("vote_results") }}
+        </p>
+        <div class="p-2">
+          <VoteItems
+            :votes="votes"
+            :currentVoteID="currentVoteID"
+            @clickVote="handleClickVote"
+          />
+        </div>
+        <div
+          class="border rounded-full w-20 py-2 px-3 bg-gray-200 hover:bg-gray-300"
         >
-          <span class="flex gap-2">
-            <div class="w-4 flex flex-col justify-center">
-              <img src="../assets/img/x-logo.png" />
-            </div>
-            <div class="flex flex-col justify-center">Post</div>
-          </span>
-        </a>
+          <a
+            v-if="problem"
+            target="_blank"
+            rel="noopener"
+            :href="tweetText"
+            data-size="large"
+          >
+            <span class="flex gap-2">
+              <div class="w-4 flex flex-col justify-center">
+                <img src="../assets/img/x-logo.png" />
+              </div>
+              <div class="flex flex-col justify-center">Post</div>
+            </span>
+          </a>
+        </div>
       </div>
     </div>
   </div>

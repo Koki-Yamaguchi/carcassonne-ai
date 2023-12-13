@@ -567,9 +567,12 @@ pub fn update_problem(
     }
 }
 
-#[get("/problem-proposals", format = "application/json")]
-pub fn get_problem_proposals(db: &State<DbPool>) -> (Status, (ContentType, String)) {
-    match problem::get_problem_proposals(db.inner()) {
+#[get("/problem-proposals?<player>", format = "application/json")]
+pub fn get_problem_proposals(
+    db: &State<DbPool>,
+    player: Option<i32>,
+) -> (Status, (ContentType, String)) {
+    match problem::get_problem_proposals(db.inner(), player) {
         Ok(vs) => (Status::Ok, (ContentType::JSON, to_string(&vs).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }

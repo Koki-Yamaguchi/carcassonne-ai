@@ -236,7 +236,6 @@ pub fn create_draft_problem(db: &DbPool, params: &CreateProblem) -> Result<Probl
                         }
                     }
                 };
-                println!();
                 database::create_move(
                     &db,
                     MMove(MeepleMove {
@@ -569,7 +568,6 @@ fn create_problem_test() {
                         }
                     }
                 };
-                println!();
                 database::create_move(
                     &db,
                     MMove(MeepleMove {
@@ -834,6 +832,9 @@ pub fn update_problem(db: &DbPool, id: i32, params: &UpdateProblem) -> Result<Pr
     )
 }
 
-pub fn get_problem_proposals(db: &DbPool) -> Result<Vec<ProblemProposal>, Error> {
-    database::get_problem_proposals(db)
+pub fn get_problem_proposals(
+    db: &DbPool,
+    player: Option<i32>,
+) -> Result<Vec<ProblemProposal>, Error> {
+    database::get_problem_proposals(db, player)
 }

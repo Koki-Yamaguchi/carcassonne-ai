@@ -899,15 +899,19 @@ pub fn create_problem_proposal(
     }
 }
 
-pub fn get_problem_proposals(db: &DbPool) -> Result<Vec<problem::ProblemProposal>, Error> {
+pub fn get_problem_proposals(
+    db: &DbPool,
+    player: Option<i32>,
+) -> Result<Vec<problem::ProblemProposal>, Error> {
     let conn = &mut db.get().unwrap();
-    use self::schema::problem_proposal::dsl::{problem_proposal as pp, used_at};
+    use self::schema::problem_proposal::dsl::{creator_id, problem_proposal as pp, used_at};
 
-    match pp
-        .filter(used_at.is_null())
-        .limit(100)
-        .load::<ProblemProposal>(conn)
-    {
+    let mut query = pp.filter(used_at.is_null()).into_boxed();
+    if let Some(pid) = player {
+        query = query.filter(creator_id.eq(pid));
+    }
+
+    match query.limit(100).load::<ProblemProposal>(conn) {
         Ok(pps) => return Ok(pps),
         Err(e) => {
             return Err(internal_server_error(e.to_string()));

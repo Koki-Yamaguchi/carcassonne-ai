@@ -106,6 +106,8 @@ export interface Problem {
   optimalMoveCount: number | null;
   testerID: number | null;
   testerName: string | null;
+  startAt: Date | null;
+  isDraft: boolean;
 }
 
 export interface ProblemsResponse {
@@ -134,4 +136,5 @@ export interface ProblemProposal {
   remainingTileCount: number;
   creatorID: number;
   tileID: number;
+  createdAt: Date;
 }
