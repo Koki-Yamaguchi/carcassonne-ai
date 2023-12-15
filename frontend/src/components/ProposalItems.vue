@@ -9,7 +9,7 @@ defineProps<{
 </script>
 <template>
   <div v-if="proposals.length === 0">
-    <p class="text-sm text-gray-600">提案した問題はありません。</p>
+    <p class="text-sm text-gray-600">{{ translate("no_proposed_problems") }}</p>
   </div>
   <div v-else class="flex">
     <table class="border rounded-xl border-separate p-2">

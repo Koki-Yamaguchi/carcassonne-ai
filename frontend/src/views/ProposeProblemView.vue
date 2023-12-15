@@ -10,7 +10,7 @@ import { Player, ProblemProposal, Problem } from "../types";
 
 const tableID = ref<string>("");
 const remainingTileCount = ref<string>("");
-const tileID = ref<number>(0);
+const tileID = ref<number>(-1);
 const creatorID = ref<string>("");
 const allTileIDs = ref<number[]>(Array.from(Array(24).keys()));
 const selectOpen = ref<boolean>(false);
@@ -58,7 +58,7 @@ const propose = async () => {
   alert(translate("thank_you_for_your_proposal"));
 
   tableID.value = "";
-  tileID.value = 0;
+  tileID.value = -1;
   remainingTileCount.value = "";
   creatorID.value = "";
   proposals.value = await api.getProblemProposals(player.value.id);
@@ -81,14 +81,23 @@ onMounted(async () => {
 const isAdmin = computed(() => {
   return player.value && player.value.id === 2;
 });
+
+const canPropose = computed(() => {
+  return (
+    tableID.value !== "" &&
+    remainingTileCount.value !== "" &&
+    tileID.value !== -1
+  );
+});
 </script>
 
 <template>
   <div class="m-6">
-    <p class="text-gray-600 text-lg mb-2">問題を提案する</p>
+    <p class="text-gray-600 text-lg mb-2">
+      {{ translate("propose_problem_title") }}
+    </p>
     <p class="text-sm text-gray-600 mb-2">
-      BGA のテーブル ID
-      とタイル残り枚数と配置するタイルを指定して問題の提案をすることができます。
+      {{ translate("propose_problem_description") }}
     </p>
     <form class="w-full max-w-sm">
       <div class="md:flex md:items-center mb-6">
@@ -106,6 +115,7 @@ const isAdmin = computed(() => {
             id="inline-table-id"
             type="text"
             v-model="tableID"
+            :placeholder="translate('table_id_placeholder')"
           />
         </div>
       </div>
@@ -123,6 +133,7 @@ const isAdmin = computed(() => {
             class="bg-gray-200 appearance-none border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-green-300"
             id="inline-remaining-tile-count"
             v-model="remainingTileCount"
+            :placeholder="translate('remaining_tile_count_placeholder')"
           />
         </div>
       </div>
@@ -152,6 +163,12 @@ const isAdmin = computed(() => {
         <div class="md:w-2/3 relative">
           <div class="flex">
             <img
+              v-if="tileID === -1"
+              class="w-10"
+              src="../assets/img/deck.png"
+            />
+            <img
+              v-else
               class="w-10"
               :src="newTile(0, idToTileKind(tileID), null, -1, -1).src"
             />
@@ -190,9 +207,9 @@ const isAdmin = computed(() => {
         <div class="md:w-1/3"></div>
         <div class="md:w-2/3">
           <button
-            class="shadow bg-green-500 hover:bg-green-400 focus:shadow-outline focus:outline-none text-white py-2 px-4 rounded"
+            class="shadow bg-green-500 hover:bg-green-400 focus:shadow-outline focus:outline-none text-white py-2 px-4 rounded disabled:bg-gray-300"
             type="button"
-            :disabled="proposing"
+            :disabled="!canPropose || proposing"
             @click.once="propose"
           >
             {{ translate("propose") }}
@@ -202,12 +219,16 @@ const isAdmin = computed(() => {
     </form>
     <hr class="my-4" />
     <div>
-      <p class="text-gray-600 text-lg mb-2">提案した問題</p>
+      <p class="text-gray-600 text-lg mb-2">
+        {{ translate("proposed_problems") }}
+      </p>
       <ProposalItems :proposals="proposals" />
     </div>
     <hr class="my-4" />
     <div>
-      <p class="text-gray-600 text-lg mb-2">レビュー待ちの問題</p>
+      <p class="text-gray-600 text-lg mb-2">
+        {{ translate("problems_waiting_for_review") }}
+      </p>
       <DraftProblemItems :problems="draftProblems" />
     </div>
   </div>
