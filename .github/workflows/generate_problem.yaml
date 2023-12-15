@@ -1,0 +1,20 @@
+name: generate-problem
+on:
+  schedule:
+    - cron: '0 * * * *'
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    env:
+      BGA_USERNAME: ${{ secrets.BGA_USERNAME }}
+      BGA_PASSWORD: ${{ secrets.BGA_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+      - run: |
+          pip install get-chrome-driver --upgrade
+          pip install -r backend/generate-problem/requirements.txt
+          python backend/generate-problem/main.py

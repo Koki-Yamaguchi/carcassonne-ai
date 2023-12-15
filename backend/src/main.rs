@@ -16,6 +16,7 @@ mod translate;
 use event::UpdateEvent;
 use handlers::all_options;
 use handlers::create_player;
+use handlers::create_problem_proposal;
 use handlers::events;
 use handlers::get_board;
 use handlers::get_final_events;
@@ -23,14 +24,17 @@ use handlers::get_moves;
 use handlers::get_player;
 use handlers::get_player_by_uid;
 use handlers::get_players;
+use handlers::get_problem_proposals;
 use handlers::health;
 use handlers::send_event;
 use handlers::update_player;
 use handlers::upload_profile_image;
+use handlers::use_problem_proposal;
 use handlers::wait_ai_move;
 use handlers::{create_discard_move, create_meeple_move, create_tile_move};
 use handlers::{create_favorite, get_favorites};
 use handlers::{create_game, get_game, get_games};
+use handlers::{create_problem, update_problem};
 use handlers::{create_vote, get_vote, get_votes};
 use handlers::{create_waiting_game, delete_waiting_game, get_waiting_games, update_waiting_game};
 use handlers::{get_problem, get_problems};
@@ -124,6 +128,11 @@ async fn rocket() -> _ {
                 get_votes,
                 create_favorite,
                 get_favorites,
+                create_problem_proposal,
+                use_problem_proposal,
+                create_problem,
+                update_problem,
+                get_problem_proposals,
             ],
         );
     r

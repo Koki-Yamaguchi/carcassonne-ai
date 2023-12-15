@@ -10,7 +10,7 @@ use crate::game::mov;
 use crate::game::tile;
 use crate::optimal_move;
 use crate::player::{self};
-use crate::problem;
+use crate::problem::{self, ProblemProposal};
 use crate::schema;
 
 #[derive(Insertable)]
@@ -115,6 +115,7 @@ pub struct NewProblem {
     pub optimal_move_count: Option<i32>,
     pub tester_id: Option<i32>,
     pub tester_name: Option<String>,
+    pub is_draft: bool,
 }
 
 #[derive(Insertable)]
@@ -157,6 +158,15 @@ pub struct QueryVote {
     pub problem_name: Option<String>,
     pub lang: Option<String>,
     pub translation: String,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = schema::problem_proposal)]
+pub struct NewProblemProposal {
+    pub table_id: String,
+    pub remaining_tile_count: i32,
+    pub tile_id: i32,
+    pub creator_id: Option<i32>,
 }
 
 pub fn get_player(db: &DbPool, pid: i32) -> Result<player::Player, Error> {
@@ -678,9 +688,12 @@ pub fn get_problems(
     order_by: String,
     limit: i32,
     creator: Option<i32>,
+    is_drft: bool,
 ) -> Result<problem::ProblemsResponse, Error> {
     let conn = &mut db.get().unwrap();
-    use self::schema::problem::dsl::{creator_id, id, problem as p, start_at, vote_count};
+    use self::schema::problem::dsl::{
+        creator_id, id, is_draft, problem as p, start_at, vote_count,
+    };
     let now = chrono::Utc::now().naive_utc();
 
     let mut count_query = p.filter(start_at.le(now)).into_boxed();
@@ -689,7 +702,12 @@ pub fn get_problems(
     }
     let total_count: i64 = count_query.count().get_result(conn).unwrap();
 
-    let mut query = p.filter(start_at.le(now)).into_boxed();
+    let mut query = p.filter(is_draft.eq(is_drft)).into_boxed();
+
+    if !is_drft {
+        query = query.filter(start_at.le(now));
+    }
+
     if let Some(cid) = creator {
         query = query.filter(creator_id.eq(cid))
     }
@@ -715,11 +733,23 @@ pub fn get_problems(
     })
 }
 
-pub fn update_problem(db: &DbPool, prid: i32, vcount: i32) -> Result<problem::Problem, Error> {
-    use self::schema::problem::dsl::{problem, vote_count};
+pub fn update_problem(
+    db: &DbPool,
+    prid: i32,
+    nm: String,
+    start: Option<chrono::NaiveDateTime>,
+    draft: bool,
+    vcount: i32,
+) -> Result<problem::Problem, Error> {
+    use self::schema::problem::dsl::{is_draft, name, problem, start_at, vote_count};
     let conn = &mut db.get().unwrap();
     match diesel::update(problem.find(prid))
-        .set(vote_count.eq(vcount))
+        .set((
+            name.eq(nm),
+            start_at.eq(start),
+            is_draft.eq(draft),
+            vote_count.eq(vcount),
+        ))
         .get_result(conn)
     {
         Ok(pr) => return Ok(pr),
@@ -848,6 +878,57 @@ pub fn get_favorites(
         Ok(fs) => {
             return Ok(fs);
         }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
+pub fn create_problem_proposal(
+    db: &DbPool,
+    new_problem_proposal: &NewProblemProposal,
+) -> Result<problem::ProblemProposal, Error> {
+    let conn = &mut db.get().unwrap();
+
+    match diesel::insert_into(schema::problem_proposal::table)
+        .values(new_problem_proposal)
+        .get_result(conn)
+    {
+        Ok(prb) => Ok(prb),
+        Err(e) => Err(internal_server_error(e.to_string())),
+    }
+}
+
+pub fn use_problem_proposal(db: &DbPool, ppid: i32) -> Result<problem::ProblemProposal, Error> {
+    let conn = &mut db.get().unwrap();
+    use self::schema::problem_proposal::dsl::{problem_proposal as pp, used_at};
+    match diesel::update(pp.find(ppid))
+        .set(used_at.eq(diesel::dsl::now))
+        .get_result(conn)
+    {
+        Ok(p) => {
+            return Ok(p);
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
+pub fn get_problem_proposals(
+    db: &DbPool,
+    player: Option<i32>,
+) -> Result<Vec<problem::ProblemProposal>, Error> {
+    let conn = &mut db.get().unwrap();
+    use self::schema::problem_proposal::dsl::{creator_id, problem_proposal as pp, used_at};
+
+    let mut query = pp.filter(used_at.is_null()).into_boxed();
+    if let Some(pid) = player {
+        query = query.filter(creator_id.eq(pid));
+    }
+
+    match query.limit(100).load::<ProblemProposal>(conn) {
+        Ok(pps) => return Ok(pps),
         Err(e) => {
             return Err(internal_server_error(e.to_string()));
         }

@@ -451,7 +451,7 @@ pub async fn get_problem(id: Option<i32>, db: &State<DbPool>) -> (Status, (Conte
 }
 
 #[get(
-    "/problems?<page>&<order_by>&<limit>&<creator>",
+    "/problems?<page>&<order_by>&<limit>&<creator>&<is_draft>",
     format = "application/json"
 )]
 pub fn get_problems(
@@ -459,9 +459,10 @@ pub fn get_problems(
     order_by: Option<String>,
     limit: Option<i32>,
     creator: Option<i32>,
+    is_draft: Option<bool>,
     db: &State<DbPool>,
 ) -> (Status, (ContentType, String)) {
-    match problem::get_problems(db.inner(), page, order_by, limit, creator) {
+    match problem::get_problems(db.inner(), page, order_by, limit, creator, is_draft) {
         Ok(ps) => (Status::Ok, (ContentType::JSON, to_string(&ps).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
@@ -535,6 +536,67 @@ pub fn get_favorites(
 ) -> (Status, (ContentType, String)) {
     match problem::get_favorites(db.inner(), vote, player) {
         Ok(fs) => (Status::Ok, (ContentType::JSON, to_string(&fs).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[post("/problems/create", format = "application/json", data = "<params>")]
+pub fn create_problem(
+    params: Json<problem::CreateProblem>,
+    db: &State<DbPool>,
+) -> (Status, (ContentType, String)) {
+    match problem::create_draft_problem(db.inner(), &params) {
+        Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[post(
+    "/problems/<id>/update",
+    format = "application/json",
+    data = "<params>"
+)]
+pub fn update_problem(
+    id: i32,
+    params: Json<problem::UpdateProblem>,
+    db: &State<DbPool>,
+) -> (Status, (ContentType, String)) {
+    match problem::update_problem(db.inner(), id, &params) {
+        Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[get("/problem-proposals?<player>", format = "application/json")]
+pub fn get_problem_proposals(
+    db: &State<DbPool>,
+    player: Option<i32>,
+) -> (Status, (ContentType, String)) {
+    match problem::get_problem_proposals(db.inner(), player) {
+        Ok(vs) => (Status::Ok, (ContentType::JSON, to_string(&vs).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[post(
+    "/problem-proposals/create",
+    format = "application/json",
+    data = "<params>"
+)]
+pub fn create_problem_proposal(
+    params: Json<problem::CreateProblemProposal>,
+    db: &State<DbPool>,
+) -> (Status, (ContentType, String)) {
+    match problem::create_problem_proposal(db.inner(), &params) {
+        Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[post("/problem-proposals/<id>/use", format = "application/json")]
+pub fn use_problem_proposal(id: i32, db: &State<DbPool>) -> (Status, (ContentType, String)) {
+    match problem::use_problem_proposal(db.inner(), id) {
+        Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }

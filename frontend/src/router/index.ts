@@ -11,6 +11,9 @@ import CompetitiveView from "../views/CompetitiveView.vue";
 import LobbyView from "../views/LobbyView.vue";
 import ReplayView from "../views/ReplayView.vue";
 import ResultView from "../views/ResultView.vue";
+import ProposeProblemView from "../views/ProposeProblemView.vue";
+import EditProblemView from "../views/EditProblemView.vue";
+import DraftProblemsView from "../views/DraftProblemsView.vue";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { store } from "../store";
 
@@ -53,14 +56,29 @@ const router = createRouter({
       component: ReplayView,
     },
     {
+      path: "/problems/propose",
+      name: "propose problem",
+      component: ProposeProblemView,
+    },
+    {
       path: "/problems/:id",
       name: "problem",
       component: ProblemView,
     },
     {
+      path: "/problems/:id/edit",
+      name: "edit problem",
+      component: EditProblemView,
+    },
+    {
       path: "/problems",
       name: "problems",
       component: ProblemsView,
+    },
+    {
+      path: "/draft-problems",
+      name: "draft problems",
+      component: DraftProblemsView,
     },
     {
       path: "/settings",
