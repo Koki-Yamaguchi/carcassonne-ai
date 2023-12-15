@@ -1,7 +1,7 @@
 name: generate-problem
 on:
-schedule:
-  - cron: '0 * * * *'
+  schedule:
+    - cron: '0 * * * *'
 jobs:
   generate:
     runs-on: ubuntu-latest
