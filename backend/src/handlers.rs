@@ -592,3 +592,11 @@ pub fn create_problem_proposal(
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
+
+#[post("/problem-proposals/<id>/use", format = "application/json")]
+pub fn use_problem_proposal(id: i32, db: &State<DbPool>) -> (Status, (ContentType, String)) {
+    match problem::use_problem_proposal(db.inner(), id) {
+        Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}

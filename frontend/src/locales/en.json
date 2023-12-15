@@ -75,5 +75,6 @@
   "table_id": "Table ID",
   "propose": "Submit",
   "placing_tile": "Placing tile",
-  "not_authorized": "You are not authorized to view this page."
+  "not_authorized": "You are not authorized to view this page.",
+  "thank_you_for_your_proposal": "Thank you for proposing a problem idea! It may take some days for us to create and review the problem."
 }

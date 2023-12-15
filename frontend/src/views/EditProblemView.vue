@@ -131,6 +131,9 @@ const currentTile = () => {
 };
 
 const update = async () => {
+  if (!problem.value) {
+    return;
+  }
   const api = new API();
 
   const strtAt = startAt.value + ":00";
@@ -263,7 +266,7 @@ const isAdmin = computed(() => {
         :meepleablePositions="meepleablePositions"
         @tilePositionSelected="handleTilePositionSelected"
         @turnTile="handleTurnTile"
-        @placeMeeple="(pos: number) => {}"
+        @placeMeeple="(_: number) => {}"
         :isLarge="false"
       />
     </div>

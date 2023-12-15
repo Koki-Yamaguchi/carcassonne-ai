@@ -29,6 +29,7 @@ use handlers::health;
 use handlers::send_event;
 use handlers::update_player;
 use handlers::upload_profile_image;
+use handlers::use_problem_proposal;
 use handlers::wait_ai_move;
 use handlers::{create_discard_move, create_meeple_move, create_tile_move};
 use handlers::{create_favorite, get_favorites};
@@ -128,6 +129,7 @@ async fn rocket() -> _ {
                 create_favorite,
                 get_favorites,
                 create_problem_proposal,
+                use_problem_proposal,
                 create_problem,
                 update_problem,
                 get_problem_proposals,

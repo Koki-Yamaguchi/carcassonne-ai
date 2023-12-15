@@ -868,13 +868,12 @@ export class API {
   async updateProblem(
     id: number,
     name: string,
-    strtAt: Date | null
+    strtAt: string
   ): Promise<Problem> {
-    const startAt = strtAt ?? new Date();
     try {
       const res = await axios.post(`${this.base_url}/problems/${id}/update`, {
         name,
-        start_at: startAt,
+        start_at: strtAt,
         is_draft: false,
       });
       const problem: Problem = {

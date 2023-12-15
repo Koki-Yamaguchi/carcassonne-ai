@@ -838,3 +838,7 @@ pub fn get_problem_proposals(
 ) -> Result<Vec<ProblemProposal>, Error> {
     database::get_problem_proposals(db, player)
 }
+
+pub fn use_problem_proposal(db: &DbPool, id: i32) -> Result<ProblemProposal, Error> {
+    database::use_problem_proposal(db, id)
+}

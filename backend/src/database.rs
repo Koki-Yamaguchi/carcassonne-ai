@@ -899,6 +899,22 @@ pub fn create_problem_proposal(
     }
 }
 
+pub fn use_problem_proposal(db: &DbPool, ppid: i32) -> Result<problem::ProblemProposal, Error> {
+    let conn = &mut db.get().unwrap();
+    use self::schema::problem_proposal::dsl::{problem_proposal as pp, used_at};
+    match diesel::update(pp.find(ppid))
+        .set(used_at.eq(diesel::dsl::now))
+        .get_result(conn)
+    {
+        Ok(p) => {
+            return Ok(p);
+        }
+        Err(e) => {
+            return Err(internal_server_error(e.to_string()));
+        }
+    }
+}
+
 pub fn get_problem_proposals(
     db: &DbPool,
     player: Option<i32>,

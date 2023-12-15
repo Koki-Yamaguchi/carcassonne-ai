@@ -17,6 +17,7 @@ const selectOpen = ref<boolean>(false);
 const player = ref<Player | null>(null);
 const proposals = ref<ProblemProposal[]>([]);
 const draftProblems = ref<Problem[]>([]);
+const proposing = ref<boolean>(false);
 import { store } from "../store";
 
 const parseNumber = (value: string): number => {
@@ -31,6 +32,8 @@ const propose = async () => {
   if (!player.value || !remainingTileCount.value) {
     return;
   }
+  proposing.value = true;
+
   const api = new API();
 
   const rem = parseNumber(remainingTileCount.value);
@@ -51,6 +54,16 @@ const propose = async () => {
     creatorID.value !== "" ? cid : player.value.id,
     tileID.value
   );
+
+  alert(translate("thank_you_for_your_proposal"));
+
+  tableID.value = "";
+  tileID.value = 0;
+  remainingTileCount.value = "";
+  creatorID.value = "";
+  proposals.value = await api.getProblemProposals(player.value.id);
+
+  proposing.value = false;
 };
 
 onMounted(async () => {
@@ -179,7 +192,8 @@ const isAdmin = computed(() => {
           <button
             class="shadow bg-green-500 hover:bg-green-400 focus:shadow-outline focus:outline-none text-white py-2 px-4 rounded"
             type="button"
-            @click="propose"
+            :disabled="proposing"
+            @click.once="propose"
           >
             {{ translate("propose") }}
           </button>
