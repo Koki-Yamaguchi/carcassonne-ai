@@ -6,8 +6,10 @@ jobs:
   generate:
     runs-on: ubuntu-latest
     env:
+      BGA_BASE_URL: ${{ secrets.BGA_BASE_URL }}
       BGA_USERNAME: ${{ secrets.BGA_USERNAME }}
       BGA_PASSWORD: ${{ secrets.BGA_PASSWORD }}
+      API_BASE_URL: ${{ secrets.API_BASE_URL }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
