@@ -305,9 +305,9 @@ pub fn get_problems(
             p = pg;
         }
     }
-    let mut o = "-id".to_string();
+    let mut o = "-start_at".to_string();
     if let Some(ob) = order_by {
-        if ob == "id" || ob == "vote_count" || ob == "-id" || ob == "-vote_count" {
+        if ob == "start_at" || ob == "vote_count" || ob == "-start_at" || ob == "-vote_count" {
             o = ob;
         }
     }

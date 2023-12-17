@@ -19,7 +19,7 @@ const player = ref<Player | null>(null);
 const votedProblemIDs = ref<number[]>([]);
 const loading = ref<boolean>(false);
 
-const orderBy = ref<string>("-id");
+const orderBy = ref<string>("-start_at");
 const page = ref<number>(0);
 const totalCount = ref<number>(0);
 const LIMIT = 10;
@@ -138,8 +138,8 @@ const handleClickProblemName = (problemID: number) => {
       class="text-xs border-2 rounded py-1 px-2 mt-2 text-gray-700 focus:outline-none focus:bg-white focus:border-green-300"
       v-model="orderBy"
     >
-      <option value="-id">{{ translate("newest") }}</option>
-      <option value="id">{{ translate("oldest") }}</option>
+      <option value="-start_at">{{ translate("newest") }}</option>
+      <option value="start_at">{{ translate("oldest") }}</option>
       <option value="-vote_count">{{ translate("most_voted") }}</option>
       <option value="vote_count">{{ translate("least_voted") }}</option>
     </select>
