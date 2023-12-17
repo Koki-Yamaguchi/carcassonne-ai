@@ -712,8 +712,8 @@ pub fn get_problems(
         query = query.filter(creator_id.eq(cid))
     }
     match order_by.as_str() {
-        "id" => query = query.order(id.asc()),
-        "-id" => query = query.order(id.desc()),
+        "start_at" => query = query.order((start_at.asc(), id.desc())),
+        "-start_at" => query = query.order((start_at.desc(), id.desc())),
         "vote_count" => query = query.order((vote_count.asc(), id.desc())),
         "-vote_count" => query = query.order((vote_count.desc(), id.desc())),
         _ => {}
