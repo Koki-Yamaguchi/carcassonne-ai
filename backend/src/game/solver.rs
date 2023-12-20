@@ -106,6 +106,12 @@ pub fn search(
         };
         meepleable_positions.push(-1); // not meeple the tile
 
+        /*
+        if depth == 0 {
+            println!("first mv = {:?}", moves.last().unwrap());
+        }
+        */
+
         for meepleable_position in &meepleable_positions {
             let mut meeple_id = -1;
             if *meepleable_position != -1 {
@@ -350,6 +356,7 @@ pub fn solve(
     };
 
     if win_count.len() == 0 {
+        println!("====== Always Lose ======");
         return ((tm, mm), SolveResult::AlwaysLose);
     }
 
@@ -485,12 +492,10 @@ fn solve_test1() {
 
 #[test]
 fn solve_test2() {
-    // actual game here: https://boardgamearena.com/table?table=443543294
-    /*
     use super::decoder;
-    let mut mvs = decoder::decode_from_file_path("src/data/443543294.json".to_string());
+    let mut mvs = decoder::decode_from_file_path("src/data/449165550.json".to_string());
 
-    for _ in 0..10 {
+    for _ in 0..8 {
         mvs.pop();
     }
 
@@ -503,59 +508,19 @@ fn solve_test2() {
                 id: -1,
                 ord: 134,
                 game_id: None,
-                player_id: 1,
-                tile: Tile::Curve,
-                rot: 0,
-                pos: (-5, 7),
-            }),
-            MMove(MeepleMove {
-                id: -1,
-                ord: 135,
-                game_id: None,
-                player_id: 1,
-                meeple_id: 13,
-                meeple_pos: 1,
-                tile_pos: (-5, 7),
-            }),
-        ],
-        vec![
-            TMove(TileMove {
-                id: -1,
-                ord: 134,
-                game_id: None,
-                player_id: 1,
-                tile: Tile::Curve,
-                rot: 2,
-                pos: (-1, 8),
-            }),
-            MMove(MeepleMove {
-                id: -1,
-                ord: 135,
-                game_id: None,
-                player_id: 1,
-                meeple_id: 13,
-                meeple_pos: 0,
-                tile_pos: (-1, 8),
-            }),
-        ],
-        vec![
-            TMove(TileMove {
-                id: -1,
-                ord: 134,
-                game_id: None,
-                player_id: 1,
-                tile: Tile::Curve,
+                player_id: 0,
+                tile: Tile::MonasteryWithRoad,
                 rot: 1,
-                pos: (2, 7),
+                pos: (-5, 3),
             }),
             MMove(MeepleMove {
                 id: -1,
                 ord: 135,
                 game_id: None,
-                player_id: 1,
-                meeple_id: 13,
-                meeple_pos: 1,
-                tile_pos: (2, 7),
+                player_id: 0,
+                meeple_id: 6,
+                meeple_pos: 0,
+                tile_pos: (-5, 3),
             }),
         ],
         vec![
@@ -563,19 +528,79 @@ fn solve_test2() {
                 id: -1,
                 ord: 134,
                 game_id: None,
-                player_id: 1,
-                tile: Tile::Curve,
-                rot: 3,
-                pos: (-1, -4),
+                player_id: 0,
+                tile: Tile::MonasteryWithRoad,
+                rot: 1,
+                pos: (-5, 3),
             }),
             MMove(MeepleMove {
                 id: -1,
                 ord: 135,
                 game_id: None,
-                player_id: 1,
-                meeple_id: 13,
-                meeple_pos: 1,
-                tile_pos: (-1, -4),
+                player_id: 0,
+                meeple_id: 6,
+                meeple_pos: 2,
+                tile_pos: (-5, 3),
+            }),
+        ],
+        vec![
+            TMove(TileMove {
+                id: -1,
+                ord: 134,
+                game_id: None,
+                player_id: 0,
+                tile: Tile::MonasteryWithRoad,
+                rot: 3,
+                pos: (-8, 2),
+            }),
+            MMove(MeepleMove {
+                id: -1,
+                ord: 135,
+                game_id: None,
+                player_id: 0,
+                meeple_id: 6,
+                meeple_pos: 0,
+                tile_pos: (-8, 2),
+            }),
+        ],
+        vec![
+            TMove(TileMove {
+                id: -1,
+                ord: 134,
+                game_id: None,
+                player_id: 0,
+                tile: Tile::MonasteryWithRoad,
+                rot: 0,
+                pos: (-8, 1),
+            }),
+            MMove(MeepleMove {
+                id: -1,
+                ord: 135,
+                game_id: None,
+                player_id: 0,
+                meeple_id: 6,
+                meeple_pos: 2,
+                tile_pos: (-8, 1),
+            }),
+        ],
+        vec![
+            TMove(TileMove {
+                id: -1,
+                ord: 134,
+                game_id: None,
+                player_id: 0,
+                tile: Tile::MonasteryWithRoad,
+                rot: 0,
+                pos: (-6, -2),
+            }),
+            MMove(MeepleMove {
+                id: -1,
+                ord: 135,
+                game_id: None,
+                player_id: 0,
+                meeple_id: 6,
+                meeple_pos: 0,
+                tile_pos: (-6, -2),
             }),
         ],
     ];
@@ -584,7 +609,7 @@ fn solve_test2() {
         mvs.push(cand_mv[0].clone());
         mvs.push(cand_mv[1].clone());
 
-        let next_tiles = vec![Tile::Curve, Tile::TripleCityWithRoad, Tile::Right];
+        let next_tiles = vec![Tile::Curve, Tile::CityCap];
         println!("move = {:?}, {:?}", cand_mv[0], cand_mv[1]);
 
         for next_tile in &next_tiles {
@@ -597,5 +622,4 @@ fn solve_test2() {
 
         println!("");
     }
-    */
 }
