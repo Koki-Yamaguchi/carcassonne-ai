@@ -431,7 +431,7 @@ fn create_moves_manually() -> Vec<Move> {
 
 #[test]
 fn create_problem_test() {
-    use super::game::decoder;
+    // use super::game::decoder;
     use super::game::mov::{DiscardMove, MeepleMove, Move::*, TileMove};
     use dotenvy::dotenv;
     use std::env;
@@ -447,24 +447,31 @@ fn create_problem_test() {
         .expect("Creating a pool failed");
 
     // should-be-modified lines start
-    let all_mvs = decoder::decode_from_file_path("src/data/444626489.json".to_string());
+    // let all_mvs = decoder::decode_from_file_path("src/data/444626489.json".to_string());
     // let all_mvs = create_moves_manually();
-    // let all_mvs = create_moves_from_game_against_ai(&db, 6705);
+    let all_mvs = create_moves_from_game_against_ai(&db, 7944);
 
-    let remaining_tile_count = 3;
-    let problem_name = "Endgame".to_string();
-    let start_at = chrono::DateTime::parse_from_rfc3339("2023-12-09T18:00:00+09:00")
-        .unwrap()
-        .naive_utc();
-    let creator_id = None;
+    let remaining_tile_count = 65;
+    let problem_name = "".to_string();
+    /*
+    let start_at = Some(
+        chrono::DateTime::parse_from_rfc3339("2023-12-09T18:00:00+09:00")
+            .unwrap()
+            .naive_utc(),
+    );
+    */
+    let start_at = None;
+    let creator_id = Some(141);
     let mut creator_name = None;
     if let Some(pid) = creator_id {
         let player = database::get_player(&db, pid).unwrap();
         creator_name = Some(player.name);
     }
+    let is_draft = true;
+
     // for solved problems
-    let is_solved = true;
-    let optimal_move_count = Some(2);
+    let is_solved = false;
+    let optimal_move_count = None;
     let tester_id = None;
     let mut tester_name = None;
     if let Some(pid) = tester_id {
@@ -606,7 +613,7 @@ fn create_problem_test() {
         &database::NewProblem {
             game_id: g.id,
             name: problem_name,
-            start_at: Some(start_at),
+            start_at,
             creator_id,
             creator_name,
             vote_count: 0,
@@ -614,7 +621,7 @@ fn create_problem_test() {
             optimal_move_count,
             tester_id,
             tester_name,
-            is_draft: false,
+            is_draft,
         },
     )
     .unwrap();
