@@ -16,6 +16,7 @@ api_base_url = os.environ["API_BASE_URL"]
 def get_problem_proposals():
     headers = {'Content-Type': 'application/json'}
     res = requests.get(f'{api_base_url}/problem-proposals', headers=headers)
+    res.raise_for_status()
     proposals = res.json()
     return proposals
 
@@ -26,13 +27,16 @@ def create_problem(creator_id, remaining_tile_count, moves):
         'remaining_tile_count': remaining_tile_count,
         'moves': moves,
     }
+    print(data)
     res = requests.post(f'{api_base_url}/problems/create', headers=headers, json=data)
+    res.raise_for_status()
     problem = res.json()
     return problem
 
 def use_proposal(id):
     headers = {'Content-Type': 'application/json'}
     res = requests.post(f'{api_base_url}/problem-proposals/{id}/use', headers=headers)
+    res.raise_for_status()
     proposal = res.json()
     return proposal
 
