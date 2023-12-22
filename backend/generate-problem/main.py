@@ -51,6 +51,8 @@ def run():
     options.add_argument('--headless')
     driver = webdriver.Chrome(options=options)
 
+    print("found proposals")
+    print(proposals)
     signed_in = False
     for proposal in proposals:
         table_id = proposal['table_id']
