@@ -104,28 +104,6 @@ const handleClickProblemName = (problemID: number) => {
     <p class="my-2 text-sm text-gray-700">
       {{ translate("problems_description") }}
     </p>
-    <p class="mt-4">{{ translate("propose_problem") }}</p>
-    <div v-if="player" class="my-2">
-      <p v-if="isJapaneseSetting()" class="text-sm text-gray-700">
-        問題案の提供は<a
-          :href="`https://docs.google.com/forms/d/e/1FAIpQLSe85DfoZf7m1bOT8Gs_e3j6OqelPm04RAO1wkU8j-pKPeK4pw/viewform?usp=pp_url&entry.1931067216=${player.name}`"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="underline"
-          >こちら</a
-        >から行うことができます。
-      </p>
-      <p v-else class="text-sm text-gray-700">
-        You can propose problem ideas from
-        <a
-          :href="`https://docs.google.com/forms/d/e/1FAIpQLSeFIPJ5KVZoZEJOF6PB-qS6lWONhp2oO_kPQRrb_VoCUT9tBA/viewform?usp=pp_url&entry.1905734667=${player.name}`"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="underline"
-          >here</a
-        >.
-      </p>
-    </div>
     <p class="mt-4">{{ translate("recent_votes") }}</p>
     <div v-if="recentVotes.length > 0" class="mt-2">
       <RecentVoteItems
