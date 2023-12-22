@@ -210,7 +210,7 @@ const canPropose = computed(() => {
             class="shadow bg-green-500 hover:bg-green-400 focus:shadow-outline focus:outline-none text-white py-2 px-4 rounded disabled:bg-gray-300"
             type="button"
             :disabled="!canPropose || proposing"
-            @click.once="propose"
+            @click="propose"
           >
             {{ translate("propose") }}
           </button>
