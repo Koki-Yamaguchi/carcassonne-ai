@@ -3,7 +3,7 @@ import { onMounted, ref, watch } from "vue";
 import ProblemItem from "../components/ProblemItem.vue";
 import { API } from "../api";
 import { Problem, Player, Vote } from "../types";
-import { translate, isJapaneseSetting } from "../locales/translate";
+import { translate } from "../locales/translate";
 import { store } from "../store";
 import SpinnerIcon from "../components/SpinnerIcon.vue";
 import { useRoute, useRouter } from "vue-router";
