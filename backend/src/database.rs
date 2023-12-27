@@ -116,6 +116,7 @@ pub struct NewProblem {
     pub tester_id: Option<i32>,
     pub tester_name: Option<String>,
     pub is_draft: bool,
+    pub point_diff: Option<i32>,
 }
 
 #[derive(Insertable)]
@@ -740,8 +741,9 @@ pub fn update_problem(
     start: Option<chrono::NaiveDateTime>,
     draft: bool,
     vcount: i32,
+    pdiff: Option<i32>,
 ) -> Result<problem::Problem, Error> {
-    use self::schema::problem::dsl::{is_draft, name, problem, start_at, vote_count};
+    use self::schema::problem::dsl::{is_draft, name, point_diff, problem, start_at, vote_count};
     let conn = &mut db.get().unwrap();
     match diesel::update(problem.find(prid))
         .set((
@@ -749,6 +751,7 @@ pub fn update_problem(
             start_at.eq(start),
             is_draft.eq(draft),
             vote_count.eq(vcount),
+            point_diff.eq(pdiff),
         ))
         .get_result(conn)
     {

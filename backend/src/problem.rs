@@ -1,6 +1,7 @@
 use crate::{
     error::Error,
     game::{
+        calculate,
         mov::{DiscardMove, MeepleMove, Move, TileMove},
         tile::Tile,
     },
@@ -35,6 +36,7 @@ pub struct Problem {
     pub tester_id: Option<i32>,
     pub tester_name: Option<String>,
     pub is_draft: bool,
+    pub point_diff: Option<i32>,
 }
 
 #[derive(Serialize)]
@@ -200,6 +202,9 @@ pub fn create_draft_problem(db: &DbPool, params: &CreateProblem) -> Result<Probl
     )
     .unwrap();
 
+    let s = calculate::calculate(&mvs, true)?;
+    let point_diff = s.player0_point - s.player1_point;
+
     for mv in &mvs {
         match mv {
             TMove(tm) => {
@@ -283,6 +288,7 @@ pub fn create_draft_problem(db: &DbPool, params: &CreateProblem) -> Result<Probl
             tester_id: None,
             tester_name: None,
             is_draft: true,
+            point_diff: Some(point_diff),
         },
     )
 }
@@ -539,6 +545,9 @@ fn create_problem_test() {
     )
     .unwrap();
 
+    let s = calculate::calculate(&mvs, true).unwrap();
+    let point_diff = s.player0_point - s.player1_point;
+
     for mv in &mvs {
         match mv {
             TMove(tm) => {
@@ -622,6 +631,7 @@ fn create_problem_test() {
             tester_id,
             tester_name,
             is_draft,
+            point_diff: Some(point_diff),
         },
     )
     .unwrap();
@@ -669,6 +679,7 @@ pub fn create_vote(
         problem.start_at,
         problem.is_draft,
         problem.vote_count + 1,
+        problem.point_diff,
     )?;
 
     Ok(vote)
@@ -836,6 +847,7 @@ pub fn update_problem(db: &DbPool, id: i32, params: &UpdateProblem) -> Result<Pr
         Some(params.start_at),
         params.is_draft,
         prb.vote_count,
+        prb.point_diff,
     )
 }
 
@@ -848,4 +860,48 @@ pub fn get_problem_proposals(
 
 pub fn use_problem_proposal(db: &DbPool, id: i32) -> Result<ProblemProposal, Error> {
     database::use_problem_proposal(db, id)
+}
+
+#[test]
+fn update_all_point_diff() {
+    use dotenvy::dotenv;
+    use std::env;
+    use std::time::Duration;
+
+    dotenv().ok();
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    let db = Pool::builder()
+        .max_size(1) // FIXME: Didn't think about this number carefully
+        .connection_timeout(Duration::from_secs(300))
+        .build(manager)
+        .expect("Creating a pool failed");
+
+    for problem_id in 1..100 {
+        println!("problem id = {:?}", problem_id);
+        match database::get_problem(&db, problem_id) {
+            Ok(problem) => {
+                let mvs = database::list_moves(&db, problem.game_id, None).unwrap();
+
+                let s = calculate::calculate(&mvs, true).unwrap();
+                let point_diff = s.player0_point - s.player1_point;
+
+                println!("before problem = {:?}", problem);
+                let problem = database::update_problem(
+                    &db,
+                    problem.id,
+                    problem.name,
+                    problem.start_at,
+                    problem.is_draft,
+                    problem.vote_count,
+                    Some(point_diff),
+                )
+                .unwrap();
+                println!("after problem = {:?}", problem);
+            }
+            Err(_) => {
+                println!("not found");
+            }
+        }
+    }
 }
