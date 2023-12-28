@@ -108,6 +108,7 @@ export interface Problem {
   testerName: string | null;
   startAt: Date | null;
   isDraft: boolean;
+  pointDiff: number;
 }
 
 export interface ProblemsResponse {

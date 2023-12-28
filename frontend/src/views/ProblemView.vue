@@ -53,6 +53,7 @@ const canSubmit = ref<boolean>(false);
 const meeplingPosition = ref<number>(-1);
 const note = ref<string>("");
 const showRemainingTiles = ref<boolean>(false);
+const showPointDiff = ref<boolean>(false);
 const remainingTilesSrc = ref<string[]>([]);
 const fixBoard = ref<boolean>(false);
 
@@ -571,6 +572,18 @@ const isAdmin = computed(() => {
           :src="src"
           :key="idx"
         />
+      </div>
+      <div
+        class="flex mt-2 hover:cursor-pointer"
+        @click="showPointDiff = !showPointDiff"
+      >
+        <div class="flex flex-col justify-center mr-2">
+          <ChevronIcon :direction="showPointDiff ? 'bottom' : 'right'" />
+        </div>
+        <div>{{ translate("point_diff") }}</div>
+      </div>
+      <div v-if="showPointDiff" class="flex flex-wrap gap-1 mt-2">
+        {{ translate_with_arg("point_diff_description", problem.pointDiff) }}
       </div>
       <div v-if="!voted" class="mt-4">
         <textarea
