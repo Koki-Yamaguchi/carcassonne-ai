@@ -97,6 +97,7 @@ diesel::table! {
         tester_id -> Nullable<Int4>,
         tester_name -> Nullable<Varchar>,
         is_draft -> Bool,
+        point_diff -> Nullable<Int4>,
     }
 }
 
