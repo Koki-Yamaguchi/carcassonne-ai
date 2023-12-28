@@ -583,7 +583,12 @@ const isAdmin = computed(() => {
         <div>{{ translate("point_diff") }}</div>
       </div>
       <div v-if="showPointDiff" class="flex flex-wrap gap-1 mt-2">
-        {{ translate_with_arg("point_diff_description", problem.pointDiff) }}
+        {{
+          translate_with_arg(
+            "point_diff_description",
+            problem ? problem.pointDiff : 0
+          )
+        }}
       </div>
       <div v-if="!voted" class="mt-4">
         <textarea
