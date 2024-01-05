@@ -136,6 +136,6 @@ export interface ProblemProposal {
   tableID: string;
   remainingTileCount: number;
   creatorID: number;
-  tileID: number;
+  note: string;
   createdAt: Date;
 }

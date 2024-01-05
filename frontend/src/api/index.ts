@@ -816,7 +816,7 @@ export class API {
     tableID: string,
     remainingTileCount: number,
     creatorID: number,
-    tileID: number
+    note: string
   ): Promise<ProblemProposal> {
     try {
       const res = await axios.post(
@@ -825,7 +825,7 @@ export class API {
           table_id: tableID,
           remaining_tile_count: remainingTileCount,
           creator_id: creatorID,
-          tile_id: tileID,
+          note: note,
         }
       );
       const proposal: ProblemProposal = {
@@ -833,7 +833,7 @@ export class API {
         tableID: res.data.table_id,
         remainingTileCount: res.data.remaining_tile_count,
         creatorID: res.data.creator_id,
-        tileID: res.data.tile_id,
+        note: res.data.note,
         createdAt: res.data.created_at,
       };
       return proposal;
@@ -857,7 +857,7 @@ export class API {
           tableID: v.table_id,
           remainingTileCount: v.remaining_tile_count,
           creatorID: v.creator_id,
-          tileID: v.tile_id,
+          note: v.note,
           createdAt: v.created_at,
         };
       });

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ProblemProposal } from "../types";
 import { translate } from "../locales/translate";
-import { newTile, idToTileKind } from "../tiles";
 
 defineProps<{
   proposals: ProblemProposal[];
@@ -24,12 +23,6 @@ defineProps<{
       >
         <td>{{ proposal.tableID }}</td>
         <td>{{ proposal.remainingTileCount }}</td>
-        <td>
-          <img
-            class="w-10"
-            :src="newTile(0, idToTileKind(proposal.tileID), null, -1, -1).src"
-          />
-        </td>
       </tr>
     </table>
   </div>
