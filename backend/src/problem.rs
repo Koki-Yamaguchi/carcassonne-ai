@@ -37,6 +37,7 @@ pub struct Problem {
     pub tester_name: Option<String>,
     pub is_draft: bool,
     pub point_diff: Option<i32>,
+    pub note: String,
 }
 
 #[derive(Serialize)]
@@ -83,6 +84,7 @@ pub struct CreateProblem {
     pub creator_id: i32,
     pub remaining_tile_count: i32,
     pub moves: String,
+    pub note: String,
 }
 
 #[derive(Deserialize)]
@@ -117,8 +119,8 @@ pub struct CreateFavorite {
 pub struct CreateProblemProposal {
     pub table_id: String,
     pub remaining_tile_count: i32,
-    pub tile_id: i32,
     pub creator_id: i32,
+    pub note: String,
 }
 
 #[derive(Serialize, Queryable, Clone, Debug)]
@@ -127,10 +129,10 @@ pub struct ProblemProposal {
     pub id: i32,
     pub table_id: String,
     pub remaining_tile_count: i32,
-    pub tile_id: i32,
     pub creator_id: Option<i32>,
     pub used_at: Option<chrono::NaiveDateTime>,
     pub created_at: chrono::NaiveDateTime,
+    pub note: String,
 }
 
 pub fn create_draft_problem(db: &DbPool, params: &CreateProblem) -> Result<Problem, Error> {
@@ -289,6 +291,7 @@ pub fn create_draft_problem(db: &DbPool, params: &CreateProblem) -> Result<Probl
             tester_name: None,
             is_draft: true,
             point_diff: Some(point_diff),
+            note: params.note.clone(),
         },
     )
 }
@@ -632,6 +635,7 @@ fn create_problem_test() {
             tester_name,
             is_draft,
             point_diff: Some(point_diff),
+            note: "".to_string(),
         },
     )
     .unwrap();
@@ -831,8 +835,8 @@ pub fn create_problem_proposal(
         &database::NewProblemProposal {
             table_id: params.table_id.clone(),
             remaining_tile_count: params.remaining_tile_count,
-            tile_id: params.tile_id,
             creator_id: Some(params.creator_id),
+            note: params.note.clone(),
         },
     )
 }

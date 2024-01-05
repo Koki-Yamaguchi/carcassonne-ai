@@ -117,6 +117,7 @@ pub struct NewProblem {
     pub tester_name: Option<String>,
     pub is_draft: bool,
     pub point_diff: Option<i32>,
+    pub note: String,
 }
 
 #[derive(Insertable)]
@@ -166,8 +167,8 @@ pub struct QueryVote {
 pub struct NewProblemProposal {
     pub table_id: String,
     pub remaining_tile_count: i32,
-    pub tile_id: i32,
     pub creator_id: Option<i32>,
+    pub note: String,
 }
 
 pub fn get_player(db: &DbPool, pid: i32) -> Result<player::Player, Error> {
