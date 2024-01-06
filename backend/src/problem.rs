@@ -320,7 +320,7 @@ pub fn get_problems(
             o = ob;
         }
     }
-    let mut l = 10;
+    let mut l = 100;
     if let Some(lm) = limit {
         if lm >= 1 {
             l = lm;
