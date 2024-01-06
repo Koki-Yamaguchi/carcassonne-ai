@@ -80,7 +80,7 @@
   "propose": "Submit",
   "placing_tile": "Placing tile",
   "proposal_note": "Note",
-  "proposal_note_placeholder": "A brief description of the board would facilitate the review process.",
+  "proposal_note_placeholder": "A brief description of the board would facilitate the review process. This description does not appear on the problem page.",
   "proposed_problems": "Proposed Problems",
   "no_proposed_problems": "There is no proposed problem",
   "problems_waiting_for_review": "Problems Waiting for Review",

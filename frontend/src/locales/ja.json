@@ -80,7 +80,7 @@
   "propose": "提案する",
   "placing_tile": "配置するタイル",
   "proposal_note": "備考",
-  "proposal_note_placeholder": "可能であれば盤面の説明などを簡単に書いてもらえるとレビューがスムーズに行えます。",
+  "proposal_note_placeholder": "可能であれば盤面の説明などを簡単に書いてもらえるとレビューがスムーズに行えます。問題ページには表示されません。",
   "proposed_problems": "提案した問題",
   "no_proposed_problems": "提案した問題はありません。",
   "problems_waiting_for_review": "レビュー待ちの問題",

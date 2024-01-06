@@ -614,6 +614,7 @@ export class API {
         startAt: res.data.start_at ? new Date(res.data.start_at) : null,
         isDraft: res.data.is_draft,
         pointDiff: res.data.point_diff,
+        note: res.data.note,
       };
       return prob;
     } catch (e) {
@@ -650,6 +651,7 @@ export class API {
           startAt: p.start_at ? new Date(p.start_at) : null,
           isDraft: p.is_draft,
           pointDiff: p.point_diff,
+          note: p.note,
         };
       });
       const totalCount = res.data.total_count;
@@ -688,6 +690,7 @@ export class API {
           startAt: p.start_at ? new Date(p.start_at) : null,
           isDraft: p.is_draft,
           pointDiff: p.point_diff,
+          note: p.note,
         };
       });
       const totalCount = res.data.total_count;
@@ -893,6 +896,7 @@ export class API {
         startAt: res.data.start_at ? new Date(res.data.start_at) : null,
         isDraft: res.data.is_draft,
         pointDiff: res.data.point_diff,
+        note: res.data.note,
       };
       return problem;
     } catch (e) {

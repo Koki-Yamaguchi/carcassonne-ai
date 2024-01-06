@@ -1,19 +1,29 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from "vue";
-import { Problem, Player, Game, Board, TileMove, TilePosition } from "../types";
+import {
+  Problem,
+  Player,
+  Game,
+  Board,
+  TileMove,
+  DiscardMove,
+  TilePosition,
+} from "../types";
 import { API } from "../api";
 import { useRoute } from "vue-router";
 import { store } from "../store";
 import GameBoard from "../components/GameBoard.vue";
 import PlayerInfo from "../components/PlayerInfo.vue";
 import SolvedSign from "../components/SolvedSign.vue";
-
+import ChevronIcon from "../components/ChevronIcon.vue";
 import {
   boardSize,
   getInitialBoard,
   idToTileKind,
   newTile,
   Tile,
+  getRemainingTileKinds,
+  TileKind,
 } from "../tiles";
 import { translate, translate_with_arg } from "../locales/translate";
 
@@ -38,6 +48,10 @@ const fixBoard = ref<boolean>(false);
 
 const name = ref<string>("");
 const startAt = ref<Date | null>(null);
+
+const showRemainingTiles = ref<boolean>(false);
+const remainingTilesSrc = ref<string[]>([]);
+const showPointDiff = ref<boolean>(false);
 
 const getPlaceablePositions = (placingTile: Tile): TilePosition[] => {
   const pos = [];
@@ -198,6 +212,16 @@ onMounted(async () => {
   placingTile.value = newTile(0, placingTileKind, null, -1, -1);
   placeablePositions.value = getPlaceablePositions(placingTile.value);
 
+  // remaining tiles
+  const outTiles: TileKind[] = moves
+    .filter((m) => !("meepleID" in m))
+    .map((m) => (m as TileMove | DiscardMove).tile)
+    .concat([placingTileKind]);
+  const remainingTiles = getRemainingTileKinds(outTiles);
+  remainingTilesSrc.value = remainingTiles.map(
+    (t) => newTile(0, t, null, -1, -1).src
+  );
+
   name.value = problem.value.name;
 });
 
@@ -299,6 +323,45 @@ const isAdmin = computed(() => {
           :src="currentTile() ? currentTile()!.src : null"
         />
       </div>
+    </div>
+    <div
+      class="flex mt-2 hover:cursor-pointer"
+      @click="showRemainingTiles = !showRemainingTiles"
+    >
+      <div class="flex flex-col justify-center mr-2">
+        <ChevronIcon :direction="showRemainingTiles ? 'bottom' : 'right'" />
+      </div>
+      <div>{{ translate("remaining_tiles") }}</div>
+    </div>
+    <div v-if="showRemainingTiles" class="flex flex-wrap gap-1 mt-2">
+      <img
+        v-for="(src, idx) in remainingTilesSrc"
+        width="30"
+        height="30"
+        :src="src"
+        :key="idx"
+      />
+    </div>
+    <div
+      class="flex mt-2 hover:cursor-pointer"
+      @click="showPointDiff = !showPointDiff"
+    >
+      <div class="flex flex-col justify-center mr-2">
+        <ChevronIcon :direction="showPointDiff ? 'bottom' : 'right'" />
+      </div>
+      <div>{{ translate("point_diff") }}</div>
+    </div>
+    <div v-if="showPointDiff" class="flex flex-wrap gap-1 mt-2">
+      {{
+        translate_with_arg(
+          "point_diff_description",
+          problem ? problem.pointDiff : 0
+        )
+      }}
+    </div>
+    <div class="mt-2">{{ translate("proposal_note") }}</div>
+    <div>
+      {{ problem ? problem.note : "" }}
     </div>
     <input
       v-if="isAdmin"

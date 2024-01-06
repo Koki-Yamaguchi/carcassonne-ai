@@ -109,6 +109,7 @@ export interface Problem {
   startAt: Date | null;
   isDraft: boolean;
   pointDiff: number;
+  note: string;
 }
 
 export interface ProblemsResponse {
