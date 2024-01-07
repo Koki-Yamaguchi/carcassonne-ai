@@ -576,6 +576,22 @@ pub fn update_problem(
     }
 }
 
+#[post(
+    "/problems/<id>/publish",
+    format = "application/json",
+    data = "<params>"
+)]
+pub fn publish_problem(
+    id: i32,
+    params: Json<problem::PublishProblem>,
+    db: &State<DbPool>,
+) -> (Status, (ContentType, String)) {
+    match problem::publish_problem(db.inner(), id, &params) {
+        Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
 #[get("/problem-proposals?<player>", format = "application/json")]
 pub fn get_problem_proposals(
     db: &State<DbPool>,

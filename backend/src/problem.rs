@@ -7,6 +7,7 @@ use crate::{
     },
     translate,
 };
+use chrono::Duration;
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
 use diesel::r2d2::Pool;
@@ -89,10 +90,15 @@ pub struct CreateProblem {
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
+pub struct PublishProblem {
+    pub name: String,
+}
+
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
 pub struct UpdateProblem {
     pub name: String,
     pub start_at: chrono::NaiveDateTime,
-    pub is_draft: bool,
 }
 
 #[derive(Serialize, Queryable, Clone, Debug)]
@@ -847,6 +853,33 @@ pub fn create_problem_proposal(
     )
 }
 
+pub fn publish_problem(db: &DbPool, id: i32, params: &PublishProblem) -> Result<Problem, Error> {
+    let prb = database::get_problem(db, id)?;
+
+    let private_prbs =
+        database::get_problems(db, 0, "-start_at".to_string(), 1, None, false, true)?.problems;
+
+    let last_start_at = if private_prbs.len() == 1 {
+        private_prbs[0].start_at.unwrap()
+    } else {
+        let prbs =
+            database::get_problems(db, 0, "-start_at".to_string(), 1, None, false, false)?.problems;
+        assert!(prbs.len() >= 1);
+
+        prbs[0].start_at.unwrap()
+    };
+
+    database::update_problem(
+        db,
+        id,
+        params.name.clone(),
+        Some(last_start_at + Duration::days(1)),
+        false,
+        prb.vote_count,
+        prb.point_diff,
+    )
+}
+
 pub fn update_problem(db: &DbPool, id: i32, params: &UpdateProblem) -> Result<Problem, Error> {
     let prb = database::get_problem(db, id)?;
 
@@ -855,7 +888,7 @@ pub fn update_problem(db: &DbPool, id: i32, params: &UpdateProblem) -> Result<Pr
         id,
         params.name.clone(),
         Some(params.start_at),
-        params.is_draft,
+        prb.is_draft,
         prb.vote_count,
         prb.point_diff,
     )
