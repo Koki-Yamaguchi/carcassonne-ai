@@ -665,12 +665,18 @@ export class API {
     }
   }
 
-  async getDraftProblems(creatorID?: number): Promise<ProblemsResponse> {
+  async getPrivateProblems(
+    isDraft: boolean,
+    creatorID?: number
+  ): Promise<ProblemsResponse> {
     const params = new URLSearchParams();
     if (creatorID) {
       params.set("creator", `${creatorID}`);
     }
-    params.set("is_draft", "true");
+    params.set("is_draft", isDraft ? "true" : "false");
+    if (!isDraft) {
+      params.set("is_private", "true");
+    }
     try {
       const url = `${this.base_url}/problems?` + params.toString();
       const res = await axios.get(url);

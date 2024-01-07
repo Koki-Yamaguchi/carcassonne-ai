@@ -69,7 +69,7 @@ onMounted(async () => {
 
   proposals.value = await api.getProblemProposals(player.value.id);
 
-  const res = await api.getDraftProblems(player.value.id);
+  const res = await api.getPrivateProblems(true, player.value.id);
 
   draftProblems.value = res.problems;
 });

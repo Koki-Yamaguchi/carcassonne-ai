@@ -307,6 +307,7 @@ pub fn get_problems(
     limit: Option<i32>,
     creator: Option<i32>,
     is_draft: Option<bool>,
+    is_private: Option<bool>,
 ) -> Result<ProblemsResponse, Error> {
     let mut p = 0;
     if let Some(pg) = page {
@@ -332,7 +333,12 @@ pub fn get_problems(
         is_drft = isd;
     }
 
-    database::get_problems(db, p, o, l, creator, is_drft)
+    let mut is_prvt = false;
+    if let Some(isp) = is_private {
+        is_prvt = isp;
+    }
+
+    database::get_problems(db, p, o, l, creator, is_drft, is_prvt)
 }
 
 #[allow(dead_code)]

@@ -451,7 +451,7 @@ pub async fn get_problem(id: Option<i32>, db: &State<DbPool>) -> (Status, (Conte
 }
 
 #[get(
-    "/problems?<page>&<order_by>&<limit>&<creator>&<is_draft>",
+    "/problems?<page>&<order_by>&<limit>&<creator>&<is_draft>&<is_private>",
     format = "application/json"
 )]
 pub fn get_problems(
@@ -460,9 +460,18 @@ pub fn get_problems(
     limit: Option<i32>,
     creator: Option<i32>,
     is_draft: Option<bool>,
+    is_private: Option<bool>,
     db: &State<DbPool>,
 ) -> (Status, (ContentType, String)) {
-    match problem::get_problems(db.inner(), page, order_by, limit, creator, is_draft) {
+    match problem::get_problems(
+        db.inner(),
+        page,
+        order_by,
+        limit,
+        creator,
+        is_draft,
+        is_private,
+    ) {
         Ok(ps) => (Status::Ok, (ContentType::JSON, to_string(&ps).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
