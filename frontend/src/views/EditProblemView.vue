@@ -155,6 +155,15 @@ const update = async () => {
   await api.updateProblem(problem.value.id, name.value, strtAt);
 };
 
+const publish = async () => {
+  if (!problem.value) {
+    return;
+  }
+  const api = new API();
+
+  await api.publishProblem(problem.value.id, name.value);
+};
+
 onMounted(async () => {
   const api = new API();
 
@@ -364,20 +373,28 @@ const isAdmin = computed(() => {
       {{ problem ? problem.note : "" }}
     </div>
     <input
-      v-if="isAdmin"
+      v-if="isAdmin && problem && !problem.isDraft"
       class="mt-4"
       type="datetime-local"
       v-model="startAt"
     />
   </div>
-  <div class="flex justify-center mt-4">
+  <div v-if="isAdmin" class="flex justify-center mt-4">
     <button
-      v-if="isAdmin"
+      v-if="problem && !problem.isDraft"
       class="shadow bg-green-500 hover:bg-green-400 focus:shadow-outline focus:outline-none text-white py-2 px-4 rounded"
       type="button"
       @click="update"
     >
       {{ translate("update") }}
+    </button>
+    <button
+      class="shadow bg-green-500 hover:bg-green-400 focus:shadow-outline focus:outline-none text-white py-2 px-4 rounded"
+      type="button"
+      @click="publish"
+      v-else
+    >
+      {{ translate("publish") }}
     </button>
   </div>
 </template>

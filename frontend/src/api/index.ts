@@ -886,6 +886,34 @@ export class API {
       const res = await axios.post(`${this.base_url}/problems/${id}/update`, {
         name,
         start_at: strtAt,
+      });
+      const problem: Problem = {
+        id: res.data.id,
+        gameID: res.data.game_id,
+        name: res.data.name,
+        creatorID: res.data.creator_id,
+        creatorName: res.data.creator_name,
+        voteCount: res.data.vote_count,
+        isSolved: res.data.is_solved,
+        optimalMoveCount: res.data.optimal_move_count,
+        testerID: res.data.tester_id,
+        testerName: res.data.tester_name,
+        startAt: res.data.start_at ? new Date(res.data.start_at) : null,
+        isDraft: res.data.is_draft,
+        pointDiff: res.data.point_diff,
+        note: res.data.note,
+      };
+      return problem;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async publishProblem(id: number, name: string): Promise<Problem> {
+    try {
+      const res = await axios.post(`${this.base_url}/problems/${id}/publish`, {
+        name,
         is_draft: false,
       });
       const problem: Problem = {
