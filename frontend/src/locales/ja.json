@@ -88,5 +88,6 @@
   "not_authorized": "このページは閲覧できません。",
   "thank_you_for_your_proposal": "問題の提案をしていただきありがとうございます！問題の作成とレビューには数日程度かかることがあります。",
   "point_diff": "総得点差",
-  "publish": "公開する"
+  "publish": "公開する",
+  "del": "削除する"
 }

@@ -170,6 +170,22 @@ const publish = async () => {
   router.push(`/draft-problems`);
 };
 
+const del = async () => {
+  if (!problem.value) {
+    return;
+  }
+
+  const api = new API();
+
+  await api.deleteProblem(problem.value.id);
+
+  if (isAdmin.value) {
+    router.push(`/draft-problems`);
+  } else {
+    router.push(`/problems/propose`);
+  }
+};
+
 onMounted(async () => {
   const api = new API();
 
@@ -250,157 +266,178 @@ const creatorName = computed(() => {
 const isAdmin = computed(() => {
   return player.value && player.value.id === 2;
 });
+
+const isCreator = computed(() => {
+  return (
+    player.value && problem.value && player.value.id === problem.value.creatorID
+  );
+});
 </script>
 
 <template>
-  <div class="mt-4 mx-4 flex justify-between">
-    <div class="flex">
-      <div v-if="!isAdmin" class="flex flex-col justify-center items-center">
-        {{ problem && problem.name !== "" ? problem.name : "untitled" }}
+  <div v-if="!isAdmin && !isCreator" class="p-4">
+    {{ translate("not_authorized") }}
+  </div>
+  <div v-else>
+    <div class="mt-4 mx-4 flex justify-between">
+      <div class="flex">
+        <div v-if="!isAdmin" class="flex flex-col justify-center items-center">
+          {{ problem && problem.name !== "" ? problem.name : "untitled" }}
+        </div>
+        <div v-else>
+          <input v-model="name" class="border" type="text" />
+        </div>
+        <div
+          v-if="problem && problem.isSolved"
+          class="flex flex-col justify-center items-center ml-2"
+        >
+          <SolvedSign />
+        </div>
       </div>
-      <div v-else>
-        <input v-model="name" class="border" type="text" />
-      </div>
-      <div
-        v-if="problem && problem.isSolved"
-        class="flex flex-col justify-center items-center ml-2"
-      >
-        <SolvedSign />
+      <div class="text-xs ml-1 mt-1 flex">
+        <div>
+          {{ translate("created_by") }} <b>{{ creatorName }}</b>
+        </div>
+        <div v-if="problem && problem.isSolved" class="ml-2">
+          {{ translate("tested_by") }} <b>admin</b>
+        </div>
       </div>
     </div>
-    <div class="text-xs ml-1 mt-1 flex">
-      <div>
-        {{ translate("created_by") }} <b>{{ creatorName }}</b>
-      </div>
-      <div v-if="problem && problem.isSolved" class="ml-2">
-        {{ translate("tested_by") }} <b>admin</b>
-      </div>
-    </div>
-  </div>
-  <div class="infos flex flex-wrap">
-    <PlayerInfo
-      :name="game ? game.player0Name : ''"
-      :point="player0Point"
-      :meepleNumber="player0Meeples.size"
-      :meepleColor="game ? game.player0Color : null"
-      :tileSrc="null"
-      :profileImageURL="player ? player.profileImageURL : ''"
-    />
-    <PlayerInfo
-      :name="game ? game.player1Name : ''"
-      :point="player1Point"
-      :meepleNumber="player1Meeples.size"
-      :meepleColor="game ? game.player1Color : null"
-      :tileSrc="null"
-      :profileImageURL="''"
-    />
-  </div>
-  <div class="mt-3">
-    <div :class="fixBoard ? 'fixed top-0 w-full' : ''">
-      <GameBoard
-        :tiles="tiles"
-        :placeablePositions="placeablePositions"
-        :placingTile="placingTile"
-        :placingPosition="placingPosition"
-        :meepleablePositions="meepleablePositions"
-        @tilePositionSelected="handleTilePositionSelected"
-        @turnTile="handleTurnTile"
-        @placeMeeple="(_: number) => {}"
-        :isLarge="false"
+    <div class="infos flex flex-wrap">
+      <PlayerInfo
+        :name="game ? game.player0Name : ''"
+        :point="player0Point"
+        :meepleNumber="player0Meeples.size"
+        :meepleColor="game ? game.player0Color : null"
+        :tileSrc="null"
+        :profileImageURL="player ? player.profileImageURL : ''"
+      />
+      <PlayerInfo
+        :name="game ? game.player1Name : ''"
+        :point="player1Point"
+        :meepleNumber="player1Meeples.size"
+        :meepleColor="game ? game.player1Color : null"
+        :tileSrc="null"
+        :profileImageURL="''"
       />
     </div>
-    <div v-if="fixBoard" class="h-[350px]">
-      <!-- keeps height for fixing a board -->
-    </div>
-  </div>
-  <div class="bg-gray-100 rounded text-gray-900 text-sm px-4 py-3 shadow-md">
-    <div
-      v-if="problem && problem.isSolved"
-      class="bg-green-200 rounded-md p-2 mb-2"
-    >
-      {{
-        translate_with_arg(
-          "solved_problem_description",
-          problem.optimalMoveCount
-        )
-      }}
-    </div>
-    <div class="flex">
-      <div class="flex flex-col justify-center mr-3">
-        <p>{{ translate("tile_in_hand") }}</p>
-      </div>
-      <div class="flex flex-col justify-center min-w-[30px] mr-3">
-        <img
-          v-if="game?.currentTileID !== -1"
-          class="min-h-[30px]"
-          width="30"
-          height="30"
-          :src="currentTile() ? currentTile()!.src : null"
+    <div class="mt-3">
+      <div :class="fixBoard ? 'fixed top-0 w-full' : ''">
+        <GameBoard
+          :tiles="tiles"
+          :placeablePositions="placeablePositions"
+          :placingTile="placingTile"
+          :placingPosition="placingPosition"
+          :meepleablePositions="meepleablePositions"
+          @tilePositionSelected="handleTilePositionSelected"
+          @turnTile="handleTurnTile"
+          @placeMeeple="(_: number) => {}"
+          :isLarge="false"
         />
       </div>
-    </div>
-    <div
-      class="flex mt-2 hover:cursor-pointer"
-      @click="showRemainingTiles = !showRemainingTiles"
-    >
-      <div class="flex flex-col justify-center mr-2">
-        <ChevronIcon :direction="showRemainingTiles ? 'bottom' : 'right'" />
+      <div v-if="fixBoard" class="h-[350px]">
+        <!-- keeps height for fixing a board -->
       </div>
-      <div>{{ translate("remaining_tiles") }}</div>
     </div>
-    <div v-if="showRemainingTiles" class="flex flex-wrap gap-1 mt-2">
-      <img
-        v-for="(src, idx) in remainingTilesSrc"
-        width="30"
-        height="30"
-        :src="src"
-        :key="idx"
+    <div class="bg-gray-100 rounded text-gray-900 text-sm px-4 py-3 shadow-md">
+      <div
+        v-if="problem && problem.isSolved"
+        class="bg-green-200 rounded-md p-2 mb-2"
+      >
+        {{
+          translate_with_arg(
+            "solved_problem_description",
+            problem.optimalMoveCount
+          )
+        }}
+      </div>
+      <div class="flex">
+        <div class="flex flex-col justify-center mr-3">
+          <p>{{ translate("tile_in_hand") }}</p>
+        </div>
+        <div class="flex flex-col justify-center min-w-[30px] mr-3">
+          <img
+            v-if="game?.currentTileID !== -1"
+            class="min-h-[30px]"
+            width="30"
+            height="30"
+            :src="currentTile() ? currentTile()!.src : null"
+          />
+        </div>
+      </div>
+      <div
+        class="flex mt-2 hover:cursor-pointer"
+        @click="showRemainingTiles = !showRemainingTiles"
+      >
+        <div class="flex flex-col justify-center mr-2">
+          <ChevronIcon :direction="showRemainingTiles ? 'bottom' : 'right'" />
+        </div>
+        <div>{{ translate("remaining_tiles") }}</div>
+      </div>
+      <div v-if="showRemainingTiles" class="flex flex-wrap gap-1 mt-2">
+        <img
+          v-for="(src, idx) in remainingTilesSrc"
+          width="30"
+          height="30"
+          :src="src"
+          :key="idx"
+        />
+      </div>
+      <div
+        class="flex mt-2 hover:cursor-pointer"
+        @click="showPointDiff = !showPointDiff"
+      >
+        <div class="flex flex-col justify-center mr-2">
+          <ChevronIcon :direction="showPointDiff ? 'bottom' : 'right'" />
+        </div>
+        <div>{{ translate("point_diff") }}</div>
+      </div>
+      <div v-if="showPointDiff" class="flex flex-wrap gap-1 mt-2">
+        {{
+          translate_with_arg(
+            "point_diff_description",
+            problem ? problem.pointDiff : 0
+          )
+        }}
+      </div>
+      <div class="mt-2">{{ translate("proposal_note") }}</div>
+      <div>
+        {{ problem ? problem.note : "" }}
+      </div>
+      <input
+        v-if="isAdmin && problem && !problem.isDraft"
+        class="mt-4"
+        type="datetime-local"
+        v-model="startAt"
       />
     </div>
-    <div
-      class="flex mt-2 hover:cursor-pointer"
-      @click="showPointDiff = !showPointDiff"
-    >
-      <div class="flex flex-col justify-center mr-2">
-        <ChevronIcon :direction="showPointDiff ? 'bottom' : 'right'" />
-      </div>
-      <div>{{ translate("point_diff") }}</div>
+    <div v-if="isAdmin" class="flex justify-center mt-4">
+      <button
+        v-if="problem && !problem.isDraft"
+        class="shadow bg-green-500 hover:bg-green-400 focus:shadow-outline focus:outline-none text-white py-2 px-4 rounded mb-4"
+        type="button"
+        @click="update"
+      >
+        {{ translate("update") }}
+      </button>
+      <button
+        class="shadow bg-green-500 hover:bg-green-400 focus:shadow-outline focus:outline-none text-white py-2 px-4 rounded mb-4"
+        type="button"
+        @click="publish"
+        v-else
+      >
+        {{ translate("publish") }}
+      </button>
     </div>
-    <div v-if="showPointDiff" class="flex flex-wrap gap-1 mt-2">
-      {{
-        translate_with_arg(
-          "point_diff_description",
-          problem ? problem.pointDiff : 0
-        )
-      }}
+    <div class="flex justify-center mt-4">
+      <button
+        v-if="problem && problem.isDraft"
+        class="shadow bg-red-500 hover:bg-red-400 focus:shadow-outline focus:outline-none text-white py-2 px-4 rounded mb-4"
+        type="button"
+        @click="del"
+      >
+        {{ translate("del") }}
+      </button>
     </div>
-    <div class="mt-2">{{ translate("proposal_note") }}</div>
-    <div>
-      {{ problem ? problem.note : "" }}
-    </div>
-    <input
-      v-if="isAdmin && problem && !problem.isDraft"
-      class="mt-4"
-      type="datetime-local"
-      v-model="startAt"
-    />
-  </div>
-  <div v-if="isAdmin" class="flex justify-center mt-4">
-    <button
-      v-if="problem && !problem.isDraft"
-      class="shadow bg-green-500 hover:bg-green-400 focus:shadow-outline focus:outline-none text-white py-2 px-4 rounded"
-      type="button"
-      @click="update"
-    >
-      {{ translate("update") }}
-    </button>
-    <button
-      class="shadow bg-green-500 hover:bg-green-400 focus:shadow-outline focus:outline-none text-white py-2 px-4 rounded"
-      type="button"
-      @click="publish"
-      v-else
-    >
-      {{ translate("publish") }}
-    </button>
   </div>
 </template>
