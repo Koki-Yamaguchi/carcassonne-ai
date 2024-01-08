@@ -39,6 +39,7 @@ pub struct Problem {
     pub is_draft: bool,
     pub point_diff: Option<i32>,
     pub note: String,
+    pub is_deleted: bool,
 }
 
 #[derive(Serialize)]
@@ -298,6 +299,7 @@ pub fn create_draft_problem(db: &DbPool, params: &CreateProblem) -> Result<Probl
             is_draft: true,
             point_diff: Some(point_diff),
             note: params.note.clone(),
+            is_deleted: false,
         },
     )
 }
@@ -648,6 +650,7 @@ fn create_problem_test() {
             is_draft,
             point_diff: Some(point_diff),
             note: "".to_string(),
+            is_deleted: false,
         },
     )
     .unwrap();
@@ -696,6 +699,7 @@ pub fn create_vote(
         problem.is_draft,
         problem.vote_count + 1,
         problem.point_diff,
+        problem.is_deleted,
     )?;
 
     Ok(vote)
@@ -877,6 +881,22 @@ pub fn publish_problem(db: &DbPool, id: i32, params: &PublishProblem) -> Result<
         false,
         prb.vote_count,
         prb.point_diff,
+        prb.is_deleted,
+    )
+}
+
+pub fn delete_problem(db: &DbPool, id: i32) -> Result<Problem, Error> {
+    let prb = database::get_problem(db, id)?;
+
+    database::update_problem(
+        db,
+        id,
+        prb.name,
+        prb.start_at,
+        prb.is_draft,
+        prb.vote_count,
+        prb.point_diff,
+        true,
     )
 }
 
@@ -891,6 +911,7 @@ pub fn update_problem(db: &DbPool, id: i32, params: &UpdateProblem) -> Result<Pr
         prb.is_draft,
         prb.vote_count,
         prb.point_diff,
+        prb.is_deleted,
     )
 }
 
@@ -938,6 +959,7 @@ fn update_all_point_diff() {
                     problem.is_draft,
                     problem.vote_count,
                     Some(point_diff),
+                    problem.is_deleted,
                 )
                 .unwrap();
                 println!("after problem = {:?}", problem);

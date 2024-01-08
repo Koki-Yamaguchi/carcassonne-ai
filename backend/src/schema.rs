@@ -99,6 +99,7 @@ diesel::table! {
         is_draft -> Bool,
         point_diff -> Nullable<Int4>,
         note -> Text,
+        is_deleted -> Bool,
     }
 }
 

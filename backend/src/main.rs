@@ -34,7 +34,7 @@ use handlers::wait_ai_move;
 use handlers::{create_discard_move, create_meeple_move, create_tile_move};
 use handlers::{create_favorite, get_favorites};
 use handlers::{create_game, get_game, get_games};
-use handlers::{create_problem, publish_problem, update_problem};
+use handlers::{create_problem, delete_problem, publish_problem, update_problem};
 use handlers::{create_vote, get_vote, get_votes};
 use handlers::{create_waiting_game, delete_waiting_game, get_waiting_games, update_waiting_game};
 use handlers::{get_problem, get_problems};
@@ -133,6 +133,7 @@ async fn rocket() -> _ {
                 create_problem,
                 update_problem,
                 publish_problem,
+                delete_problem,
                 get_problem_proposals,
             ],
         );
