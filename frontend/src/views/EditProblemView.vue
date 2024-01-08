@@ -10,7 +10,7 @@ import {
   TilePosition,
 } from "../types";
 import { API } from "../api";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { store } from "../store";
 import GameBoard from "../components/GameBoard.vue";
 import PlayerInfo from "../components/PlayerInfo.vue";
@@ -26,6 +26,8 @@ import {
   TileKind,
 } from "../tiles";
 import { translate, translate_with_arg } from "../locales/translate";
+
+const router = useRouter();
 
 const problem = ref<Problem | null>(null);
 const game = ref<Game | null>(null);
@@ -153,6 +155,8 @@ const update = async () => {
   const strtAt = startAt.value + ":00";
 
   await api.updateProblem(problem.value.id, name.value, strtAt);
+
+  router.push(`/draft-problems`);
 };
 
 const publish = async () => {
@@ -162,6 +166,8 @@ const publish = async () => {
   const api = new API();
 
   await api.publishProblem(problem.value.id, name.value);
+
+  router.push(`/draft-problems`);
 };
 
 onMounted(async () => {
