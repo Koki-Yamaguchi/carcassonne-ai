@@ -71,7 +71,7 @@
   "least_voted": "投票の少ない順",
   "propose_problem": "問題案の提供",
   "propose_problem_title": "問題を提案する",
-  "propose_problem_description": "BGA のテーブル ID と残りタイル数と配置するタイルを指定して問題の提案をすることができます。テーブル ID は URL に含まれている table= の直後の 9 桁の数字列です。また、残りタイル数は該当する盤面において画面に表示されている枚数を指定してください。",
+  "propose_problem_description": "BGA のテーブル ID と残りタイル数を指定して問題の提案をすることができます。テーブル ID は URL に含まれている table= の直後の 9 桁の数字列です。また、残りタイル数は該当する盤面において画面に表示されている枚数を指定してください。",
   "tested_by": "テスター",
   "remaining_tile_count": "残りタイル数",
   "remaining_tile_count_placeholder": "例) 60",
@@ -79,11 +79,14 @@
   "table_id_placeholder": "例) 449689675",
   "propose": "提案する",
   "placing_tile": "配置するタイル",
+  "proposal_note": "備考",
+  "proposal_note_placeholder": "可能であれば盤面の説明などを簡単に書いてもらえるとレビューがスムーズに行えます。問題ページには表示されません。",
   "proposed_problems": "提案した問題",
   "no_proposed_problems": "提案した問題はありません。",
   "problems_waiting_for_review": "レビュー待ちの問題",
   "no_problems_waiting_for_review": "レビュー待ちの問題はありません。",
   "not_authorized": "このページは閲覧できません。",
   "thank_you_for_your_proposal": "問題の提案をしていただきありがとうございます！問題の作成とレビューには数日程度かかることがあります。",
-  "point_diff": "総得点差"
+  "point_diff": "総得点差",
+  "publish": "公開する"
 }

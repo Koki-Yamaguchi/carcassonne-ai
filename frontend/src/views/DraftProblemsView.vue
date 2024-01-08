@@ -6,7 +6,8 @@ import { store } from "../store";
 import DraftProblemItems from "../components/DraftProblemItems.vue";
 import { translate } from "../locales/translate";
 
-const problems = ref<Problem[]>([]);
+const draftProblems = ref<Problem[]>([]);
+const privateProblems = ref<Problem[]>([]);
 const player = ref<Player | null>(null);
 
 onMounted(async () => {
@@ -18,8 +19,11 @@ onMounted(async () => {
     return;
   }
 
-  const res = await api.getDraftProblems();
-  problems.value = res.problems;
+  const res0 = await api.getPrivateProblems(true);
+  draftProblems.value = res0.problems;
+
+  const res1 = await api.getPrivateProblems(false);
+  privateProblems.value = res1.problems;
 });
 
 const isAdmin = computed(() => {
@@ -28,13 +32,15 @@ const isAdmin = computed(() => {
 </script>
 
 <template>
-  <div class="p-4">
-    <div v-if="!isAdmin">{{ translate("not_authorized") }}</div>
-    <div v-else>
-      <div>
-        <p class="text-gray-600 text-lg mb-2">レビュー待ちの問題</p>
-        <DraftProblemItems :problems="problems" />
-      </div>
+  <div v-if="!isAdmin">{{ translate("not_authorized") }}</div>
+  <div v-else>
+    <div class="p-4">
+      <p class="text-gray-600 text-lg mb-2">レビュー待ちの問題</p>
+      <DraftProblemItems :problems="draftProblems" />
+    </div>
+    <div class="p-2">
+      <p class="text-gray-600 text-lg mb-2">出題予定の問題</p>
+      <DraftProblemItems :problems="privateProblems" />
     </div>
   </div>
 </template>

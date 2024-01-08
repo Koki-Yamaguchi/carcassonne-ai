@@ -98,6 +98,7 @@ diesel::table! {
         tester_name -> Nullable<Varchar>,
         is_draft -> Bool,
         point_diff -> Nullable<Int4>,
+        note -> Text,
     }
 }
 
@@ -106,10 +107,10 @@ diesel::table! {
         id -> Int4,
         table_id -> Varchar,
         remaining_tile_count -> Int4,
-        tile_id -> Int4,
         creator_id -> Nullable<Int4>,
         used_at -> Nullable<Timestamp>,
         created_at -> Timestamp,
+        note -> Text,
     }
 }
 

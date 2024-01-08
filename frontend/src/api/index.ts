@@ -614,6 +614,7 @@ export class API {
         startAt: res.data.start_at ? new Date(res.data.start_at) : null,
         isDraft: res.data.is_draft,
         pointDiff: res.data.point_diff,
+        note: res.data.note,
       };
       return prob;
     } catch (e) {
@@ -650,6 +651,7 @@ export class API {
           startAt: p.start_at ? new Date(p.start_at) : null,
           isDraft: p.is_draft,
           pointDiff: p.point_diff,
+          note: p.note,
         };
       });
       const totalCount = res.data.total_count;
@@ -663,12 +665,18 @@ export class API {
     }
   }
 
-  async getDraftProblems(creatorID?: number): Promise<ProblemsResponse> {
+  async getPrivateProblems(
+    isDraft: boolean,
+    creatorID?: number
+  ): Promise<ProblemsResponse> {
     const params = new URLSearchParams();
     if (creatorID) {
       params.set("creator", `${creatorID}`);
     }
-    params.set("is_draft", "true");
+    params.set("is_draft", isDraft ? "true" : "false");
+    if (!isDraft) {
+      params.set("is_private", "true");
+    }
     try {
       const url = `${this.base_url}/problems?` + params.toString();
       const res = await axios.get(url);
@@ -688,6 +696,7 @@ export class API {
           startAt: p.start_at ? new Date(p.start_at) : null,
           isDraft: p.is_draft,
           pointDiff: p.point_diff,
+          note: p.note,
         };
       });
       const totalCount = res.data.total_count;
@@ -816,7 +825,7 @@ export class API {
     tableID: string,
     remainingTileCount: number,
     creatorID: number,
-    tileID: number
+    note: string
   ): Promise<ProblemProposal> {
     try {
       const res = await axios.post(
@@ -825,7 +834,7 @@ export class API {
           table_id: tableID,
           remaining_tile_count: remainingTileCount,
           creator_id: creatorID,
-          tile_id: tileID,
+          note: note,
         }
       );
       const proposal: ProblemProposal = {
@@ -833,7 +842,7 @@ export class API {
         tableID: res.data.table_id,
         remainingTileCount: res.data.remaining_tile_count,
         creatorID: res.data.creator_id,
-        tileID: res.data.tile_id,
+        note: res.data.note,
         createdAt: res.data.created_at,
       };
       return proposal;
@@ -857,7 +866,7 @@ export class API {
           tableID: v.table_id,
           remainingTileCount: v.remaining_tile_count,
           creatorID: v.creator_id,
-          tileID: v.tile_id,
+          note: v.note,
           createdAt: v.created_at,
         };
       });
@@ -877,6 +886,34 @@ export class API {
       const res = await axios.post(`${this.base_url}/problems/${id}/update`, {
         name,
         start_at: strtAt,
+      });
+      const problem: Problem = {
+        id: res.data.id,
+        gameID: res.data.game_id,
+        name: res.data.name,
+        creatorID: res.data.creator_id,
+        creatorName: res.data.creator_name,
+        voteCount: res.data.vote_count,
+        isSolved: res.data.is_solved,
+        optimalMoveCount: res.data.optimal_move_count,
+        testerID: res.data.tester_id,
+        testerName: res.data.tester_name,
+        startAt: res.data.start_at ? new Date(res.data.start_at) : null,
+        isDraft: res.data.is_draft,
+        pointDiff: res.data.point_diff,
+        note: res.data.note,
+      };
+      return problem;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async publishProblem(id: number, name: string): Promise<Problem> {
+    try {
+      const res = await axios.post(`${this.base_url}/problems/${id}/publish`, {
+        name,
         is_draft: false,
       });
       const problem: Problem = {
@@ -893,6 +930,7 @@ export class API {
         startAt: res.data.start_at ? new Date(res.data.start_at) : null,
         isDraft: res.data.is_draft,
         pointDiff: res.data.point_diff,
+        note: res.data.note,
       };
       return problem;
     } catch (e) {

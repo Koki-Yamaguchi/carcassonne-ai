@@ -20,12 +20,13 @@ def get_problem_proposals():
     proposals = res.json()
     return proposals
 
-def create_problem(creator_id, remaining_tile_count, moves):
+def create_problem(creator_id, remaining_tile_count, moves, note):
     headers = {'Content-Type': 'application/json'}
     data = {
         'creator_id': creator_id,
         'remaining_tile_count': remaining_tile_count,
         'moves': moves,
+        'note': note,
     }
     print(data)
     res = requests.post(f'{api_base_url}/problems/create', headers=headers, json=data)
@@ -91,8 +92,9 @@ def run():
         id = proposal['id']
         creator_id = proposal['creator_id']
         remaining_tile_count = proposal['remaining_tile_count']
+        note = proposal['note']
 
-        problem = create_problem(creator_id, remaining_tile_count, moves)
+        problem = create_problem(creator_id, remaining_tile_count, moves, note)
         print(problem)
 
         proposal = use_proposal(id)

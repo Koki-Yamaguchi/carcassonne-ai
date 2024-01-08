@@ -7,6 +7,7 @@ use crate::{
     },
     translate,
 };
+use chrono::Duration;
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
 use diesel::r2d2::Pool;
@@ -37,6 +38,7 @@ pub struct Problem {
     pub tester_name: Option<String>,
     pub is_draft: bool,
     pub point_diff: Option<i32>,
+    pub note: String,
 }
 
 #[derive(Serialize)]
@@ -83,6 +85,13 @@ pub struct CreateProblem {
     pub creator_id: i32,
     pub remaining_tile_count: i32,
     pub moves: String,
+    pub note: String,
+}
+
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct PublishProblem {
+    pub name: String,
 }
 
 #[derive(Deserialize)]
@@ -90,7 +99,6 @@ pub struct CreateProblem {
 pub struct UpdateProblem {
     pub name: String,
     pub start_at: chrono::NaiveDateTime,
-    pub is_draft: bool,
 }
 
 #[derive(Serialize, Queryable, Clone, Debug)]
@@ -117,8 +125,8 @@ pub struct CreateFavorite {
 pub struct CreateProblemProposal {
     pub table_id: String,
     pub remaining_tile_count: i32,
-    pub tile_id: i32,
     pub creator_id: i32,
+    pub note: String,
 }
 
 #[derive(Serialize, Queryable, Clone, Debug)]
@@ -127,10 +135,10 @@ pub struct ProblemProposal {
     pub id: i32,
     pub table_id: String,
     pub remaining_tile_count: i32,
-    pub tile_id: i32,
     pub creator_id: Option<i32>,
     pub used_at: Option<chrono::NaiveDateTime>,
     pub created_at: chrono::NaiveDateTime,
+    pub note: String,
 }
 
 pub fn create_draft_problem(db: &DbPool, params: &CreateProblem) -> Result<Problem, Error> {
@@ -289,6 +297,7 @@ pub fn create_draft_problem(db: &DbPool, params: &CreateProblem) -> Result<Probl
             tester_name: None,
             is_draft: true,
             point_diff: Some(point_diff),
+            note: params.note.clone(),
         },
     )
 }
@@ -304,6 +313,7 @@ pub fn get_problems(
     limit: Option<i32>,
     creator: Option<i32>,
     is_draft: Option<bool>,
+    is_private: Option<bool>,
 ) -> Result<ProblemsResponse, Error> {
     let mut p = 0;
     if let Some(pg) = page {
@@ -317,7 +327,7 @@ pub fn get_problems(
             o = ob;
         }
     }
-    let mut l = 10;
+    let mut l = 100;
     if let Some(lm) = limit {
         if lm >= 1 {
             l = lm;
@@ -329,7 +339,12 @@ pub fn get_problems(
         is_drft = isd;
     }
 
-    database::get_problems(db, p, o, l, creator, is_drft)
+    let mut is_prvt = false;
+    if let Some(isp) = is_private {
+        is_prvt = isp;
+    }
+
+    database::get_problems(db, p, o, l, creator, is_drft, is_prvt)
 }
 
 #[allow(dead_code)]
@@ -632,6 +647,7 @@ fn create_problem_test() {
             tester_name,
             is_draft,
             point_diff: Some(point_diff),
+            note: "".to_string(),
         },
     )
     .unwrap();
@@ -831,9 +847,36 @@ pub fn create_problem_proposal(
         &database::NewProblemProposal {
             table_id: params.table_id.clone(),
             remaining_tile_count: params.remaining_tile_count,
-            tile_id: params.tile_id,
             creator_id: Some(params.creator_id),
+            note: params.note.clone(),
         },
+    )
+}
+
+pub fn publish_problem(db: &DbPool, id: i32, params: &PublishProblem) -> Result<Problem, Error> {
+    let prb = database::get_problem(db, id)?;
+
+    let private_prbs =
+        database::get_problems(db, 0, "-start_at".to_string(), 1, None, false, true)?.problems;
+
+    let last_start_at = if private_prbs.len() == 1 {
+        private_prbs[0].start_at.unwrap()
+    } else {
+        let prbs =
+            database::get_problems(db, 0, "-start_at".to_string(), 1, None, false, false)?.problems;
+        assert!(prbs.len() >= 1);
+
+        prbs[0].start_at.unwrap()
+    };
+
+    database::update_problem(
+        db,
+        id,
+        params.name.clone(),
+        Some(last_start_at + Duration::days(1)),
+        false,
+        prb.vote_count,
+        prb.point_diff,
     )
 }
 
@@ -845,7 +888,7 @@ pub fn update_problem(db: &DbPool, id: i32, params: &UpdateProblem) -> Result<Pr
         id,
         params.name.clone(),
         Some(params.start_at),
-        params.is_draft,
+        prb.is_draft,
         prb.vote_count,
         prb.point_diff,
     )

@@ -117,6 +117,7 @@ pub struct NewProblem {
     pub tester_name: Option<String>,
     pub is_draft: bool,
     pub point_diff: Option<i32>,
+    pub note: String,
 }
 
 #[derive(Insertable)]
@@ -166,8 +167,8 @@ pub struct QueryVote {
 pub struct NewProblemProposal {
     pub table_id: String,
     pub remaining_tile_count: i32,
-    pub tile_id: i32,
     pub creator_id: Option<i32>,
+    pub note: String,
 }
 
 pub fn get_player(db: &DbPool, pid: i32) -> Result<player::Player, Error> {
@@ -690,6 +691,7 @@ pub fn get_problems(
     limit: i32,
     creator: Option<i32>,
     is_drft: bool,
+    is_private: bool,
 ) -> Result<problem::ProblemsResponse, Error> {
     let conn = &mut db.get().unwrap();
     use self::schema::problem::dsl::{
@@ -706,7 +708,11 @@ pub fn get_problems(
     let mut query = p.filter(is_draft.eq(is_drft)).into_boxed();
 
     if !is_drft {
-        query = query.filter(start_at.le(now));
+        if is_private {
+            query = query.filter(start_at.gt(now));
+        } else {
+            query = query.filter(start_at.le(now));
+        }
     }
 
     if let Some(cid) = creator {

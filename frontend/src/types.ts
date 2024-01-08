@@ -109,6 +109,7 @@ export interface Problem {
   startAt: Date | null;
   isDraft: boolean;
   pointDiff: number;
+  note: string;
 }
 
 export interface ProblemsResponse {
@@ -136,6 +137,6 @@ export interface ProblemProposal {
   tableID: string;
   remainingTileCount: number;
   creatorID: number;
-  tileID: number;
+  note: string;
   createdAt: Date;
 }

@@ -1,19 +1,29 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from "vue";
-import { Problem, Player, Game, Board, TileMove, TilePosition } from "../types";
+import {
+  Problem,
+  Player,
+  Game,
+  Board,
+  TileMove,
+  DiscardMove,
+  TilePosition,
+} from "../types";
 import { API } from "../api";
 import { useRoute } from "vue-router";
 import { store } from "../store";
 import GameBoard from "../components/GameBoard.vue";
 import PlayerInfo from "../components/PlayerInfo.vue";
 import SolvedSign from "../components/SolvedSign.vue";
-
+import ChevronIcon from "../components/ChevronIcon.vue";
 import {
   boardSize,
   getInitialBoard,
   idToTileKind,
   newTile,
   Tile,
+  getRemainingTileKinds,
+  TileKind,
 } from "../tiles";
 import { translate, translate_with_arg } from "../locales/translate";
 
@@ -38,6 +48,10 @@ const fixBoard = ref<boolean>(false);
 
 const name = ref<string>("");
 const startAt = ref<Date | null>(null);
+
+const showRemainingTiles = ref<boolean>(false);
+const remainingTilesSrc = ref<string[]>([]);
+const showPointDiff = ref<boolean>(false);
 
 const getPlaceablePositions = (placingTile: Tile): TilePosition[] => {
   const pos = [];
@@ -141,6 +155,15 @@ const update = async () => {
   await api.updateProblem(problem.value.id, name.value, strtAt);
 };
 
+const publish = async () => {
+  if (!problem.value) {
+    return;
+  }
+  const api = new API();
+
+  await api.publishProblem(problem.value.id, name.value);
+};
+
 onMounted(async () => {
   const api = new API();
 
@@ -197,6 +220,16 @@ onMounted(async () => {
   const placingTileKind = idToTileKind(placingTileID);
   placingTile.value = newTile(0, placingTileKind, null, -1, -1);
   placeablePositions.value = getPlaceablePositions(placingTile.value);
+
+  // remaining tiles
+  const outTiles: TileKind[] = moves
+    .filter((m) => !("meepleID" in m))
+    .map((m) => (m as TileMove | DiscardMove).tile)
+    .concat([placingTileKind]);
+  const remainingTiles = getRemainingTileKinds(outTiles);
+  remainingTilesSrc.value = remainingTiles.map(
+    (t) => newTile(0, t, null, -1, -1).src
+  );
 
   name.value = problem.value.name;
 });
@@ -300,21 +333,68 @@ const isAdmin = computed(() => {
         />
       </div>
     </div>
+    <div
+      class="flex mt-2 hover:cursor-pointer"
+      @click="showRemainingTiles = !showRemainingTiles"
+    >
+      <div class="flex flex-col justify-center mr-2">
+        <ChevronIcon :direction="showRemainingTiles ? 'bottom' : 'right'" />
+      </div>
+      <div>{{ translate("remaining_tiles") }}</div>
+    </div>
+    <div v-if="showRemainingTiles" class="flex flex-wrap gap-1 mt-2">
+      <img
+        v-for="(src, idx) in remainingTilesSrc"
+        width="30"
+        height="30"
+        :src="src"
+        :key="idx"
+      />
+    </div>
+    <div
+      class="flex mt-2 hover:cursor-pointer"
+      @click="showPointDiff = !showPointDiff"
+    >
+      <div class="flex flex-col justify-center mr-2">
+        <ChevronIcon :direction="showPointDiff ? 'bottom' : 'right'" />
+      </div>
+      <div>{{ translate("point_diff") }}</div>
+    </div>
+    <div v-if="showPointDiff" class="flex flex-wrap gap-1 mt-2">
+      {{
+        translate_with_arg(
+          "point_diff_description",
+          problem ? problem.pointDiff : 0
+        )
+      }}
+    </div>
+    <div class="mt-2">{{ translate("proposal_note") }}</div>
+    <div>
+      {{ problem ? problem.note : "" }}
+    </div>
     <input
-      v-if="isAdmin"
+      v-if="isAdmin && problem && !problem.isDraft"
       class="mt-4"
       type="datetime-local"
       v-model="startAt"
     />
   </div>
-  <div class="flex justify-center mt-4">
+  <div v-if="isAdmin" class="flex justify-center mt-4">
     <button
-      v-if="isAdmin"
+      v-if="problem && !problem.isDraft"
       class="shadow bg-green-500 hover:bg-green-400 focus:shadow-outline focus:outline-none text-white py-2 px-4 rounded"
       type="button"
       @click="update"
     >
       {{ translate("update") }}
+    </button>
+    <button
+      class="shadow bg-green-500 hover:bg-green-400 focus:shadow-outline focus:outline-none text-white py-2 px-4 rounded"
+      type="button"
+      @click="publish"
+      v-else
+    >
+      {{ translate("publish") }}
     </button>
   </div>
 </template>
