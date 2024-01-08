@@ -696,7 +696,7 @@ pub fn get_problems(
 ) -> Result<problem::ProblemsResponse, Error> {
     let conn = &mut db.get().unwrap();
     use self::schema::problem::dsl::{
-        creator_id, id, is_draft, problem as p, start_at, vote_count,
+        creator_id, id, is_deleted, is_draft, problem as p, start_at, vote_count,
     };
     let now = chrono::Utc::now().naive_utc();
 
@@ -706,7 +706,10 @@ pub fn get_problems(
     }
     let total_count: i64 = count_query.count().get_result(conn).unwrap();
 
-    let mut query = p.filter(is_draft.eq(is_drft)).into_boxed();
+    let mut query = p
+        .filter(is_draft.eq(is_drft))
+        .filter(is_deleted.eq(false))
+        .into_boxed();
 
     if !is_drft {
         if is_private {

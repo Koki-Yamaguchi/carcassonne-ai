@@ -592,10 +592,7 @@ pub fn publish_problem(
     }
 }
 
-#[post(
-    "/problems/<id>/delete",
-    format = "application/json",
-)]
+#[post("/problems/<id>/delete", format = "application/json")]
 pub fn delete_problem(id: i32, db: &State<DbPool>) -> (Status, (ContentType, String)) {
     match problem::delete_problem(db.inner(), id) {
         Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
