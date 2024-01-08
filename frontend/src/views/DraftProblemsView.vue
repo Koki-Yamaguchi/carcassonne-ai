@@ -38,7 +38,7 @@ const isAdmin = computed(() => {
       <p class="text-gray-600 text-lg mb-2">レビュー待ちの問題</p>
       <DraftProblemItems :problems="draftProblems" />
     </div>
-    <div class="p-2">
+    <div class="p-4">
       <p class="text-gray-600 text-lg mb-2">出題予定の問題</p>
       <DraftProblemItems :problems="privateProblems" />
     </div>
