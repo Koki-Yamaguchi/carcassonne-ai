@@ -2,20 +2,22 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import { API } from "../api";
-import { boardSize, getInitialBoard, newTile, Tile, TileKind } from "../tiles";
-import { Board, DiscardMove, Game, TileMove } from "../types";
+import { boardSize, newTile, Tile, TileKind } from "../tiles";
+import { Board, DiscardMove, Game, TileMove, Player } from "../types";
 import { translate } from "../locales/translate";
 import GameBoard from "../components/GameBoard.vue";
 import PlayerInfo from "../components/PlayerInfo.vue";
 import ReplayIcon from "../components/ReplayIcon.vue";
 import TrashIcon from "../components/TrashIcon.vue";
+import { store } from "../store";
 
 const TILE_TOTAL_COUNT = 72;
+const player = ref<Player | null>(null);
 const game = ref<Game>();
 const maxMoveOrd = ref<number>(0);
 const currentMoveOrd = ref<number>(0);
 const board = ref<Board>();
-const tiles = ref<(Tile | null)[][]>(getInitialBoard());
+const tiles = ref<(Tile | null)[][]>([]);
 const player0Point = ref<number>(0);
 const player1Point = ref<number>(0);
 const player0Meeples = ref<Set<number>>(new Set([0, 1, 2, 3, 4, 5, 6]));
@@ -30,6 +32,8 @@ const initGame = async () => {
 
   const gameID: number = parseInt(route.params.id as string, 10);
   game.value = await api.getGame(gameID);
+
+  player.value = await api.getPlayerByUserID(store.userID);
 
   const moves = await api.getMoves(game.value.id);
   maxMoveOrd.value = moves[moves.length - 1].ord;
@@ -60,7 +64,7 @@ const useMeeple = (
 };
 
 const update = async () => {
-  if (!game.value) {
+  if (!game.value || !player.value) {
     return;
   }
 
@@ -70,6 +74,7 @@ const update = async () => {
     game.value.id,
     game.value.player0Color,
     game.value.player1Color,
+    player.value.tileEdition,
     currentMoveOrd.value
   );
 
@@ -209,7 +214,16 @@ onMounted(async () => {
           <div v-if="discardedTileKinds.length > 0" class="mt-2 flex gap-2">
             <img
               v-for="(discardedTileKind, idx) in discardedTileKinds"
-              :src="newTile(0, discardedTileKind, null, -1, -1).src"
+              :src="
+                newTile(
+                  0,
+                  discardedTileKind,
+                  null,
+                  -1,
+                  -1,
+                  player ? player.tileEdition : 'second'
+                ).src
+              "
               class="min-h-[30px]"
               width="30"
               height="30"

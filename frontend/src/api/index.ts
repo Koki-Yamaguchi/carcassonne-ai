@@ -5,6 +5,7 @@ import {
   colorToColorID,
   idToTileKind,
   newTile,
+  TileEdition,
 } from "../tiles";
 import {
   Game,
@@ -67,6 +68,7 @@ export class API {
         meepleColor: colorIDToColor(res.data.meeple_color),
         profileImageURL: res.data.profile_image_url,
         rating: res.data.rating,
+        tileEdition: res.data.tile_edition,
       };
       return p;
     } catch (e) {
@@ -87,6 +89,7 @@ export class API {
         meepleColor: colorIDToColor(res.data.meeple_color),
         profileImageURL: res.data.profile_image_url,
         rating: res.data.rating,
+        tileEdition: res.data.tile_edition,
       };
       return p;
     } catch (e) {
@@ -108,6 +111,7 @@ export class API {
           meepleColor: colorIDToColor(v.meeple_color),
           profileImageURL: v.profile_image_url,
           rating: v.rating,
+          tileEdition: v.tile_edition,
         };
         return player;
       });
@@ -153,6 +157,7 @@ export class API {
         userID: res.data.user_id,
         profileImageURL: res.data.profile_image_url,
         meepleColor: colorIDToColor(res.data.meeple_color),
+        tileEdition: res.data.tile_edition,
       };
       return player;
     } catch (e) {
@@ -179,6 +184,7 @@ export class API {
         userID: res.data.user_id,
         profileImageURL: res.data.profile_image_url,
         meepleColor: colorIDToColor(res.data.meeple_color),
+        tileEdition: res.data.tile_edition,
       };
       return player;
     } catch (e) {
@@ -549,6 +555,7 @@ export class API {
     gameID: number,
     player0MeepleColor: Color,
     player1MeepleColor: Color,
+    tileEdition: TileEdition,
     moveID?: number
   ): Promise<Board> {
     try {
@@ -574,7 +581,8 @@ export class API {
                   idToTileKind(tile.id),
                   meepleColor,
                   tile.meeple_pos,
-                  tile.meeple_id
+                  tile.meeple_id,
+                  tileEdition
                 );
           });
         }),

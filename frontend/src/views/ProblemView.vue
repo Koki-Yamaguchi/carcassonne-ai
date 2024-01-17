@@ -21,7 +21,6 @@ import SolvedSign from "../components/SolvedSign.vue";
 
 import {
   boardSize,
-  getInitialBoard,
   idToTileKind,
   newTile,
   Tile,
@@ -34,7 +33,7 @@ const problem = ref<Problem | null>(null);
 const game = ref<Game | null>(null);
 const player = ref<Player | null>(null);
 const board = ref<Board | null>(null);
-const tiles = ref<(Tile | null)[][]>(getInitialBoard());
+const tiles = ref<(Tile | null)[][]>([]);
 const player0Point = ref<number>(0);
 const player1Point = ref<number>(0);
 const player0Meeples = ref<Set<number>>(new Set([0, 1, 2, 3, 4, 5, 6]));
@@ -149,11 +148,18 @@ const handleTurnTile = () => {
 };
 
 const currentTile = () => {
-  if (!game.value) {
+  if (!game.value || !player.value) {
     return null;
   }
   if (game.value.currentTileID !== null) {
-    return newTile(0, idToTileKind(game.value.currentTileID), null, -1, -1);
+    return newTile(
+      0,
+      idToTileKind(game.value.currentTileID),
+      null,
+      -1,
+      -1,
+      player.value.tileEdition
+    );
   }
 };
 
@@ -274,12 +280,17 @@ onMounted(async () => {
   const id: number = parseInt(route.params.id as string, 10);
 
   player.value = await api.getPlayerByUserID(store.userID);
+  if (!player.value) {
+    return;
+  }
+
   problem.value = await api.getProblem(id);
   game.value = await api.getGame(problem.value.gameID);
   board.value = await api.getBoard(
     game.value.id,
     game.value.player0Color,
-    game.value.player1Color
+    game.value.player1Color,
+    player.value.tileEdition
   );
   tiles.value = board.value.tiles;
   player0Point.value = board.value.player0Point;
@@ -321,7 +332,14 @@ onMounted(async () => {
 
   const placingTileID = game.value.currentTileID;
   const placingTileKind = idToTileKind(placingTileID);
-  placingTile.value = newTile(0, placingTileKind, null, -1, -1);
+  placingTile.value = newTile(
+    0,
+    placingTileKind,
+    null,
+    -1,
+    -1,
+    player.value.tileEdition
+  );
   placeablePositions.value = getPlaceablePositions(placingTile.value);
 
   // remaining tiles
@@ -331,7 +349,15 @@ onMounted(async () => {
     .concat([placingTileKind]);
   const remainingTiles = getRemainingTileKinds(outTiles);
   remainingTilesSrc.value = remainingTiles.map(
-    (t) => newTile(0, t, null, -1, -1).src
+    (t) =>
+      newTile(
+        0,
+        t,
+        null,
+        -1,
+        -1,
+        player.value ? player.value.tileEdition : "second"
+      ).src
   );
 
   // if there's already a vote from the player, show results
@@ -378,6 +404,10 @@ const handleClickVote = (voteID: number) => {
 };
 
 const updateBoard = async (vote: Vote | null) => {
+  if (!player.value) {
+    return;
+  }
+
   if (prevVote.value && prevVote.value.tileMove) {
     tiles.value[prevVote.value.tileMove.pos.y + Math.floor(boardSize / 2)][
       prevVote.value.tileMove.pos.x + Math.floor(boardSize / 2)
@@ -392,7 +422,8 @@ const updateBoard = async (vote: Vote | null) => {
       tileMove.tile,
       "yellow",
       meepleMove.pos,
-      meepleMove.meepleID
+      meepleMove.meepleID,
+      player.value.tileEdition
     );
     const posY = tileMove.pos.y + Math.floor(boardSize / 2);
     const posX = tileMove.pos.x + Math.floor(boardSize / 2);
