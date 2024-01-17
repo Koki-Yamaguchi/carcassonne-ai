@@ -38,6 +38,10 @@ const setImage = (event: any) => {
 };
 
 const update = async () => {
+  if (!tileEdition.value) {
+    return;
+  }
+
   const api = new API();
 
   if (file.value && player.value) {
