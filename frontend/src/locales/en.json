@@ -89,5 +89,8 @@
   "thank_you_for_your_proposal": "Thank you for proposing a problem idea! It may take some days for us to create and review the problem.",
   "point_diff": "Total point difference",
   "publish": "Publish",
-  "del": "Delete"
+  "del": "Delete",
+  "tile_edition": "Tile Edition",
+  "first_edition": "Old Edition",
+  "second_edition": "New Edition"
 }

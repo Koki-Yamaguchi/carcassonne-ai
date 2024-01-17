@@ -143,12 +143,14 @@ export class API {
   async updatePlayer(
     id: number,
     name: string,
-    meepleColor: number
+    meepleColor: number,
+    tileEdition: TileEdition
   ): Promise<Player> {
     try {
       const res = await axios.post(`${this.base_url}/players/${id}/update`, {
         name,
         meeple_color: Number(meepleColor),
+        tile_edition: tileEdition,
       });
       const player: Player = {
         id: res.data.id,

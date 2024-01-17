@@ -4,7 +4,7 @@ import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { API } from "../api";
 import { store } from "../store";
-import { colorToColorID } from "../tiles";
+import { colorToColorID, TileEdition } from "../tiles";
 import { Player } from "../types";
 import { translate } from "../locales/translate";
 
@@ -14,6 +14,7 @@ const player = ref<Player | null>(null);
 const name = ref<string>("");
 const lang = ref<string>("");
 const color = ref<number>(-1);
+const tileEdition = ref<TileEdition | null>(null);
 const rating = ref<number | undefined>();
 const profileImageURL = ref<string>("");
 const file = ref<File | null>(null);
@@ -49,7 +50,8 @@ const update = async () => {
   await api.updatePlayer(
     player.value ? player.value.id : -1,
     name.value,
-    color.value
+    color.value,
+    tileEdition.value
   );
 
   store.setLanguage(lang.value);
@@ -71,6 +73,7 @@ onMounted(async () => {
   name.value = player.value.name;
   color.value = colorToColorID(player.value.meepleColor);
   rating.value = player.value.rating;
+  tileEdition.value = player.value.tileEdition;
   profileImageURL.value = player.value.profileImageURL;
 
   if (store.language !== "") {
@@ -173,6 +176,22 @@ onMounted(async () => {
             <option value="2">{{ translate("green") }}</option>
             <option value="3">{{ translate("black") }}</option>
             <option value="4">{{ translate("blue") }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="md:flex md:items-center mb-6">
+        <div class="md:w-1/3">
+          <label class="block text-gray-500 md:text-right mb-1 md:mb-0 pr-4">
+            {{ translate("tile_edition") }}
+          </label>
+        </div>
+        <div class="md:w-2/3">
+          <select
+            class="bg-gray-200 border-2 rounded w-full py-2 px-4 text-gray-700 focus:outline-none focus:bg-white focus:border-green-300"
+            v-model="tileEdition"
+          >
+            <option value="first">{{ translate("first_edition") }}</option>
+            <option value="second">{{ translate("second_edition") }}</option>
           </select>
         </div>
       </div>
