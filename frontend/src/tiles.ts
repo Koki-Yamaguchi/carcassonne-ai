@@ -559,7 +559,7 @@ function getDefaultMeeplePositions(tileKind: TileKind): Position[] {
     case "Curve": {
       return [
         { idx: 0, y: 0.5, x: 0.5, isField: true },
-        { idx: 1, y: -0.1, x: -0.2, isField: false },
+        { idx: 1, y: 0, x: 0, isField: false },
         { idx: 2, y: -0.7, x: -0.5, isField: true },
       ];
     }
