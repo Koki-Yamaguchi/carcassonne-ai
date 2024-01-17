@@ -21,6 +21,7 @@ struct NewPlayer {
     user_id: String,
     meeple_color: i32,
     rating: Option<i32>,
+    tile_edition: String,
 }
 
 #[derive(Queryable, Clone)]
@@ -33,6 +34,7 @@ pub struct QueryPlayer {
     pub meeple_color: i32,
     pub rating: Option<i32>,
     pub profile_image_url: String,
+    pub tile_edition: String,
 }
 
 #[derive(Insertable)]
@@ -259,6 +261,7 @@ pub fn create_player(
         user_id,
         meeple_color,
         rating: None,
+        tile_edition: "second".to_string(),
     };
     match diesel::insert_into(schema::player::table)
         .values(&new_player)
@@ -275,16 +278,20 @@ pub fn update_player(
     nam: String,
     m_color: i32,
     rat: Option<i32>,
+    edition: String,
     prof_image_url: String,
 ) -> Result<player::Player, Error> {
     let conn = &mut db.get().unwrap();
-    use self::schema::player::dsl::{meeple_color, name, player, profile_image_url, rating};
+    use self::schema::player::dsl::{
+        meeple_color, name, player, profile_image_url, rating, tile_edition,
+    };
     match diesel::update(player.find(pid))
         .set((
             name.eq(nam),
             meeple_color.eq(m_color),
             rating.eq(rat),
             profile_image_url.eq(prof_image_url),
+            tile_edition.eq(edition),
         ))
         .get_result(conn)
     {
@@ -993,6 +1000,7 @@ fn to_player(v: QueryPlayer) -> player::Player {
         user_id: v.user_id,
         meeple_color: v.meeple_color,
         rating: v.rating,
+        tile_edition: v.tile_edition,
         profile_image_url: v.profile_image_url,
     }
 }

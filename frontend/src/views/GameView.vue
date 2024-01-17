@@ -7,14 +7,7 @@ import PlayerInfo from "../components/PlayerInfo.vue";
 import { translate } from "../locales/translate";
 import { store } from "../store";
 import SpinnerIcon from "../components/SpinnerIcon.vue";
-import {
-  boardSize,
-  getInitialBoard,
-  idToTileKind,
-  newTile,
-  Tile,
-  TileKind,
-} from "../tiles";
+import { boardSize, idToTileKind, newTile, Tile, TileKind } from "../tiles";
 import {
   Board,
   CompleteEvent,
@@ -34,7 +27,7 @@ const game = ref<Game>();
 const board = ref<Board>();
 const moves = ref<Move[]>();
 const isMyGame = ref<boolean>(false);
-const tiles = ref<(Tile | null)[][]>(getInitialBoard());
+const tiles = ref<(Tile | null)[][]>([]);
 const meepledPositions = ref<Map<number, TilePosition>>(new Map());
 const player0Meeples = ref<Set<number>>(new Set([0, 1, 2, 3, 4, 5, 6]));
 const player1Meeples = ref<Set<number>>(new Set([7, 8, 9, 10, 11, 12, 13]));
@@ -239,17 +232,25 @@ const update = async () => {
   board.value = await api.getBoard(
     game.value.id,
     game.value.player0Color,
-    game.value.player1Color
+    game.value.player1Color,
+    player.value.tileEdition
   );
 
   const lastMove = moves.value[moves.value.length - 1];
 
   const updateTileMove = async (tm: TileMove) => {
-    if (!game.value || !board.value) {
+    if (!game.value || !board.value || !player.value) {
       return;
     }
 
-    const tile = newTile(tm.rot, tm.tile, null, -1, -1);
+    const tile = newTile(
+      tm.rot,
+      tm.tile,
+      null,
+      -1,
+      -1,
+      player.value.tileEdition
+    );
     const tilePosY = tm.pos.y + Math.floor(boardSize / 2);
     const tilePosX = tm.pos.x + Math.floor(boardSize / 2);
     tiles.value[tilePosY][tilePosX] = tile;
@@ -390,7 +391,14 @@ const update = async () => {
       if (isMyGame.value) {
         if (game.value.nextTileID !== -1) {
           const placingTileKind = idToTileKind(game.value.currentTileID);
-          placingTile.value = newTile(0, placingTileKind, null, -1, -1);
+          placingTile.value = newTile(
+            0,
+            placingTileKind,
+            null,
+            -1,
+            -1,
+            player.value.tileEdition
+          );
           placeablePositions.value = getPlaceablePositions(placingTile.value);
           if (placeablePositions.value.length !== 0) {
             mustDiscard.value = false;
@@ -427,7 +435,14 @@ const update = async () => {
         placingPosition.value = null;
         if (game.value.nextTileID !== -1) {
           const placingTileKind = idToTileKind(game.value.nextTileID);
-          placingTile.value = newTile(0, placingTileKind, null, -1, -1);
+          placingTile.value = newTile(
+            0,
+            placingTileKind,
+            null,
+            -1,
+            -1,
+            player.value.tileEdition
+          );
           placeablePositions.value = getPlaceablePositions(placingTile.value);
         }
 
@@ -566,7 +581,8 @@ const initialUpdate = async () => {
   board.value = await api.getBoard(
     game.value.id,
     game.value.player0Color,
-    game.value.player1Color
+    game.value.player1Color,
+    player.value.tileEdition
   );
 
   tiles.value = board.value.tiles;
@@ -645,7 +661,14 @@ const initialUpdate = async () => {
           ? game.value.currentTileID
           : game.value.nextTileID;
       const placingTileKind = idToTileKind(placingTileID);
-      placingTile.value = newTile(0, placingTileKind, null, -1, -1);
+      placingTile.value = newTile(
+        0,
+        placingTileKind,
+        null,
+        -1,
+        -1,
+        player.value.tileEdition
+      );
       placeablePositions.value = getPlaceablePositions(placingTile.value);
 
       if (
@@ -658,11 +681,18 @@ const initialUpdate = async () => {
 };
 
 const currentTile = () => {
-  if (!game.value) {
+  if (!game.value || !player.value) {
     return null;
   }
   if (game.value.currentTileID !== null) {
-    return newTile(0, idToTileKind(game.value.currentTileID), null, -1, -1);
+    return newTile(
+      0,
+      idToTileKind(game.value.currentTileID),
+      null,
+      -1,
+      -1,
+      player.value.tileEdition
+    );
   }
 };
 
@@ -782,7 +812,16 @@ onMounted(async () => {
               <div v-if="discardedTileKinds.length > 0" class="mt-2 flex gap-2">
                 <img
                   v-for="(discardedTileKind, idx) in discardedTileKinds"
-                  :src="newTile(0, discardedTileKind, null, -1, -1).src"
+                  :src="
+                    newTile(
+                      0,
+                      discardedTileKind,
+                      null,
+                      -1,
+                      -1,
+                      player ? player.tileEdition : 'second'
+                    ).src
+                  "
                   class="min-h-[30px]"
                   width="30"
                   height="30"

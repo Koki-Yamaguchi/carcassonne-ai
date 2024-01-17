@@ -707,6 +707,7 @@ pub fn get_final_events(db: &DbPool, game_id: Option<i32>) -> Result<MeepleMoveR
                 player0.name,
                 player0.meeple_color,
                 after_player0_rating,
+                player0.tile_edition,
                 player0.profile_image_url,
             ) {
                 Ok(_) => {}
@@ -720,6 +721,7 @@ pub fn get_final_events(db: &DbPool, game_id: Option<i32>) -> Result<MeepleMoveR
                 player1.name,
                 player1.meeple_color,
                 after_player1_rating,
+                player1.tile_edition,
                 player1.profile_image_url,
             ) {
                 Ok(_) => {}

@@ -23,6 +23,33 @@ import TripleCityWithRoadWithCOA from "./assets/img/triple_city_with_road_with_c
 import QuadrupleCityWithCOA from "./assets/img/quadruple_city_with_coa.png";
 import Separator from "./assets/img/separator.png";
 
+import NewStartingTile from "./assets/img/second/city_cap_with_straight.png";
+import NewMonastery from "./assets/img/second/monastery.png";
+import NewMonasteryWithRoad from "./assets/img/second/monastery_with_road.png";
+import NewStraight from "./assets/img/second/straight.png";
+import NewCurve from "./assets/img/second/curve.png";
+import NewQuadrupleRoad from "./assets/img/second/quadruple_road.png";
+import NewTripleRoad from "./assets/img/second/triple_road.png";
+import NewTriangle from "./assets/img/second/triangle.png";
+import NewTriangleWithCOA from "./assets/img/second/triangle_with_coa.png";
+import NewTriangleWithRoad from "./assets/img/second/triangle_with_road.png";
+import NewTriangleWithRoadWithCOA from "./assets/img/second/triangle_with_road_with_coa.png";
+import NewCityCapWithCrossroad from "./assets/img/second/city_cap_with_crossroads.png";
+import NewCityCap from "./assets/img/second/city_cap.png";
+import NewLeft from "./assets/img/second/left.png";
+import NewRight from "./assets/img/second/right.png";
+import NewConnector from "./assets/img/second/connector.png";
+import NewConnectorWithCOA from "./assets/img/second/connector_with_coa.png";
+import NewVerticalSeparator from "./assets/img/second/vertical_separator.png";
+import NewTripleCity from "./assets/img/second/triple_city.png";
+import NewTripleCityWithCOA from "./assets/img/second/triple_city_with_coa.png";
+import NewTripleCityWithRoad from "./assets/img/second/triple_city_with_road.png";
+import NewTripleCityWithRoadWithCOA from "./assets/img/second/triple_city_with_road_with_coa.png";
+import NewQuadrupleCityWithCOA from "./assets/img/second/quadruple_city_with_coa.png";
+import NewSeparator from "./assets/img/second/separator.png";
+
+export type TileEdition = "first" | "second";
+
 export type TileKind =
   | "StartingTile"
   | "Monastery"
@@ -211,12 +238,13 @@ export function newTile(
   tileKind: TileKind,
   meepleColor: Color,
   meepledPosition: number,
-  meepleID: number
+  meepleID: number,
+  tileEdition: TileEdition
 ): Tile {
   return new Tile(
     rot,
     getSides(tileKind),
-    getSrc(tileKind),
+    getSrc(tileKind, tileEdition),
     meepleColor,
     meepledPosition,
     meepleID,
@@ -294,82 +322,163 @@ function getSides(tileKind: TileKind): Side[] {
   }
 }
 
-function getSrc(tileKind: TileKind): any {
-  switch (tileKind) {
-    case "StartingTile": {
-      return StartingTile;
+function getSrc(tileKind: TileKind, tileEdition: TileEdition): any {
+  if (tileEdition === "first") {
+    switch (tileKind) {
+      case "StartingTile": {
+        return StartingTile;
+      }
+      case "Monastery": {
+        return Monastery;
+      }
+      case "MonasteryWithRoad": {
+        return MonasteryWithRoad;
+      }
+      case "CityCapWithCrossroad": {
+        return CityCapWithCrossroad;
+      }
+      case "TriangleWithRoad": {
+        return TriangleWithRoad;
+      }
+      case "TriangleWithRoadWithCOA": {
+        return TriangleWithRoadWithCOA;
+      }
+      case "Straight": {
+        return Straight;
+      }
+      case "CityCap": {
+        return CityCap;
+      }
+      case "Separator": {
+        return Separator;
+      }
+      case "TripleRoad": {
+        return TripleRoad;
+      }
+      case "Curve": {
+        return Curve;
+      }
+      case "QuadrupleRoad": {
+        return QuadrupleRoad;
+      }
+      case "Connector": {
+        return Connector;
+      }
+      case "ConnectorWithCOA": {
+        return ConnectorWithCOA;
+      }
+      case "Left": {
+        return Left;
+      }
+      case "Right": {
+        return Right;
+      }
+      case "TripleCity": {
+        return TripleCity;
+      }
+      case "TripleCityWithCOA": {
+        return TripleCityWithCOA;
+      }
+      case "VerticalSeparator": {
+        return VerticalSeparator;
+      }
+      case "TripleCityWithRoad": {
+        return TripleCityWithRoad;
+      }
+      case "TripleCityWithRoadWithCOA": {
+        return TripleCityWithRoadWithCOA;
+      }
+      case "Triangle": {
+        return Triangle;
+      }
+      case "TriangleWithCOA": {
+        return TriangleWithCOA;
+      }
+      case "QuadrupleCityWithCOA": {
+        return QuadrupleCityWithCOA;
+      }
+      default: {
+        return null;
+      }
     }
-    case "Monastery": {
-      return Monastery;
-    }
-    case "MonasteryWithRoad": {
-      return MonasteryWithRoad;
-    }
-    case "CityCapWithCrossroad": {
-      return CityCapWithCrossroad;
-    }
-    case "TriangleWithRoad": {
-      return TriangleWithRoad;
-    }
-    case "TriangleWithRoadWithCOA": {
-      return TriangleWithRoadWithCOA;
-    }
-    case "Straight": {
-      return Straight;
-    }
-    case "CityCap": {
-      return CityCap;
-    }
-    case "Separator": {
-      return Separator;
-    }
-    case "TripleRoad": {
-      return TripleRoad;
-    }
-    case "Curve": {
-      return Curve;
-    }
-    case "QuadrupleRoad": {
-      return QuadrupleRoad;
-    }
-    case "Connector": {
-      return Connector;
-    }
-    case "ConnectorWithCOA": {
-      return ConnectorWithCOA;
-    }
-    case "Left": {
-      return Left;
-    }
-    case "Right": {
-      return Right;
-    }
-    case "TripleCity": {
-      return TripleCity;
-    }
-    case "TripleCityWithCOA": {
-      return TripleCityWithCOA;
-    }
-    case "VerticalSeparator": {
-      return VerticalSeparator;
-    }
-    case "TripleCityWithRoad": {
-      return TripleCityWithRoad;
-    }
-    case "TripleCityWithRoadWithCOA": {
-      return TripleCityWithRoadWithCOA;
-    }
-    case "Triangle": {
-      return Triangle;
-    }
-    case "TriangleWithCOA": {
-      return TriangleWithCOA;
-    }
-    case "QuadrupleCityWithCOA": {
-      return QuadrupleCityWithCOA;
-    }
-    default: {
-      return null;
+  } else {
+    // second
+    switch (tileKind) {
+      case "StartingTile": {
+        return NewStartingTile;
+      }
+      case "Monastery": {
+        return NewMonastery;
+      }
+      case "MonasteryWithRoad": {
+        return NewMonasteryWithRoad;
+      }
+      case "CityCapWithCrossroad": {
+        return NewCityCapWithCrossroad;
+      }
+      case "TriangleWithRoad": {
+        return NewTriangleWithRoad;
+      }
+      case "TriangleWithRoadWithCOA": {
+        return NewTriangleWithRoadWithCOA;
+      }
+      case "Straight": {
+        return NewStraight;
+      }
+      case "CityCap": {
+        return NewCityCap;
+      }
+      case "Separator": {
+        return NewSeparator;
+      }
+      case "TripleRoad": {
+        return NewTripleRoad;
+      }
+      case "Curve": {
+        return NewCurve;
+      }
+      case "QuadrupleRoad": {
+        return NewQuadrupleRoad;
+      }
+      case "Connector": {
+        return NewConnector;
+      }
+      case "ConnectorWithCOA": {
+        return NewConnectorWithCOA;
+      }
+      case "Left": {
+        return NewLeft;
+      }
+      case "Right": {
+        return NewRight;
+      }
+      case "TripleCity": {
+        return NewTripleCity;
+      }
+      case "TripleCityWithCOA": {
+        return NewTripleCityWithCOA;
+      }
+      case "VerticalSeparator": {
+        return NewVerticalSeparator;
+      }
+      case "TripleCityWithRoad": {
+        return NewTripleCityWithRoad;
+      }
+      case "TripleCityWithRoadWithCOA": {
+        return NewTripleCityWithRoadWithCOA;
+      }
+      case "Triangle": {
+        return NewTriangle;
+      }
+      case "TriangleWithCOA": {
+        return NewTriangleWithCOA;
+      }
+      case "QuadrupleCityWithCOA": {
+        return NewQuadrupleCityWithCOA;
+      }
+      default: {
+        return null;
+      }
     }
   }
 }
@@ -380,7 +489,7 @@ function getDefaultMeeplePositions(tileKind: TileKind): Position[] {
       return [
         { idx: 0, y: 0.8, x: 0, isField: false },
         { idx: 1, y: 0.3, x: 0.7, isField: true },
-        { idx: 2, y: 0, x: 0, isField: false },
+        { idx: 2, y: -0.15, x: -0.15, isField: false },
         { idx: 3, y: -0.6, x: 0, isField: true },
       ];
     }
@@ -402,7 +511,7 @@ function getDefaultMeeplePositions(tileKind: TileKind): Position[] {
         { idx: 0, y: 0.8, x: 0, isField: false },
         { idx: 1, y: 0.3, x: 0.8, isField: true },
         { idx: 2, y: -0.1, x: -0.6, isField: false },
-        { idx: 3, y: -0.2, x: 0.6, isField: false },
+        { idx: 3, y: -0.1, x: 0.8, isField: false },
         { idx: 4, y: -0.6, x: -0.7, isField: true },
         { idx: 5, y: -0.6, x: -0.1, isField: false },
         { idx: 6, y: -0.6, x: 0.7, isField: true },
@@ -412,7 +521,7 @@ function getDefaultMeeplePositions(tileKind: TileKind): Position[] {
     case "TriangleWithRoadWithCOA": {
       return [
         { idx: 0, y: 0.5, x: -0.5, isField: false },
-        { idx: 1, y: -0.1, x: 0.1, isField: true },
+        { idx: 1, y: -0.7, x: -0.3, isField: true },
         { idx: 2, y: -0.4, x: 0.4, isField: false },
         { idx: 3, y: -0.7, x: 0.7, isField: true },
       ];
@@ -440,8 +549,8 @@ function getDefaultMeeplePositions(tileKind: TileKind): Position[] {
     case "TripleRoad": {
       return [
         { idx: 0, y: 0.7, x: 0, isField: true },
-        { idx: 1, y: 0.1, x: -0.7, isField: false },
-        { idx: 2, y: 0.1, x: 0.7, isField: false },
+        { idx: 1, y: 0, x: -0.7, isField: false },
+        { idx: 2, y: 0, x: 0.7, isField: false },
         { idx: 3, y: -0.5, x: -0.5, isField: true },
         { idx: 4, y: -0.5, x: 0, isField: false },
         { idx: 5, y: -0.5, x: 0.5, isField: true },
@@ -451,7 +560,7 @@ function getDefaultMeeplePositions(tileKind: TileKind): Position[] {
       return [
         { idx: 0, y: 0.5, x: 0.5, isField: true },
         { idx: 1, y: 0, x: 0, isField: false },
-        { idx: 2, y: -0.5, x: -0.5, isField: true },
+        { idx: 2, y: -0.7, x: -0.5, isField: true },
       ];
     }
     case "QuadrupleRoad": {
@@ -478,7 +587,7 @@ function getDefaultMeeplePositions(tileKind: TileKind): Position[] {
       return [
         { idx: 0, y: 0.8, x: 0, isField: false },
         { idx: 1, y: -0.1, x: 0.5, isField: true },
-        { idx: 2, y: -0.25, x: -0.25, isField: false },
+        { idx: 2, y: -0.7, x: 0, isField: false },
         { idx: 3, y: -0.6, x: -0.6, isField: true },
       ];
     }
@@ -610,7 +719,7 @@ export function idToTileKind(id: number): TileKind {
 }
 
 export const boardSize = 2 * 20 + 1;
-export function getInitialBoard(): (Tile | null)[][] {
+export function getInitialBoard(tileEdition: TileEdition): (Tile | null)[][] {
   const initialBoard: (Tile | null)[][] = [];
   for (let i = 0; i < boardSize; i++) {
     const emptyRow: (Tile | null)[] = [];
@@ -624,7 +733,8 @@ export function getInitialBoard(): (Tile | null)[][] {
     "StartingTile",
     null,
     -1,
-    -1
+    -1,
+    tileEdition
   );
   return initialBoard;
 }
