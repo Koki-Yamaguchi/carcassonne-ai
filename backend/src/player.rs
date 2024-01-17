@@ -23,9 +23,10 @@ pub struct CreatePlayer {
 pub struct UpdatePlayer {
     pub name: String,
     pub meeple_color: i32,
+    pub tile_edition: String,
 }
 
-#[derive(Serialize, Queryable, Clone)]
+#[derive(Serialize, Queryable, Clone, Debug)]
 #[serde(crate = "rocket::serde")]
 pub struct Player {
     pub id: i32,
@@ -34,6 +35,7 @@ pub struct Player {
     pub user_id: String,
     pub meeple_color: i32,
     pub rating: Option<i32>,
+    pub tile_edition: String,
     pub profile_image_url: String,
 }
 
@@ -42,6 +44,7 @@ pub fn update_player(
     player_id: i32,
     name: String,
     meeple_color: i32,
+    tile_edition: String,
 ) -> Result<Player, Error> {
     let player = database::get_player(db, player_id)?;
 
@@ -51,6 +54,7 @@ pub fn update_player(
         name,
         meeple_color,
         player.rating,
+        tile_edition,
         player.profile_image_url,
     )
 }
@@ -104,6 +108,7 @@ pub async fn upload_profile_image(
             player.name,
             player.meeple_color,
             player.rating,
+            player.tile_edition,
             profile_image_url.clone(),
         );
 

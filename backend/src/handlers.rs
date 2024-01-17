@@ -126,6 +126,7 @@ pub fn update_player(
         player_id,
         params.name.clone(),
         params.meeple_color,
+        params.tile_edition.clone(),
     ) {
         Ok(player) => (Status::Ok, (ContentType::JSON, to_string(&player).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),

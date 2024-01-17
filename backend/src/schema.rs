@@ -79,6 +79,7 @@ diesel::table! {
         meeple_color -> Int4,
         rating -> Nullable<Int4>,
         profile_image_url -> Varchar,
+        tile_edition -> Varchar,
     }
 }
 
