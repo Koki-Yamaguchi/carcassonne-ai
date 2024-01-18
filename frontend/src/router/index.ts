@@ -8,6 +8,7 @@ import SignupView from "../views/SignupView.vue";
 import SigninView from "../views/SigninView.vue";
 import SettingsView from "../views/SettingsView.vue";
 import CompetitiveView from "../views/CompetitiveView.vue";
+import NormalView from "../views/NormalView.vue";
 import LobbyView from "../views/LobbyView.vue";
 import ReplayView from "../views/ReplayView.vue";
 import ResultView from "../views/ResultView.vue";
@@ -86,6 +87,11 @@ const router = createRouter({
       component: SettingsView,
     },
     {
+      path: "/normal",
+      name: "normal mode",
+      component: NormalView,
+    },
+    {
       path: "/competitive",
       name: "competitive mode",
       component: CompetitiveView,
@@ -131,7 +137,7 @@ router.beforeEach(async (to) => {
   store.setAuthenticating(true);
   const currentUser = (await getCurrentUser()) as any;
   store.setAuthenticating(false);
-  if (to.path !== "/signin" && to.path !== "/signup") {
+  if (to.path !== "/" && to.path !== "/signin" && to.path !== "/signup") {
     if (currentUser) {
       store.setAuthenticated(true);
       store.setUserID(currentUser.uid);
