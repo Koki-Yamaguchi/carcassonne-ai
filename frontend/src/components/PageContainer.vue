@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { translate } from "../locales/translate";
 import NavigationBar from "./NavigationBar.vue";
+import { ref } from "vue";
+
+const year = ref<number>(new Date().getFullYear());
 </script>
 
 <template>
@@ -18,7 +21,9 @@ import NavigationBar from "./NavigationBar.vue";
           >{{ translate("contacts_or_bug_reports") }}</a
         >
       </div>
-      <div class="text-center text-xs">© 2023 Koki Yamaguchi</div>
+      <div class="text-center text-xs">
+        {{ `© 2023-${year} Koki Yamaguchi` }}
+      </div>
     </footer>
   </div>
 </template>
