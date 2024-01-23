@@ -1,0 +1,1 @@
+ALTER TABLE problem DROP COLUMN num;
