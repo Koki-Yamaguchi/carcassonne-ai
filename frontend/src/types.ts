@@ -111,6 +111,7 @@ export interface Problem {
   isDraft: boolean;
   pointDiff: number;
   note: string;
+  num: number | null;
 }
 
 export interface ProblemsResponse {

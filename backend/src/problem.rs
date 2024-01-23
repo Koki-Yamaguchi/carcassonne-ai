@@ -40,6 +40,7 @@ pub struct Problem {
     pub point_diff: Option<i32>,
     pub note: String,
     pub is_deleted: bool,
+    pub num: Option<i32>,
 }
 
 #[derive(Serialize)]
@@ -300,6 +301,7 @@ pub fn create_draft_problem(db: &DbPool, params: &CreateProblem) -> Result<Probl
             point_diff: Some(point_diff),
             note: params.note.clone(),
             is_deleted: false,
+            num: None,
         },
     )
 }
@@ -651,6 +653,7 @@ fn create_problem_test() {
             point_diff: Some(point_diff),
             note: "".to_string(),
             is_deleted: false,
+            num: None,
         },
     )
     .unwrap();
@@ -700,6 +703,7 @@ pub fn create_vote(
         problem.vote_count + 1,
         problem.point_diff,
         problem.is_deleted,
+        problem.num,
     )?;
 
     Ok(vote)
@@ -863,14 +867,17 @@ pub fn publish_problem(db: &DbPool, id: i32, params: &PublishProblem) -> Result<
     let private_prbs =
         database::get_problems(db, 0, "-start_at".to_string(), 1, None, false, true)?.problems;
 
-    let last_start_at = if private_prbs.len() == 1 {
-        private_prbs[0].start_at.unwrap()
+    let (last_start_at, last_num) = if private_prbs.len() == 1 {
+        (
+            private_prbs[0].start_at.unwrap(),
+            private_prbs[0].num.unwrap(),
+        )
     } else {
         let prbs =
             database::get_problems(db, 0, "-start_at".to_string(), 1, None, false, false)?.problems;
         assert!(prbs.len() >= 1);
 
-        prbs[0].start_at.unwrap()
+        (prbs[0].start_at.unwrap(), prbs[0].num.unwrap())
     };
 
     database::update_problem(
@@ -882,6 +889,7 @@ pub fn publish_problem(db: &DbPool, id: i32, params: &PublishProblem) -> Result<
         prb.vote_count,
         prb.point_diff,
         prb.is_deleted,
+        Some(last_num + 1),
     )
 }
 
@@ -897,6 +905,7 @@ pub fn delete_problem(db: &DbPool, id: i32) -> Result<Problem, Error> {
         prb.vote_count,
         prb.point_diff,
         true,
+        prb.num,
     )
 }
 
@@ -912,6 +921,7 @@ pub fn update_problem(db: &DbPool, id: i32, params: &UpdateProblem) -> Result<Pr
         prb.vote_count,
         prb.point_diff,
         prb.is_deleted,
+        prb.num,
     )
 }
 
@@ -960,6 +970,7 @@ fn update_all_point_diff() {
                     problem.vote_count,
                     Some(point_diff),
                     problem.is_deleted,
+                    problem.num,
                 )
                 .unwrap();
                 println!("after problem = {:?}", problem);
@@ -968,5 +979,48 @@ fn update_all_point_diff() {
                 println!("not found");
             }
         }
+    }
+}
+
+#[test]
+fn update_all_num() {
+    use dotenvy::dotenv;
+    use std::env;
+    use std::time::Duration;
+
+    dotenv().ok();
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    let db = Pool::builder()
+        .max_size(1) // FIXME: Didn't think about this number carefully
+        .connection_timeout(Duration::from_secs(300))
+        .build(manager)
+        .expect("Creating a pool failed");
+
+    let prbs = database::get_problems(&db, 0, "start_at".to_string(), 100, None, false, false)
+        .unwrap()
+        .problems;
+    // assert!(prbs.len() == 100);
+
+    let mut cur = 1;
+    for prb in &prbs {
+        println!("prb = {:?}", prb);
+        let new_prb = database::update_problem(
+            &db,
+            prb.id,
+            prb.name.clone(),
+            prb.start_at,
+            prb.is_draft,
+            prb.vote_count,
+            prb.point_diff,
+            prb.is_deleted,
+            Some(cur),
+        )
+        .unwrap();
+
+        println!("new_prb = {:?}", new_prb);
+        println!();
+
+        cur += 1;
     }
 }

@@ -121,6 +121,7 @@ pub struct NewProblem {
     pub point_diff: Option<i32>,
     pub note: String,
     pub is_deleted: bool,
+    pub num: Option<i32>,
 }
 
 #[derive(Insertable)]
@@ -754,25 +755,27 @@ pub fn get_problems(
 pub fn update_problem(
     db: &DbPool,
     prid: i32,
-    nm: String,
+    nam: String,
     start: Option<chrono::NaiveDateTime>,
     draft: bool,
     vcount: i32,
     pdiff: Option<i32>,
     is_dltd: bool,
+    nmbr: Option<i32>,
 ) -> Result<problem::Problem, Error> {
     use self::schema::problem::dsl::{
-        is_deleted, is_draft, name, point_diff, problem, start_at, vote_count,
+        is_deleted, is_draft, name, num, point_diff, problem, start_at, vote_count,
     };
     let conn = &mut db.get().unwrap();
     match diesel::update(problem.find(prid))
         .set((
-            name.eq(nm),
+            name.eq(nam),
             start_at.eq(start),
             is_draft.eq(draft),
             vote_count.eq(vcount),
             point_diff.eq(pdiff),
             is_deleted.eq(is_dltd),
+            num.eq(nmbr),
         ))
         .get_result(conn)
     {

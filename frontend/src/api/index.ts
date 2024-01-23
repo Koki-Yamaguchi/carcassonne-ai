@@ -625,6 +625,7 @@ export class API {
         isDraft: res.data.is_draft,
         pointDiff: res.data.point_diff,
         note: res.data.note,
+        num: res.data.num,
       };
       return prob;
     } catch (e) {
@@ -662,6 +663,7 @@ export class API {
           isDraft: p.is_draft,
           pointDiff: p.point_diff,
           note: p.note,
+          num: p.num,
         };
       });
       const totalCount = res.data.total_count;
@@ -707,6 +709,7 @@ export class API {
           isDraft: p.is_draft,
           pointDiff: p.point_diff,
           note: p.note,
+          num: p.num,
         };
       });
       const totalCount = res.data.total_count;
@@ -912,6 +915,7 @@ export class API {
         isDraft: res.data.is_draft,
         pointDiff: res.data.point_diff,
         note: res.data.note,
+        num: res.data.num,
       };
       return problem;
     } catch (e) {
@@ -941,6 +945,7 @@ export class API {
         isDraft: res.data.is_draft,
         pointDiff: res.data.point_diff,
         note: res.data.note,
+        num: res.data.num,
       };
       return problem;
     } catch (e) {
@@ -970,6 +975,7 @@ export class API {
         isDraft: res.data.is_draft,
         pointDiff: res.data.point_diff,
         note: res.data.note,
+        num: res.data.num,
       };
       return problem;
     } catch (e) {

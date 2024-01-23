@@ -101,6 +101,7 @@ diesel::table! {
         point_diff -> Nullable<Int4>,
         note -> Text,
         is_deleted -> Bool,
+        num -> Nullable<Int4>,
     }
 }
 

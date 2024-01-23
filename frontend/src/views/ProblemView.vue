@@ -450,7 +450,7 @@ const tweetText = computed(() => {
       `https://twitter.com/intent/tweet?text=` +
       `今日のどこ置くの問題に投票しました！%0a` +
       `%0a` +
-      `${problem.value.name}%0a` +
+      `${formatNumber.value}. ${problem.value.name}%0a` +
       `作成者 ${creatorName.value}%0a` +
       `https://top-carcassonner.com/problems/${problem.value.id}%0a` +
       `%0a` +
@@ -459,8 +459,11 @@ const tweetText = computed(() => {
   } else {
     return (
       `https://twitter.com/intent/tweet?text=` +
-      `どこ置くの問題に投票しました！%0a%0a${problem.value.name}%0a` +
-      `https://top-carcassonner.com/problems/${problem.value.id}%0a%0a` +
+      `どこ置くの問題に投票しました！%0a` +
+      `%0a` +
+      `${formatNumber.value}. ${problem.value.name}%0a` +
+      `https://top-carcassonner.com/problems/${problem.value.id}%0a` +
+      `%0a` +
       `%23TopCarcassonner`
     );
   }
@@ -473,6 +476,23 @@ const isDraft = computed(() => {
 const isAdmin = computed(() => {
   return player.value && player.value.id === 2;
 });
+
+const formatNumber = computed(() => {
+  if (!problem.value || !problem.value.num) {
+    return "000";
+  }
+  const num = problem.value.num;
+  if (num < 10) {
+    return `00${num}`;
+  }
+  if (num < 100) {
+    return `0${num}`;
+  }
+  if (num < 1000) {
+    return `${num}`;
+  }
+  return "XXX";
+});
 </script>
 
 <template>
@@ -482,7 +502,8 @@ const isAdmin = computed(() => {
   <div v-else>
     <div class="mt-4 mx-4 flex justify-between">
       <div class="flex">
-        <div class="flex flex-col justify-center items-center">
+        <div class="flex flex-col justify-center text-sm">
+          {{ formatNumber }}.
           {{ problem ? problem.name : "" }}
         </div>
         <div
