@@ -473,6 +473,23 @@ const isDraft = computed(() => {
 const isAdmin = computed(() => {
   return player.value && player.value.id === 2;
 });
+
+const formatNumber = computed(() => {
+  if (!problem.value || !problem.value.num) {
+    return "000";
+  }
+  const num = problem.value.num;
+  if (num < 10) {
+    return `00${num}`;
+  }
+  if (num < 100) {
+    return `0${num}`;
+  }
+  if (num < 1000) {
+    return `${num}`;
+  }
+  return "XXX";
+});
 </script>
 
 <template>
@@ -482,7 +499,8 @@ const isAdmin = computed(() => {
   <div v-else>
     <div class="mt-4 mx-4 flex justify-between">
       <div class="flex">
-        <div class="flex flex-col justify-center items-center">
+        <div class="flex flex-col justify-center text-sm">
+          {{ formatNumber }}.
           {{ problem ? problem.name : "" }}
         </div>
         <div
