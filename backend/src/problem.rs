@@ -173,11 +173,11 @@ pub fn create_draft_problem(db: &DbPool, params: &CreateProblem) -> Result<Probl
         }
     }
 
-    let mvs = all_mvs[0..mv_idx].to_vec();
+    let mut mvs = all_mvs[0..mv_idx].to_vec();
 
     let you = -2;
     let opponent = -3;
-    let (cur_tile_id, map) = match &all_mvs[mv_idx] {
+    let (cur_tile_id, player_map) = match &all_mvs[mv_idx] {
         TMove(tm) => {
             if tm.player_id == 0 {
                 (tm.tile.to_id(), vec![-2, -3])
@@ -193,7 +193,7 @@ pub fn create_draft_problem(db: &DbPool, params: &CreateProblem) -> Result<Probl
     let you_name = "You".to_string();
     let opponent_name = "Opponent".to_string();
 
-    let first_player_id = map[mvs[2].player_id() as usize];
+    let first_player_id = player_map[mvs[2].player_id() as usize];
 
     let g = database::create_game(
         &db,
@@ -212,76 +212,13 @@ pub fn create_draft_problem(db: &DbPool, params: &CreateProblem) -> Result<Probl
     )
     .unwrap();
 
+    update_moves_fields(g.id, &mut mvs, you, player_map);
+
     let s = calculate::calculate(&mvs, true)?;
     let point_diff = s.player0_point - s.player1_point;
 
-    for mv in &mvs {
-        match mv {
-            TMove(tm) => {
-                database::create_move(
-                    &db,
-                    TMove(TileMove {
-                        id: -1, // ignored
-                        ord: tm.ord,
-                        game_id: Some(g.id),
-                        player_id: map[tm.player_id as usize],
-                        tile: tm.tile,
-                        rot: tm.rot,
-                        pos: tm.pos,
-                    }),
-                )
-                .unwrap();
-            }
-            MMove(mm) => {
-                // FIXME
-                let meeple_id = if mm.meeple_id == -1 {
-                    -1
-                } else {
-                    if you /* player0 */ == map[mm.player_id as usize] {
-                        if mm.meeple_id >= 7 {
-                            mm.meeple_id - 7
-                        } else {
-                            mm.meeple_id
-                        }
-                    } else {
-                        if mm.meeple_id < 7 {
-                            mm.meeple_id + 7
-                        } else {
-                            mm.meeple_id
-                        }
-                    }
-                };
-                database::create_move(
-                    &db,
-                    MMove(MeepleMove {
-                        id: -1, // ignored
-                        ord: mm.ord,
-                        game_id: Some(g.id),
-                        player_id: map[mm.player_id as usize],
-                        meeple_id,
-                        tile_pos: mm.tile_pos,
-                        meeple_pos: mm.meeple_pos,
-                    }),
-                )
-                .unwrap();
-            }
-            DMove(dm) => {
-                database::create_move(
-                    &db,
-                    DMove(DiscardMove {
-                        id: -1, // ignored
-                        ord: dm.ord,
-                        game_id: Some(g.id),
-                        player_id: map[dm.player_id as usize],
-                        tile: dm.tile,
-                    }),
-                )
-                .unwrap();
-            }
-            _ => {
-                panic!("move not supported");
-            }
-        }
+    for mv in mvs {
+        database::create_move(&db, mv).unwrap();
     }
 
     database::create_problem(
@@ -454,10 +391,68 @@ fn create_moves_manually() -> Vec<Move> {
     mvs
 }
 
+fn update_moves_fields(game_id: i32, mvs: &mut Vec<Move>, you: i32, player_map: Vec<i32>) {
+    for mv in mvs {
+        match mv {
+            TMove(tm) => {
+                *mv = TMove(TileMove {
+                    id: -1, // ignored
+                    ord: tm.ord,
+                    game_id: Some(game_id),
+                    player_id: player_map[tm.player_id as usize],
+                    tile: tm.tile,
+                    rot: tm.rot,
+                    pos: tm.pos,
+                });
+            }
+            MMove(mm) => {
+                let meeple_id = if mm.meeple_id == -1 {
+                    -1
+                } else {
+                    if you /* player0 */ == player_map[mm.player_id as usize] {
+                        if mm.meeple_id >= 7 {
+                            mm.meeple_id - 7
+                        } else {
+                            mm.meeple_id
+                        }
+                    } else {
+                        if mm.meeple_id < 7 {
+                            mm.meeple_id + 7
+                        } else {
+                            mm.meeple_id
+                        }
+                    }
+                };
+                *mv = MMove(MeepleMove {
+                    id: -1, // ignored
+                    ord: mm.ord,
+                    game_id: Some(game_id),
+                    player_id: player_map[mm.player_id as usize],
+                    meeple_id,
+                    tile_pos: mm.tile_pos,
+                    meeple_pos: mm.meeple_pos,
+                });
+            }
+            DMove(dm) => {
+                *mv = DMove(DiscardMove {
+                    id: -1, // ignored
+                    ord: dm.ord,
+                    game_id: Some(game_id),
+                    player_id: player_map[dm.player_id as usize],
+                    tile: dm.tile,
+                });
+            }
+            _ => {
+                panic!("move not supported");
+            }
+        }
+    }
+}
+
 #[test]
 fn create_problem_test() {
     // use super::game::decoder;
-    use super::game::mov::{DiscardMove, MeepleMove, Move::*, TileMove};
+    use super::game::mov::Move::*;
     use dotenvy::dotenv;
     use std::env;
     use std::time::Duration;
@@ -472,27 +467,25 @@ fn create_problem_test() {
         .expect("Creating a pool failed");
 
     // should-be-modified lines start
-    // let all_mvs = decoder::decode_from_file_path("src/data/444626489.json".to_string());
+    let all_mvs = decoder::decode_from_file_path("src/data/484158010.json".to_string());
     // let all_mvs = create_moves_manually();
-    let all_mvs = create_moves_from_game_against_ai(&db, 7944);
+    // let all_mvs = create_moves_from_game_against_ai(&db, 7944);
 
-    let remaining_tile_count = 65;
-    let problem_name = "".to_string();
-    /*
+    let remaining_tile_count = 67;
+    let problem_name = "test".to_string();
     let start_at = Some(
         chrono::DateTime::parse_from_rfc3339("2023-12-09T18:00:00+09:00")
             .unwrap()
             .naive_utc(),
     );
-    */
-    let start_at = None;
-    let creator_id = Some(141);
+    // let start_at = None;
+    let creator_id = None;
     let mut creator_name = None;
     if let Some(pid) = creator_id {
         let player = database::get_player(&db, pid).unwrap();
         creator_name = Some(player.name);
     }
-    let is_draft = true;
+    let is_draft = false;
 
     // for solved problems
     let is_solved = false;
@@ -524,11 +517,11 @@ fn create_problem_test() {
         }
     }
 
-    let mvs = all_mvs[0..mv_idx].to_vec();
+    let mut mvs = all_mvs[0..mv_idx].to_vec();
 
     let you = -2;
     let opponent = -3;
-    let (cur_tile_id, map) = match &all_mvs[mv_idx] {
+    let (cur_tile_id, player_map) = match &all_mvs[mv_idx] {
         TMove(tm) => {
             if tm.player_id == 0 {
                 (tm.tile.to_id(), vec![-2, -3])
@@ -545,7 +538,7 @@ fn create_problem_test() {
     let you_name = "You".to_string();
     let opponent_name = "Opponent".to_string();
 
-    let first_player_id = map[mvs[2].player_id() as usize];
+    let first_player_id = player_map[mvs[2].player_id() as usize];
 
     let g = database::create_game(
         &db,
@@ -564,76 +557,13 @@ fn create_problem_test() {
     )
     .unwrap();
 
+    update_moves_fields(g.id, &mut mvs, you, player_map);
+
     let s = calculate::calculate(&mvs, true).unwrap();
     let point_diff = s.player0_point - s.player1_point;
 
-    for mv in &mvs {
-        match mv {
-            TMove(tm) => {
-                database::create_move(
-                    &db,
-                    TMove(TileMove {
-                        id: -1, // ignored
-                        ord: tm.ord,
-                        game_id: Some(g.id),
-                        player_id: map[tm.player_id as usize],
-                        tile: tm.tile,
-                        rot: tm.rot,
-                        pos: tm.pos,
-                    }),
-                )
-                .unwrap();
-            }
-            MMove(mm) => {
-                // FIXME
-                let meeple_id = if mm.meeple_id == -1 {
-                    -1
-                } else {
-                    if you /* player0 */ == map[mm.player_id as usize] {
-                        if mm.meeple_id >= 7 {
-                            mm.meeple_id - 7
-                        } else {
-                            mm.meeple_id
-                        }
-                    } else {
-                        if mm.meeple_id < 7 {
-                            mm.meeple_id + 7
-                        } else {
-                            mm.meeple_id
-                        }
-                    }
-                };
-                database::create_move(
-                    &db,
-                    MMove(MeepleMove {
-                        id: -1, // ignored
-                        ord: mm.ord,
-                        game_id: Some(g.id),
-                        player_id: map[mm.player_id as usize],
-                        meeple_id,
-                        tile_pos: mm.tile_pos,
-                        meeple_pos: mm.meeple_pos,
-                    }),
-                )
-                .unwrap();
-            }
-            DMove(dm) => {
-                database::create_move(
-                    &db,
-                    DMove(DiscardMove {
-                        id: -1, // ignored
-                        ord: dm.ord,
-                        game_id: Some(g.id),
-                        player_id: map[dm.player_id as usize],
-                        tile: dm.tile,
-                    }),
-                )
-                .unwrap();
-            }
-            _ => {
-                panic!("move not supported");
-            }
-        }
+    for mv in mvs {
+        database::create_move(&db, mv).unwrap();
     }
 
     database::create_problem(
