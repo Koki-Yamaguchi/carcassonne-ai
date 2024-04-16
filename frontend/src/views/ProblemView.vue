@@ -554,7 +554,7 @@ const formatNumber = computed(() => {
           :isLarge="false"
         />
       </div>
-      <div v-if="fixBoard" class="h-[350px]">
+      <div v-if="fixBoard" class="h-[350px] md:h-[600px]">
         <!-- keeps height for fixing a board -->
       </div>
     </div>
