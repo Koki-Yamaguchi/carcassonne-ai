@@ -46,9 +46,16 @@ const boardStyle = computed(() => {
 </script>
 
 <template>
-  <div :class="isLarge ? 'board-large' : 'board-small'" :style="boardStyle">
+  <div
+    :class="
+      isLarge
+        ? 'rounded h-[calc(100vh-215px)]'
+        : 'rounded h-[350px] md:h-[600px]'
+    "
+    :style="boardStyle"
+  >
     <div ref="elem">
-      <div class="row" v-for="(row, y) in tiles" :key="y">
+      <div class="flex" v-for="(row, y) in tiles" :key="y">
         <div v-for="(tile, x) in row" :key="x">
           <TileSquare
             v-if="
@@ -94,17 +101,3 @@ const boardStyle = computed(() => {
     </div>
   </div>
 </template>
-
-<style scoped>
-.row {
-  display: flex;
-}
-.board-small {
-  border-radius: 0.5%;
-  height: 350px;
-}
-.board-large {
-  border-radius: 0.5%;
-  height: calc(100vh - 215px);
-}
-</style>
