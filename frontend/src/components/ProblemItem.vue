@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useRouter } from "vue-router";
 import { Problem } from "../types";
 import PersonIcon from "../components/PersonIcon.vue";
 import { computed } from "vue";
@@ -8,8 +7,6 @@ const props = defineProps<{
   problem: Problem;
   voted: boolean;
 }>();
-
-const router = useRouter();
 
 const formatNumber = computed(() => {
   if (!props.problem || !props.problem.num) {
@@ -30,8 +27,8 @@ const formatNumber = computed(() => {
 </script>
 
 <template>
-  <div
-    @click="router.push(`/problems/${problem.id}`)"
+  <a
+    :href="`/problems/${problem.id}`"
     class="flex justify-between border rounded-md px-2 py-2 mb-2 bg-white hover:bg-gray-50 hover:cursor-pointer"
   >
     <div class="flex flex-col justify-center">
@@ -56,5 +53,5 @@ const formatNumber = computed(() => {
         </div>
       </div>
     </div>
-  </div>
+  </a>
 </template>
