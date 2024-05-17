@@ -163,6 +163,14 @@ const currentTile = () => {
   }
 };
 
+const getOneMeeple = (meeples: Set<number>): number => {
+  for (let meeple of meeples.keys()) {
+    return meeple;
+  }
+
+  return -1;
+};
+
 const confirm = async () => {
   if (
     !game.value ||
@@ -181,7 +189,18 @@ const confirm = async () => {
   tiles.value[posY][posX]?.addFrame("black");
 
   if (player0Meeples.value.size !== 0) {
-    meepleablePositions.value = [0, 1, 2, 3, 4, 5, 6, 7];
+    const api = new API();
+    const res = await api.tryCreateTileMove(
+      game.value.id,
+      player.value.id,
+      game.value.currentTileID,
+      placingTile.value.direction,
+      posY,
+      posX
+    );
+
+    meepleablePositions.value = res.meepleablePositions;
+
     canMeeple.value = true;
   } else {
     await handlePlaceMeeple(-1);
@@ -237,22 +256,16 @@ const createVote = async () => {
   }
   const api = new API();
 
-  const tileMove = await api.createTileMove(
+  const { tileMove, meepleMove } = await api.createMove(
     null,
     player.value.id,
     game.value.currentTileID,
     placingTile.value.direction,
-    placingPosition.value.y - Math.floor(boardSize / 2),
-    placingPosition.value.x - Math.floor(boardSize / 2)
-  );
-
-  const meepleMove = await api.createMeepleMove(
-    null,
-    player.value.id,
-    6,
+    placingPosition.value.y,
+    placingPosition.value.x,
+    meeplingPosition.value === -1 ? -1 : getOneMeeple(player0Meeples.value),
     meeplingPosition.value,
-    placingPosition.value.y - Math.floor(boardSize / 2),
-    placingPosition.value.x - Math.floor(boardSize / 2)
+    false
   );
 
   await api.createVote(
@@ -309,6 +322,7 @@ onMounted(async () => {
       }
     }
   }
+
   const moves = await api.getMoves(game.value.id);
   tileCount.value = moves.filter((m) => !("meepleID" in m)).length;
   let count = 0;
@@ -319,8 +333,8 @@ onMounted(async () => {
     }
     count++;
     const tileMove = moves[i] as TileMove;
-    const tilePosY = tileMove.pos.y + Math.floor(boardSize / 2);
-    const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
+    const tilePosY = tileMove.pos.y;
+    const tilePosX = tileMove.pos.x;
     if (tileMove.playerID === game.value?.player0ID) {
       tiles.value[tilePosY][tilePosX]?.addFrame(game.value.player0Color);
     } else {
@@ -409,9 +423,8 @@ const updateBoard = async (vote: Vote | null) => {
   }
 
   if (prevVote.value && prevVote.value.tileMove) {
-    tiles.value[prevVote.value.tileMove.pos.y + Math.floor(boardSize / 2)][
-      prevVote.value.tileMove.pos.x + Math.floor(boardSize / 2)
-    ] = null;
+    tiles.value[prevVote.value.tileMove.pos.y][prevVote.value.tileMove.pos.x] =
+      null;
   }
 
   if (vote && vote.tileMove && vote.meepleMove) {
@@ -425,8 +438,8 @@ const updateBoard = async (vote: Vote | null) => {
       meepleMove.meepleID,
       player.value.tileEdition
     );
-    const posY = tileMove.pos.y + Math.floor(boardSize / 2);
-    const posX = tileMove.pos.x + Math.floor(boardSize / 2);
+    const posY = tileMove.pos.y;
+    const posX = tileMove.pos.x;
     tiles.value[posY][posX] = tile;
     tiles.value[posY][posX]?.addFrame("black");
 

@@ -48,12 +48,14 @@ export interface TileMoveResult {
   meepleablePositions: number[];
 }
 
-export interface MeepleMoveResult {
+export interface FinalEvents {
   completeEvents: CompleteEvent[];
-  currentTileID: number;
-  nextTileID: number;
-  currentPlayerID: number;
-  nextPlayerID: number;
+}
+
+export interface CreateMoveResult {
+  tileMove: TileMove;
+  meepleMove: MeepleMove;
+  completeEvents: CompleteEvent[];
 }
 
 export interface CompleteEvent {
@@ -141,4 +143,16 @@ export interface ProblemProposal {
   creatorID: number;
   note: string;
   createdAt: Date;
+}
+
+export interface MoveCreatedEvent {
+  id: string;
+  name: string;
+  playerID: number;
+  tile: TileKind;
+  rot: number;
+  tilePos: TilePosition;
+  meepleID: number;
+  meeplePos: number;
+  completeEvents: CompleteEvent[];
 }

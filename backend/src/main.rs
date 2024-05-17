@@ -13,7 +13,7 @@ mod schema;
 mod storage;
 mod translate;
 
-use event::UpdateEvent;
+use event::Event;
 use handlers::all_options;
 use handlers::create_player;
 use handlers::create_problem_proposal;
@@ -30,8 +30,7 @@ use handlers::send_event;
 use handlers::update_player;
 use handlers::upload_profile_image;
 use handlers::use_problem_proposal;
-use handlers::wait_ai_move;
-use handlers::{create_discard_move, create_meeple_move, create_tile_move};
+use handlers::{create_discard_move, create_move, try_create_tile_move};
 use handlers::{create_favorite, get_favorites};
 use handlers::{create_game, get_game, get_games};
 use handlers::{create_problem, delete_problem, publish_problem, update_problem};
@@ -90,7 +89,7 @@ async fn rocket() -> _ {
     let storage_client = Client::new(&config);
 
     let r = rocket::build()
-        .manage(channel::<UpdateEvent>(1024).0)
+        .manage(channel::<Event>(1024).0)
         .manage(storage_client)
         .manage(pool)
         .attach(CORS)
@@ -109,10 +108,9 @@ async fn rocket() -> _ {
                 update_waiting_game,
                 delete_waiting_game,
                 create_player,
-                create_tile_move,
-                create_meeple_move,
+                try_create_tile_move,
+                create_move,
                 create_discard_move,
-                wait_ai_move,
                 get_moves,
                 get_final_events,
                 get_board,

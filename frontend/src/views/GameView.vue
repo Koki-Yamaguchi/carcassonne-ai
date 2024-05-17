@@ -1,60 +1,58 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { useRoute, useRouter } from "vue-router";
 import { API } from "../api";
-import GameBoard from "../components/GameBoard.vue";
-import PlayerInfo from "../components/PlayerInfo.vue";
-import { translate } from "../locales/translate";
-import { store } from "../store";
-import SpinnerIcon from "../components/SpinnerIcon.vue";
-import { boardSize, idToTileKind, newTile, Tile, TileKind } from "../tiles";
+import { useRoute, useRouter } from "vue-router";
 import {
-  Board,
   CompleteEvent,
   DiscardMove,
   Game,
-  MeepleMove,
   Move,
   Player,
   TileMove,
   TilePosition,
+  MoveCreatedEvent,
 } from "../types";
+import { store } from "../store";
+import { Tile, TileKind, boardSize, idToTileKind, newTile } from "../tiles";
+import { translate } from "../locales/translate";
+import GameBoard from "../components/GameBoard.vue";
+import PlayerInfo from "../components/PlayerInfo.vue";
 import TrashIcon from "../components/TrashIcon.vue";
+import SpinnerIcon from "../components/SpinnerIcon.vue";
+
+const router = useRouter();
 
 // common variables
 const TILE_TOTAL_COUNT = 72;
-const game = ref<Game>();
-const board = ref<Board>();
-const moves = ref<Move[]>();
+const game = ref<Game | null>(null);
+const player0ProfileImageURL = ref<string>("");
+const player1ProfileImageURL = ref<string>("");
 const isMyGame = ref<boolean>(false);
 const tiles = ref<(Tile | null)[][]>([]);
-const meepledPositions = ref<Map<number, TilePosition>>(new Map());
+const player0Point = ref<number>(0);
+const player1Point = ref<number>(0);
 const player0Meeples = ref<Set<number>>(new Set([0, 1, 2, 3, 4, 5, 6]));
 const player1Meeples = ref<Set<number>>(new Set([7, 8, 9, 10, 11, 12, 13]));
+const meepledPositions = ref<Map<number, TilePosition>>(new Map());
+const moves = ref<Move[]>();
 const tileCount = ref<number>(1);
 const player0LastTilePos = ref<TilePosition>({ y: -1, x: -1 });
 const player1LastTilePos = ref<TilePosition>({ y: -1, x: -1 });
-const player0Point = ref<number>(0);
-const player1Point = ref<number>(0);
 const discardedTileKinds = ref<TileKind[]>([]);
 const finished = ref<boolean>(false);
-const showDiscardedTiles = ref<boolean>(false);
 const evtSource = ref<any>(null);
-const player0ProfileImageURL = ref<string>("");
-const player1ProfileImageURL = ref<string>("");
 
 // variables that is only needed from player0's point of view
+const player = ref<Player | null>(null);
 const placingTile = ref<Tile | null>(null);
 const placeablePositions = ref<TilePosition[]>([]);
-const placeableDirections = ref<number[]>([]);
-const placingPosition = ref<TilePosition | null>(null);
 const meepleablePositions = ref<number[]>([]);
 const mustDiscard = ref<boolean>(false);
-const player = ref<Player | null>(null);
 const canConfirm = ref<boolean>(false);
 const canPlaceMeeple = ref<boolean>(false);
-
-const router = useRouter();
+const placingPosition = ref<TilePosition | null>(null);
+const showDiscardedTiles = ref<boolean>(false);
+const placeableDirections = ref<number[]>([]);
 
 const initGame = async () => {
   const api = new API();
@@ -82,14 +80,11 @@ const joinGame = async () => {
   }
 
   const api = new API();
-  const updateHandler = () => {
-    update();
-  };
 
   evtSource.value = await api.subscribe(
-    "update_game",
+    "move_created_event",
     game.value.id,
-    updateHandler
+    update
   );
 };
 
@@ -97,9 +92,566 @@ onUnmounted(() => {
   evtSource.value.close();
 });
 
+const update = async (e: any) => {
+  if (!game.value) {
+    return;
+  }
+  const api = new API();
+
+  const d = JSON.parse(e.data);
+  const event: MoveCreatedEvent = {
+    id: d.id,
+    name: d.name,
+    playerID: d.player_id,
+    tile: d.tile,
+    rot: d.rot,
+    tilePos: {
+      y: d.tile_pos[0] + Math.floor(boardSize / 2),
+      x: d.tile_pos[1] + Math.floor(boardSize / 2),
+    },
+    meepleID: d.meeple_id,
+    meeplePos: d.meeple_pos,
+    completeEvents: d.complete_events.map((ce: any) => {
+      return {
+        meepleIDs: ce.meeple_ids,
+        feature: ce.feature,
+        point: ce.point,
+      };
+    }),
+  };
+
+  if (player.value?.id === event.playerID) {
+    return;
+  }
+
+  if (event.rot === -1) {
+    updateDiscardMove(event.tile, true);
+    return;
+  }
+
+  updateTileMove(event.rot, event.tile, event.tilePos);
+
+  await sleep(500);
+
+  if (isMyGame.value && placingTile.value) {
+    placeablePositions.value = getPlaceablePositions(placingTile.value);
+  }
+
+  updateMeepleMove(
+    event.meepleID,
+    event.meeplePos,
+    event.tilePos,
+    event.playerID
+  );
+
+  await sleep(500);
+
+  processCompleteEvents(event.completeEvents);
+
+  if (isMyGame.value && placeablePositions.value.length === 0) {
+    mustDiscard.value = true;
+  }
+
+  game.value = await api.getGame(game.value.id);
+
+  if (game.value.currentTileID === -1) {
+    finishGame();
+  }
+};
+
+const updateDiscardMove = async (tileKind: TileKind, showWarning: boolean) => {
+  if (!game.value) {
+    return;
+  }
+
+  const api = new API();
+
+  if (showWarning) {
+    alert(`The opponent discarded a tile.`);
+  }
+
+  tileCount.value++;
+
+  discardedTileKinds.value.push(tileKind);
+
+  game.value = await api.getGame(game.value.id);
+};
+
+const updateTileMove = (
+  rot: number,
+  tileKind: TileKind,
+  tilePos: TilePosition
+) => {
+  if (!player.value || !game.value) {
+    return;
+  }
+  const tile = newTile(rot, tileKind, null, -1, -1, player.value.tileEdition);
+  tiles.value[tilePos.y][tilePos.x] = tile;
+};
+
+const updateMeepleMove = (
+  meepleID: number,
+  meeplePos: number,
+  tilePos: TilePosition,
+  playerID: number
+) => {
+  if (!game.value) {
+    return;
+  }
+
+  if (meepleID !== -1) {
+    const meepleColor =
+      playerID === game.value.player0ID
+        ? game.value.player0Color
+        : game.value.player1Color;
+    tiles.value[tilePos.y][tilePos.x]?.placeMeeple(
+      meeplePos,
+      meepleColor,
+      meepleID
+    );
+    useMeeple(
+      playerID === game.value.player0ID
+        ? player0Meeples.value
+        : player1Meeples.value,
+      tilePos,
+      meepleID
+    );
+  }
+
+  if (playerID === game.value.player0ID) {
+    if (player0LastTilePos.value.y !== -1) {
+      tiles.value[player0LastTilePos.value.y][
+        player0LastTilePos.value.x
+      ]?.addFrame(null);
+    }
+    tiles.value[tilePos.y][tilePos.x]?.addFrame(game.value.player0Color);
+    player0LastTilePos.value = { y: tilePos.y, x: tilePos.x };
+  } else {
+    if (player1LastTilePos.value.y !== -1) {
+      tiles.value[player1LastTilePos.value.y][
+        player1LastTilePos.value.x
+      ]?.addFrame(null);
+    }
+    tiles.value[tilePos.y][tilePos.x]?.addFrame(game.value.player1Color);
+    player1LastTilePos.value = { y: tilePos.y, x: tilePos.x };
+  }
+
+  tileCount.value++;
+};
+
+const useMeeple = (
+  meeples: Set<number>,
+  pos: TilePosition,
+  meepleID?: number
+): number => {
+  let mid = meepleID ? meepleID : -1;
+  if (mid === -1) {
+    for (let meeple of meeples.keys()) {
+      mid = meeple;
+      break;
+    }
+  }
+  meeples.delete(mid);
+  meepledPositions.value.set(mid, pos);
+
+  return mid;
+};
+
+const getNextMeepleID = (meeples: Set<number>) => {
+  for (let meeple of meeples.keys()) {
+    return meeple;
+  }
+  return -1;
+};
+
+const retrieveMeeple = (meeples: Set<number>, meeple: number): TilePosition => {
+  meeples.add(meeple);
+  const pos = meepledPositions.value.get(meeple);
+  if (!pos) {
+    return { y: -1, x: -1 };
+  }
+  return pos;
+};
+
+const getPlaceablePositions = (placingTile: Tile): TilePosition[] => {
+  const pos = [];
+  for (let y = 1; y < boardSize - 1; y++) {
+    for (let x = 1; x < boardSize - 1; x++) {
+      if (tiles.value[y][x] === null) {
+        if (
+          tiles.value[y - 1][x] === null &&
+          tiles.value[y + 1][x] === null &&
+          tiles.value[y][x - 1] === null &&
+          tiles.value[y][x + 1] === null
+        ) {
+          continue;
+        }
+        for (let dir = 0; dir < 4; dir++) {
+          placingTile.rotate();
+          if (
+            (tiles.value[y - 1][x] !== null &&
+              tiles.value[y - 1][x]?.bottom() !== placingTile.top()) ||
+            (tiles.value[y + 1][x] !== null &&
+              tiles.value[y + 1][x]?.top() !== placingTile.bottom()) ||
+            (tiles.value[y][x - 1] !== null &&
+              tiles.value[y][x - 1]?.right() !== placingTile.left()) ||
+            (tiles.value[y][x + 1] !== null &&
+              tiles.value[y][x + 1]?.left() !== placingTile.right())
+          ) {
+            continue;
+          }
+          pos.push({ y, x });
+        }
+      }
+    }
+  }
+  return pos;
+};
+
+const initialUpdate = async () => {
+  if (!game.value || !player.value) {
+    return;
+  }
+
+  const api = new API();
+  const board = await api.getBoard(
+    game.value.id,
+    game.value.player0Color,
+    game.value.player1Color,
+    player.value.tileEdition
+  );
+
+  tiles.value = board.tiles;
+  player0Point.value = board.player0Point;
+  player1Point.value = board.player1Point;
+
+  // manage meeples
+  for (let y = 0; y < tiles.value.length; y++) {
+    for (let x = 0; x < tiles.value[y].length; x++) {
+      if (tiles.value[y][x] !== null) {
+        const meepleID = tiles.value[y][x]?.meepleID;
+        if (meepleID !== -1) {
+          if ((meepleID as number) < 7) {
+            useMeeple(player0Meeples.value, { y, x }, meepleID);
+          } else {
+            useMeeple(player1Meeples.value, { y, x }, meepleID);
+          }
+        }
+      }
+    }
+  }
+
+  moves.value = await api.getMoves(game.value.id);
+
+  tileCount.value = moves.value.filter((m) => !("meepleID" in m)).length;
+
+  // frame tiles from last 1 or 2 tile moves
+  let count = 0;
+  for (let i = moves.value.length - 1; i >= 2 && count < 2; i--) {
+    // not tile move
+    if (!("rot" in moves.value[i])) {
+      continue;
+    }
+    count++;
+    const tileMove = moves.value[i] as TileMove;
+    if (tileMove.playerID === game.value?.player0ID) {
+      tiles.value[tileMove.pos.y][tileMove.pos.x]?.addFrame(
+        game.value.player0Color
+      );
+      player0LastTilePos.value = tileMove.pos;
+    } else {
+      tiles.value[tileMove.pos.y][tileMove.pos.x]?.addFrame(
+        game.value.player1Color
+      );
+      player1LastTilePos.value = tileMove.pos;
+    }
+  }
+
+  // list discarded tiles
+  discardedTileKinds.value = moves.value
+    .filter((mv) => !("rot" in mv) && "tile" in mv)
+    .map((mv) => {
+      const dm = mv as DiscardMove;
+      return dm.tile;
+    });
+
+  if (tileCount.value === TILE_TOTAL_COUNT) {
+    await finishGame();
+    return;
+  }
+
+  if (isMyGame.value) {
+    const placingTileID =
+      game.value.currentPlayerID === player.value.id
+        ? game.value.currentTileID
+        : game.value.nextTileID;
+    const placingTileKind = idToTileKind(placingTileID);
+    placingTile.value = newTile(
+      0,
+      placingTileKind,
+      null,
+      -1,
+      -1,
+      player.value.tileEdition
+    );
+    placeablePositions.value = getPlaceablePositions(placingTile.value);
+
+    if (
+      game.value.currentPlayerID === player.value.id &&
+      placeablePositions.value.length === 0
+    ) {
+      mustDiscard.value = true;
+    }
+  }
+};
+
+const currentTile = () => {
+  if (!game.value || !player.value) {
+    return null;
+  }
+  if (game.value.currentTileID !== null) {
+    return newTile(
+      0,
+      idToTileKind(game.value.currentTileID),
+      null,
+      -1,
+      -1,
+      player.value.tileEdition
+    );
+  }
+};
+
+const handlePlaceMeeple = async (meeplePos: number) => {
+  if (
+    !game.value ||
+    !player.value ||
+    !placingPosition.value ||
+    !placingTile.value
+  ) {
+    return;
+  }
+
+  if (isMyGame.value) {
+    canPlaceMeeple.value = false;
+    meepleablePositions.value = [];
+  }
+
+  const meepleID =
+    meeplePos === -1
+      ? -1
+      : getNextMeepleID(
+          player.value.id === game.value.player0ID
+            ? player0Meeples.value
+            : player1Meeples.value
+        );
+
+  const api = new API();
+
+  const createMoveResult = await api.createMove(
+    game.value.id,
+    player.value.id,
+    game.value.currentTileID,
+    placingTile.value.direction,
+    placingPosition.value.y,
+    placingPosition.value.x,
+    meepleID,
+    meeplePos,
+    game.value.player0ID === 1 || game.value.player1ID === 1
+  );
+
+  game.value = await api.getGame(game.value.id);
+
+  updateMeepleMove(meepleID, meeplePos, placingPosition.value, player.value.id);
+
+  await sleep(500);
+
+  processCompleteEvents(createMoveResult.completeEvents);
+
+  if (isMyGame.value) {
+    placingPosition.value = null;
+    if (game.value.nextTileID !== -1) {
+      const placingTileKind = idToTileKind(game.value.nextTileID);
+      placingTile.value = newTile(
+        0,
+        placingTileKind,
+        null,
+        -1,
+        -1,
+        player.value.tileEdition
+      );
+      placeablePositions.value = getPlaceablePositions(placingTile.value);
+    }
+  }
+
+  if (game.value.currentTileID === -1) {
+    finishGame();
+  }
+};
+
+const skip = async () => {
+  await handlePlaceMeeple(-1);
+};
+
+/*
+const undo = async () => {
+  if (!placingPosition.value || !placingTile.value) {
+    return;
+  }
+
+  meepleablePositions.value = [];
+  tiles.value[placingPosition.value.y][placingPosition.value.x] = null;
+  placingPosition.value = null;
+  placeablePositions.value = getPlaceablePositions(placingTile.value);
+  canPlaceMeeple.value = false;
+};
+*/
+
+const placingTileSrc = computed(() => {
+  return placingTile.value?.src;
+});
+
+const confirm = async () => {
+  if (
+    !game.value ||
+    !player.value ||
+    !placingTile.value ||
+    !placingPosition.value
+  ) {
+    return;
+  }
+
+  if (isMyGame.value) {
+    canConfirm.value = false;
+    placeablePositions.value = [];
+  }
+
+  const api = new API();
+  const r = await api.tryCreateTileMove(
+    game.value.id,
+    player.value.id,
+    game.value.currentTileID,
+    placingTile.value.direction,
+    placingPosition.value.y,
+    placingPosition.value.x
+  );
+
+  updateTileMove(
+    placingTile.value.direction,
+    idToTileKind(game.value.currentTileID),
+    placingPosition.value
+  );
+
+  meepleablePositions.value = r.meepleablePositions;
+
+  const meepleable =
+    meepleablePositions.value.length > 0 &&
+    ((player.value.id === game.value.player0ID &&
+      player0Meeples.value.size !== 0) ||
+      (player.value.id === game.value.player1ID &&
+        player1Meeples.value.size !== 0));
+  if (meepleable) {
+    canPlaceMeeple.value = true;
+  } else {
+    skip();
+  }
+};
+
+const discard = async () => {
+  if (!game.value || !player.value) {
+    return;
+  }
+  const api = new API();
+
+  await api.createDiscardMove(
+    game.value.id,
+    game.value.currentPlayerID,
+    game.value.currentTileID
+  );
+
+  await updateDiscardMove(idToTileKind(game.value.currentTileID), false);
+
+  if (game.value.currentTileID !== -1) {
+    console.log("IN");
+    const placingTileKind = idToTileKind(game.value.currentTileID);
+    console.log({ placingTileKind });
+    placingTile.value = newTile(
+      0,
+      placingTileKind,
+      null,
+      -1,
+      -1,
+      player.value.tileEdition
+    );
+    placeablePositions.value = getPlaceablePositions(placingTile.value);
+    console.log("placeablePositions =", placeablePositions.value);
+    if (placeablePositions.value.length !== 0) {
+      mustDiscard.value = false;
+    }
+  }
+};
+
+const processCompleteEvents = (completeEvents: CompleteEvent[]) => {
+  const pos = [];
+  for (const e of completeEvents) {
+    let player0Count = 0;
+    let player1Count = 0;
+    for (const meepleID of e.meepleIDs) {
+      if (meepleID < 7) {
+        player0Count++;
+        pos.push(retrieveMeeple(player0Meeples.value, meepleID));
+      } else {
+        player1Count++;
+        pos.push(retrieveMeeple(player1Meeples.value, meepleID));
+      }
+    }
+    if (player0Count >= player1Count) {
+      player0Point.value += e.point;
+    }
+    if (player1Count >= player0Count) {
+      player1Point.value += e.point;
+    }
+  }
+  for (const p of pos) {
+    tiles.value[p.y][p.x]?.removeMeeple();
+  }
+};
+
 const sleep = (ms: number) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
 };
+
+const finishGame = async () => {
+  if (!game.value) {
+    return;
+  }
+  const api = new API();
+
+  const finalEvents = await api.getFinalEevnts(game.value.id);
+
+  processCompleteEvents(finalEvents.completeEvents);
+
+  game.value = await api.getGame(game.value.id);
+
+  finished.value = true;
+
+  await sleep(2000);
+
+  evtSource.value.close();
+
+  router.push(`/games/${game.value.id}/result`);
+};
+
+const winner = computed(() => {
+  if (!game.value) {
+    return "";
+  }
+  const winnerPlayerID = game.value?.winnerPlayerID;
+  if (winnerPlayerID === game.value?.player0ID) {
+    return game.value.player0Name;
+  } else {
+    return game.value.player1Name;
+  }
+});
 
 const handleTilePositionSelected = (pos: TilePosition) => {
   placingPosition.value = pos;
@@ -148,594 +700,13 @@ const handleTurnTile = () => {
   }
 };
 
-const confirm = async () => {
-  if (
-    !game.value ||
-    !player.value ||
-    !placingTile.value ||
-    !placingPosition.value
-  ) {
-    return;
-  }
-
-  if (isMyGame.value) {
-    canConfirm.value = false;
-    placeablePositions.value = [];
-  }
-
-  const api = new API();
-  await api.createTileMove(
-    game.value.id,
-    player.value.id,
-    game.value.currentTileID,
-    placingTile.value.direction,
-    placingPosition.value.y - Math.floor(boardSize / 2),
-    placingPosition.value.x - Math.floor(boardSize / 2)
-  );
-};
-
-const handlePlaceMeeple = async (pos: number) => {
-  if (!game.value || !player.value || !placingPosition.value) {
-    return;
-  }
-
-  if (isMyGame.value) {
-    canPlaceMeeple.value = false;
-    meepleablePositions.value = [];
-  }
-
-  const meepleID =
-    pos === -1
-      ? -1
-      : getNextMeepleID(
-          player.value.id === game.value.player0ID
-            ? player0Meeples.value
-            : player1Meeples.value
-        );
-
-  const tilePosY = placingPosition.value.y - Math.floor(boardSize / 2);
-  const tilePosX = placingPosition.value.x - Math.floor(boardSize / 2);
-
-  const api = new API();
-  await api.createMeepleMove(
-    game.value.id,
-    player.value.id,
-    meepleID,
-    pos,
-    tilePosY,
-    tilePosX
-  );
-};
-
-const discard = async () => {
-  if (!game.value) {
-    return;
-  }
-  const api = new API();
-
-  await api.createDiscardMove(
-    game.value.id,
-    game.value.currentPlayerID,
-    game.value.currentTileID
-  );
-  await api.sendEvent("update_game", game.value.id);
-};
-
-const update = async () => {
-  if (!game.value || !player.value) {
-    return;
-  }
-
-  const api = new API();
-  game.value = await api.getGame(game.value.id);
-  moves.value = await api.getMoves(game.value.id);
-  board.value = await api.getBoard(
-    game.value.id,
-    game.value.player0Color,
-    game.value.player1Color,
-    player.value.tileEdition
-  );
-
-  const lastMove = moves.value[moves.value.length - 1];
-
-  const updateTileMove = async (tm: TileMove) => {
-    if (!game.value || !board.value || !player.value) {
-      return;
-    }
-
-    const tile = newTile(
-      tm.rot,
-      tm.tile,
-      null,
-      -1,
-      -1,
-      player.value.tileEdition
-    );
-    const tilePosY = tm.pos.y + Math.floor(boardSize / 2);
-    const tilePosX = tm.pos.x + Math.floor(boardSize / 2);
-    tiles.value[tilePosY][tilePosX] = tile;
-
-    if (tm.playerID === game.value.player0ID) {
-      if (player0LastTilePos.value.y !== -1) {
-        tiles.value[player0LastTilePos.value.y][
-          player0LastTilePos.value.x
-        ]?.addFrame(null);
-      }
-      tiles.value[tilePosY][tilePosX]?.addFrame(game.value.player0Color);
-      player0LastTilePos.value = { y: tilePosY, x: tilePosX };
-    } else {
-      if (player1LastTilePos.value.y !== -1) {
-        tiles.value[player1LastTilePos.value.y][
-          player1LastTilePos.value.x
-        ]?.addFrame(null);
-      }
-      tiles.value[tilePosY][tilePosX]?.addFrame(game.value.player1Color);
-      player1LastTilePos.value = { y: tilePosY, x: tilePosX };
-    }
-  };
-  const updateMeepleMove = async (mm: MeepleMove, tm: TileMove) => {
-    if (!game.value || !board.value) {
-      return;
-    }
-
-    if (mm.meepleID !== -1) {
-      const tilePosY = tm.pos.y + Math.floor(boardSize / 2);
-      const tilePosX = tm.pos.x + Math.floor(boardSize / 2);
-      const meepleColor =
-        tm.playerID === game.value.player0ID
-          ? game.value.player0Color
-          : game.value.player1Color;
-      tiles.value[tilePosY][tilePosX]?.placeMeeple(
-        mm.pos,
-        meepleColor,
-        mm.meepleID
-      );
-      useMeeple(
-        tm.playerID === game.value.player0ID
-          ? player0Meeples.value
-          : player1Meeples.value,
-        { y: tilePosY, x: tilePosX },
-        mm.meepleID
-      );
-    }
-
-    tileCount.value++;
-
-    await sleep(500);
-
-    await processCompleteEvents(board.value.completeEvents);
-  };
-  const updateDiscardMove = async (dm: DiscardMove) => {
-    discardedTileKinds.value.push(dm.tile);
-
-    tileCount.value++;
-  };
-
-  if (lastMove.playerID !== player.value.id) {
-    // discard move
-    if ("tile" in lastMove && !("rot" in lastMove)) {
-      await updateDiscardMove(lastMove as DiscardMove);
-
-      alert(`The opponent discarded a tile.`);
-
-      waitOpponentMove();
-    } else {
-      if (lastMove.playerID === 1) {
-        // AI's tile move and meeple move must happen at once
-        const tileMove = moves.value[moves.value.length - 2] as TileMove;
-        const meepleMove = moves.value[moves.value.length - 1] as MeepleMove;
-
-        await updateTileMove(tileMove);
-
-        if (isMyGame.value && placingTile.value) {
-          placeablePositions.value = getPlaceablePositions(placingTile.value);
-          if (
-            placingPosition.value &&
-            placeablePositions.value.filter(
-              ({ x, y }) =>
-                x == placingPosition?.value?.x && y == placingPosition?.value?.y
-            ).length === 0
-          ) {
-            placingPosition.value = null;
-            canConfirm.value = false;
-          }
-        }
-
-        await sleep(500);
-
-        await updateMeepleMove(meepleMove, tileMove);
-
-        if (game.value.currentTileID === -1) {
-          await finishGame();
-        }
-
-        if (isMyGame.value) {
-          mustDiscard.value = placeablePositions.value.length === 0;
-        }
-      } else {
-        if ("rot" in lastMove) {
-          await updateTileMove(lastMove as TileMove);
-          if (isMyGame.value && placingTile.value) {
-            placeablePositions.value = getPlaceablePositions(placingTile.value);
-            if (
-              placingPosition.value &&
-              placeablePositions.value.filter(
-                ({ x, y }) =>
-                  x == placingPosition?.value?.x &&
-                  y == placingPosition?.value?.y
-              ).length === 0
-            ) {
-              placingPosition.value = null;
-              canConfirm.value = false;
-            }
-          }
-        } else {
-          const tileMove = moves.value[moves.value.length - 2] as TileMove;
-          const meepleMove = moves.value[moves.value.length - 1] as MeepleMove;
-          await updateMeepleMove(meepleMove, tileMove);
-
-          if (game.value.currentTileID === -1) {
-            await finishGame();
-          }
-
-          if (isMyGame.value) {
-            mustDiscard.value = placeablePositions.value.length === 0;
-          }
-        }
-      }
-    }
-  } else {
-    if ("tile" in lastMove && !("rot" in lastMove)) {
-      await updateDiscardMove(lastMove as DiscardMove);
-
-      if (isMyGame.value) {
-        if (game.value.nextTileID !== -1) {
-          const placingTileKind = idToTileKind(game.value.currentTileID);
-          placingTile.value = newTile(
-            0,
-            placingTileKind,
-            null,
-            -1,
-            -1,
-            player.value.tileEdition
-          );
-          placeablePositions.value = getPlaceablePositions(placingTile.value);
-          if (placeablePositions.value.length !== 0) {
-            mustDiscard.value = false;
-          }
-        }
-      }
-    } else if ("rot" in lastMove) {
-      await updateTileMove(lastMove as TileMove);
-
-      if (isMyGame.value) {
-        placeablePositions.value = [];
-        const meepleable =
-          board.value.meepleablePositions.length > 0 &&
-          ((player.value.id === game.value.player0ID &&
-            player0Meeples.value.size !== 0) ||
-            (player.value.id === game.value.player1ID &&
-              player1Meeples.value.size !== 0));
-        if (meepleable) {
-          meepleablePositions.value = board.value.meepleablePositions;
-          canPlaceMeeple.value = true;
-        } else {
-          await skip();
-        }
-      }
-    } else if ("meepleID" in lastMove) {
-      placingTile.value = null;
-
-      await updateMeepleMove(
-        lastMove as MeepleMove,
-        moves.value[moves.value.length - 2] as TileMove
-      );
-
-      if (isMyGame.value) {
-        placingPosition.value = null;
-        if (game.value.nextTileID !== -1) {
-          const placingTileKind = idToTileKind(game.value.nextTileID);
-          placingTile.value = newTile(
-            0,
-            placingTileKind,
-            null,
-            -1,
-            -1,
-            player.value.tileEdition
-          );
-          placeablePositions.value = getPlaceablePositions(placingTile.value);
-        }
-
-        if (game.value.currentTileID === -1) {
-          await finishGame();
-        } else {
-          waitOpponentMove();
-        }
-      }
-    }
-  }
-};
-
-const finishGame = async () => {
-  if (!game.value) {
-    return;
-  }
-  const api = new API();
-
-  const finalEvents = await api.getFinalEevnts(game.value.id);
-
-  await processCompleteEvents(finalEvents.completeEvents);
-
-  game.value = await api.getGame(game.value.id);
-
-  finished.value = true;
-
-  await sleep(3000);
-
-  evtSource.value.close();
-
-  router.push(`/games/${game.value.id}/result`);
-};
-
-const processCompleteEvents = (completeEvents: CompleteEvent[]) => {
-  const pos = [];
-  for (const e of completeEvents) {
-    let player0Count = 0;
-    let player1Count = 0;
-    for (const meepleID of e.meepleIDs) {
-      if (meepleID < 7) {
-        player0Count++;
-        pos.push(retrieveMeeple(player0Meeples.value, meepleID));
-      } else {
-        player1Count++;
-        pos.push(retrieveMeeple(player1Meeples.value, meepleID));
-      }
-    }
-    if (player0Count >= player1Count) {
-      player0Point.value += e.point;
-    }
-    if (player1Count >= player0Count) {
-      player1Point.value += e.point;
-    }
-  }
-  for (const p of pos) {
-    tiles.value[p.y][p.x]?.removeMeeple();
-  }
-};
-
-const getPlaceablePositions = (placingTile: Tile): TilePosition[] => {
-  const pos = [];
-  for (let y = 1; y < boardSize - 1; y++) {
-    for (let x = 1; x < boardSize - 1; x++) {
-      if (tiles.value[y][x] === null) {
-        if (
-          tiles.value[y - 1][x] === null &&
-          tiles.value[y + 1][x] === null &&
-          tiles.value[y][x - 1] === null &&
-          tiles.value[y][x + 1] === null
-        ) {
-          continue;
-        }
-        for (let dir = 0; dir < 4; dir++) {
-          placingTile.rotate();
-          if (
-            (tiles.value[y - 1][x] !== null &&
-              tiles.value[y - 1][x]?.bottom() !== placingTile.top()) ||
-            (tiles.value[y + 1][x] !== null &&
-              tiles.value[y + 1][x]?.top() !== placingTile.bottom()) ||
-            (tiles.value[y][x - 1] !== null &&
-              tiles.value[y][x - 1]?.right() !== placingTile.left()) ||
-            (tiles.value[y][x + 1] !== null &&
-              tiles.value[y][x + 1]?.left() !== placingTile.right())
-          ) {
-            continue;
-          }
-          pos.push({ y, x });
-        }
-      }
-    }
-  }
-  return pos;
-};
-
-const useMeeple = (
-  meeples: Set<number>,
-  pos: TilePosition,
-  meepleID?: number
-): number => {
-  let mid = meepleID ? meepleID : -1;
-  if (mid === -1) {
-    for (let meeple of meeples.keys()) {
-      mid = meeple;
-      break;
-    }
-  }
-  meeples.delete(mid);
-  meepledPositions.value.set(mid, pos);
-
-  return mid;
-};
-
-const getNextMeepleID = (meeples: Set<number>) => {
-  for (let meeple of meeples.keys()) {
-    return meeple;
-  }
-  return -1;
-};
-
-const retrieveMeeple = (meeples: Set<number>, meeple: number): TilePosition => {
-  meeples.add(meeple);
-  const pos = meepledPositions.value.get(meeple);
-  if (!pos) {
-    return { y: -1, x: -1 };
-  }
-  return pos;
-};
-
-const initialUpdate = async () => {
-  if (!game.value || !player.value) {
-    return;
-  }
-
-  const api = new API();
-  board.value = await api.getBoard(
-    game.value.id,
-    game.value.player0Color,
-    game.value.player1Color,
-    player.value.tileEdition
-  );
-
-  tiles.value = board.value.tiles;
-  player0Point.value = board.value.player0Point;
-  player1Point.value = board.value.player1Point;
-
-  // manage meeples
-  for (let y = 0; y < tiles.value.length; y++) {
-    for (let x = 0; x < tiles.value[y].length; x++) {
-      if (tiles.value[y][x] !== null) {
-        const meepleID = tiles.value[y][x]?.meepleID;
-        if (meepleID !== -1) {
-          if ((meepleID as number) < 7) {
-            useMeeple(player0Meeples.value, { y, x }, meepleID);
-          } else {
-            useMeeple(player1Meeples.value, { y, x }, meepleID);
-          }
-        }
-      }
-    }
-  }
-
-  moves.value = await api.getMoves(game.value.id);
-  const lastMove = moves.value[moves.value.length - 1];
-
-  tileCount.value = moves.value.filter((m) => !("meepleID" in m)).length;
-  if ("rot" in lastMove) {
-    tileCount.value--;
-  }
-
-  // frame tiles from last 1 or 2 tile moves
-  let count = 0;
-  for (let i = moves.value.length - 1; i >= 2 && count < 2; i--) {
-    // not tile move
-    if (!("rot" in moves.value[i])) {
-      continue;
-    }
-    count++;
-    const tileMove = moves.value[i] as TileMove;
-    const tilePosY = tileMove.pos.y + Math.floor(boardSize / 2);
-    const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
-    if (tileMove.playerID === game.value?.player0ID) {
-      tiles.value[tilePosY][tilePosX]?.addFrame(game.value.player0Color);
-      player0LastTilePos.value = { y: tilePosY, x: tilePosX };
-    } else {
-      tiles.value[tilePosY][tilePosX]?.addFrame(game.value.player1Color);
-      player1LastTilePos.value = { y: tilePosY, x: tilePosX };
-    }
-  }
-
-  // list discarded tiles
-  discardedTileKinds.value = moves.value
-    .filter((mv) => !("rot" in mv) && "tile" in mv)
-    .map((mv) => {
-      const dm = mv as DiscardMove;
-      return dm.tile;
-    });
-
-  if (tileCount.value === TILE_TOTAL_COUNT) {
-    await finishGame();
-    return;
-  }
-
-  if (isMyGame.value) {
-    if ("rot" in lastMove && lastMove.playerID === player.value.id) {
-      meepleablePositions.value = board.value.meepleablePositions;
-      const lastTileMove = lastMove as TileMove;
-      placingPosition.value = {
-        y: lastTileMove.pos.y + Math.floor(boardSize / 2),
-        x: lastTileMove.pos.x + Math.floor(boardSize / 2),
-      };
-      canPlaceMeeple.value = true;
-    } else {
-      const placingTileID =
-        game.value.currentPlayerID === player.value.id
-          ? game.value.currentTileID
-          : game.value.nextTileID;
-      const placingTileKind = idToTileKind(placingTileID);
-      placingTile.value = newTile(
-        0,
-        placingTileKind,
-        null,
-        -1,
-        -1,
-        player.value.tileEdition
-      );
-      placeablePositions.value = getPlaceablePositions(placingTile.value);
-
-      if (
-        game.value.currentPlayerID === player.value.id &&
-        placeablePositions.value.length === 0
-      )
-        mustDiscard.value = true;
-    }
-  }
-};
-
-const currentTile = () => {
-  if (!game.value || !player.value) {
-    return null;
-  }
-  if (game.value.currentTileID !== null) {
-    return newTile(
-      0,
-      idToTileKind(game.value.currentTileID),
-      null,
-      -1,
-      -1,
-      player.value.tileEdition
-    );
-  }
-};
-
-const skip = async () => {
-  await handlePlaceMeeple(-1);
-};
-
-const placingTileSrc = computed(() => {
-  return placingTile.value?.src;
-});
-
-const waitOpponentMove = () => {
-  if (!game.value) {
-    return;
-  }
-
-  if (game.value.player1ID === 1) {
-    const api = new API();
-    api.waitAIMove(game.value.id);
-  }
-};
-
-const winner = computed(() => {
-  if (!game.value) {
-    return "";
-  }
-  const winnerPlayerID = game.value?.winnerPlayerID;
-  if (winnerPlayerID === game.value?.player0ID) {
-    return game.value.player0Name;
-  } else {
-    return game.value.player1Name;
-  }
-});
-
 onMounted(async () => {
   await initGame();
   await joinGame();
   await initialUpdate();
-  if (isMyGame.value && game.value?.currentPlayerID !== game.value?.player0ID) {
-    waitOpponentMove();
-  }
 });
 </script>
+
 <template>
   <div>
     <div v-if="!finished">
@@ -798,6 +769,15 @@ onMounted(async () => {
             >
               {{ translate("discard") }}
             </button>
+            <!--
+            <button
+              class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
+              v-if="isMyGame && canPlaceMeeple"
+              @click="undo"
+            >
+              undo
+            </button>
+            -->
           </div>
         </div>
         <div v-else>{{ translate("calculating_final_points") }}</div>
