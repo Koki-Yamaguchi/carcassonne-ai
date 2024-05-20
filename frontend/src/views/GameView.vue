@@ -571,9 +571,7 @@ const discard = async () => {
   await updateDiscardMove(idToTileKind(game.value.currentTileID), false);
 
   if (game.value.currentTileID !== -1) {
-    console.log("IN");
     const placingTileKind = idToTileKind(game.value.currentTileID);
-    console.log({ placingTileKind });
     placingTile.value = newTile(
       0,
       placingTileKind,
@@ -583,7 +581,6 @@ const discard = async () => {
       player.value.tileEdition
     );
     placeablePositions.value = getPlaceablePositions(placingTile.value);
-    console.log("placeablePositions =", placeablePositions.value);
     if (placeablePositions.value.length !== 0) {
       mustDiscard.value = false;
     }
