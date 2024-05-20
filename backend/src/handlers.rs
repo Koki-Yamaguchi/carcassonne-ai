@@ -39,17 +39,6 @@ pub struct CreateTileMove {
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
-pub struct CreateMeepleMove {
-    pub game_id: Option<i32>,
-    pub player_id: i32,
-    pub meeple_id: i32,
-    pub pos: i32,
-    pub tile_pos_y: i32,
-    pub tile_pos_x: i32,
-}
-
-#[derive(Deserialize)]
-#[serde(crate = "rocket::serde")]
 pub struct CreateDiscardMove {
     pub game_id: Option<i32>,
     pub player_id: i32,
@@ -58,8 +47,16 @@ pub struct CreateDiscardMove {
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
-pub struct WaitAIMove {
-    pub game_id: i32,
+pub struct CreateMove {
+    pub game_id: Option<i32>,
+    pub player_id: i32,
+    pub tile_id: i32,
+    pub rot: i32,
+    pub pos_y: i32,
+    pub pos_x: i32,
+    pub meeple_id: i32,
+    pub meeple_pos: i32,
+    pub wait_ai_move: bool,
 }
 
 #[derive(Deserialize)]
@@ -82,6 +79,13 @@ pub struct CreateWaitingGame {
 #[serde(crate = "rocket::serde")]
 pub struct DeleteWaitingGame {
     pub player_id: i32,
+}
+
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct SendEvent {
+    pub id: i32,
+    pub name: String,
 }
 
 #[get("/players/<player_id>", format = "application/json")]
@@ -174,12 +178,16 @@ pub fn get_game(game_id: i32, db: &State<DbPool>) -> (Status, (ContentType, Stri
 #[post("/games/create", format = "application/json", data = "<params>")]
 pub fn create_game(
     params: Json<CreateGame>,
+    queue: &State<Sender<event::Event>>,
     db: &State<DbPool>,
 ) -> (Status, (ContentType, String)) {
     let is_rated = match params.is_rated {
         Some(ir) => ir,
         None => false,
     };
+    let cloned_db = db.inner().clone();
+    let q = queue.inner().clone();
+
     match game::create_game(
         db.inner(),
         params.player0_id,
@@ -188,7 +196,58 @@ pub fn create_game(
         params.player1_color,
         is_rated,
     ) {
-        Ok(game) => (Status::Ok, (ContentType::JSON, to_string(&game).unwrap())),
+        Ok(game) => {
+            if game.current_player_id == Some(1) {
+                thread::spawn(move || {
+                    thread::sleep(std::time::Duration::from_secs(1));
+
+                    let (mvs, complete_events) = game::wait_ai_move(&cloned_db, game.id).unwrap();
+
+                    // tile move, meeple move
+                    if mvs.len() == 2 {
+                        match (&mvs[0], &mvs[1]) {
+                            (game::mov::Move::TMove(tm), game::mov::Move::MMove(mm)) => {
+                                let _ = q.send(event::Event {
+                                    id: game.id,
+                                    name: "move_created_event".to_string(),
+                                    player_id: tm.player_id,
+                                    tile: tm.tile,
+                                    rot: tm.rot,
+                                    tile_pos: tm.pos,
+                                    meeple_id: mm.meeple_id,
+                                    meeple_pos: mm.meeple_pos,
+                                    complete_events,
+                                });
+                            }
+                            _ => {
+                                panic!("invalid event");
+                            }
+                        }
+                    } else if mvs.len() == 1 {
+                        match &mvs[0] {
+                            game::mov::Move::DMove(dm) => {
+                                let _ = q.send(event::Event {
+                                    id: game.id,
+                                    name: "move_created_event".to_string(),
+                                    player_id: dm.player_id,
+                                    tile: dm.tile,
+                                    rot: -1,
+                                    tile_pos: (-1, -1),
+                                    meeple_id: -1,
+                                    meeple_pos: -1,
+                                    complete_events,
+                                });
+                            }
+                            _ => {
+                                panic!("invalid event");
+                            }
+                        }
+                    }
+                });
+            }
+
+            (Status::Ok, (ContentType::JSON, to_string(&game).unwrap()))
+        }
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
@@ -244,13 +303,16 @@ pub fn update_waiting_game(
     }
 }
 
-#[post("/tile-moves/create", format = "application/json", data = "<params>")]
-pub fn create_tile_move(
+#[post(
+    "/tile-moves/try-create",
+    format = "application/json",
+    data = "<params>"
+)]
+pub fn try_create_tile_move(
     params: Json<CreateTileMove>,
-    queue: &State<Sender<event::UpdateEvent>>,
     db: &State<DbPool>,
 ) -> (Status, (ContentType, String)) {
-    let r = game::create_tile_move(
+    let r = game::try_create_tile_move(
         db.inner(),
         params.game_id,
         params.player_id,
@@ -260,43 +322,7 @@ pub fn create_tile_move(
     );
 
     match r {
-        Ok(res) => {
-            if let Some(gid) = params.game_id {
-                let _ = queue.send(event::UpdateEvent {
-                    name: "update_game".to_string(),
-                    id: gid,
-                });
-            }
-            (Status::Ok, (ContentType::JSON, to_string(&res).unwrap()))
-        }
-        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
-    }
-}
-
-#[post("/meeple-moves/create", format = "application/json", data = "<params>")]
-pub fn create_meeple_move(
-    params: Json<CreateMeepleMove>,
-    queue: &State<Sender<event::UpdateEvent>>,
-    db: &State<DbPool>,
-) -> (Status, (ContentType, String)) {
-    let r = game::create_meeple_move(
-        db.inner(),
-        params.game_id,
-        params.player_id,
-        params.meeple_id,
-        (params.tile_pos_y, params.tile_pos_x),
-        params.pos,
-    );
-    match r {
-        Ok(res) => {
-            if let Some(gid) = params.game_id {
-                let _ = queue.send(event::UpdateEvent {
-                    name: "update_game".to_string(),
-                    id: gid,
-                });
-            }
-            (Status::Ok, (ContentType::JSON, to_string(&res).unwrap()))
-        }
+        Ok(res) => (Status::Ok, (ContentType::JSON, to_string(&res).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
@@ -308,6 +334,7 @@ pub fn create_meeple_move(
 )]
 pub fn create_discard_move(
     params: Json<CreateDiscardMove>,
+    queue: &State<Sender<event::Event>>,
     db: &State<DbPool>,
 ) -> (Status, (ContentType, String)) {
     match game::create_discard_move(
@@ -316,28 +343,118 @@ pub fn create_discard_move(
         params.player_id,
         tile::to_tile(params.tile_id),
     ) {
-        Ok(res) => (Status::Ok, (ContentType::JSON, to_string(&res).unwrap())),
+        Ok(res) => {
+            let _ = queue.send(event::Event {
+                id: params.game_id.unwrap(),
+                name: "move_created_event".to_string(),
+                player_id: params.player_id,
+                tile: tile::to_tile(params.tile_id),
+                rot: -1,
+                tile_pos: (-1, -1),
+                meeple_id: -1,
+                meeple_pos: -1,
+                complete_events: vec![],
+            });
+            (Status::Ok, (ContentType::JSON, to_string(&res).unwrap()))
+        }
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
 
-#[post("/wait-ai-move", format = "application/json", data = "<params>")]
-pub fn wait_ai_move(
-    params: Json<WaitAIMove>,
-    queue: &State<Sender<event::UpdateEvent>>,
+#[post("/moves/create", format = "application/json", data = "<params>")]
+pub fn create_move(
+    params: Json<CreateMove>,
+    queue: &State<Sender<event::Event>>,
     db: &State<DbPool>,
-) {
+) -> (Status, (ContentType, String)) {
     let q = queue.inner().clone();
-    let d = db.inner().clone();
-    thread::spawn(move || match game::wait_ai_move(&d, params.game_id) {
-        Ok(_) => {
-            let _ = q.send(event::UpdateEvent {
-                name: "update_game".to_string(),
-                id: params.game_id,
-            });
+    let cloned_db = db.inner().clone();
+    let r = game::create_move(
+        db.inner(),
+        params.game_id,
+        params.player_id,
+        tile::to_tile(params.tile_id),
+        params.rot,
+        (params.pos_y, params.pos_x),
+        params.meeple_id,
+        params.meeple_pos,
+    );
+    match r {
+        Ok(res) => {
+            if let Some(gid) = params.game_id {
+                match (&res.tile_move, &res.meeple_move) {
+                    (game::mov::Move::TMove(tm), game::mov::Move::MMove(mm)) => {
+                        let _ = q.send(event::Event {
+                            id: gid,
+                            name: "move_created_event".to_string(),
+                            player_id: tm.player_id,
+                            tile: tm.tile,
+                            rot: tm.rot,
+                            tile_pos: tm.pos,
+                            meeple_id: mm.meeple_id,
+                            meeple_pos: mm.meeple_pos,
+                            complete_events: res.complete_events.clone(),
+                        });
+
+                        if params.wait_ai_move {
+                            thread::spawn(move || loop {
+                                let (mvs, complete_events) =
+                                    game::wait_ai_move(&cloned_db, gid).unwrap();
+                                if mvs.len() == 2 {
+                                    match (&mvs[0], &mvs[1]) {
+                                        (
+                                            game::mov::Move::TMove(tm),
+                                            game::mov::Move::MMove(mm),
+                                        ) => {
+                                            let _ = q.send(event::Event {
+                                                id: gid,
+                                                name: "move_created_event".to_string(),
+                                                player_id: tm.player_id,
+                                                tile: tm.tile,
+                                                rot: tm.rot,
+                                                tile_pos: tm.pos,
+                                                meeple_id: mm.meeple_id,
+                                                meeple_pos: mm.meeple_pos,
+                                                complete_events,
+                                            });
+                                        }
+                                        _ => {
+                                            panic!("invalid response");
+                                        }
+                                    }
+                                    break;
+                                } else if mvs.len() == 1 {
+                                    match &mvs[0] {
+                                        game::mov::Move::DMove(dm) => {
+                                            let _ = q.send(event::Event {
+                                                id: gid,
+                                                name: "move_created_event".to_string(),
+                                                player_id: dm.player_id,
+                                                tile: dm.tile,
+                                                rot: -1,
+                                                tile_pos: (-1, -1),
+                                                meeple_id: -1,
+                                                meeple_pos: -1,
+                                                complete_events,
+                                            });
+                                        }
+                                        _ => {
+                                            panic!("invalid response");
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                    _ => {
+                        panic!("invalid response");
+                    }
+                }
+            }
+            (Status::Ok, (ContentType::JSON, to_string(&res).unwrap()))
         }
-        Err(_) => {}
-    });
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
 }
 
 #[get("/moves?<game>&<m>", format = "application/json")]
@@ -384,7 +501,7 @@ pub fn health() -> (Status, (ContentType, String)) {
 pub async fn events(
     name: Option<String>,
     id: Option<i32>,
-    queue: &State<Sender<event::UpdateEvent>>,
+    queue: &State<Sender<event::Event>>,
     mut end: Shutdown,
 ) -> EventStream![] {
     let mut rx = queue.subscribe();
@@ -406,10 +523,17 @@ pub async fn events(
 }
 
 #[post("/send-event", format = "application/json", data = "<params>")]
-pub fn send_event(params: Json<event::UpdateEvent>, queue: &State<Sender<event::UpdateEvent>>) {
-    let _ = queue.send(event::UpdateEvent {
-        name: params.name.clone(),
+pub fn send_event(params: Json<SendEvent>, queue: &State<Sender<event::Event>>) {
+    let _ = queue.send(event::Event {
         id: params.id,
+        name: params.name.clone(),
+        player_id: -1,
+        tile: tile::Tile::Invalid,
+        rot: -1,
+        tile_pos: (-1, -1),
+        meeple_id: -1,
+        meeple_pos: -1,
+        complete_events: vec![],
     });
 }
 

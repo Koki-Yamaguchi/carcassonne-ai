@@ -1,5 +1,6 @@
 import axios from "axios";
 import {
+  boardSize,
   Color,
   colorIDToColor,
   colorToColorID,
@@ -9,7 +10,6 @@ import {
 } from "../tiles";
 import {
   Game,
-  MeepleMoveResult,
   CompleteEvent,
   Move,
   TileMove,
@@ -22,6 +22,9 @@ import {
   Vote,
   ProblemsResponse,
   ProblemProposal,
+  TileMoveResult,
+  CreateMoveResult,
+  FinalEvents,
 } from "../types";
 
 export class API {
@@ -379,66 +382,28 @@ export class API {
     }
   }
 
-  async createTileMove(
+  async tryCreateTileMove(
     gameID: number | null,
     playerID: number,
     tileID: number,
     rot: number,
     posY: number,
     posX: number
-  ): Promise<TileMove> {
+  ): Promise<TileMoveResult> {
     try {
-      const res = await axios.post(`${this.base_url}/tile-moves/create`, {
+      const res = await axios.post(`${this.base_url}/tile-moves/try-create`, {
         game_id: gameID,
         player_id: playerID,
         tile_id: tileID,
         rot: rot,
-        pos_y: posY,
-        pos_x: posX,
+        pos_y: posY - Math.floor(boardSize / 2),
+        pos_x: posX - Math.floor(boardSize / 2),
       });
       console.log({ res });
-      const tileMove: TileMove = {
-        id: res.data.TMove.id,
-        playerID: res.data.TMove.player_id,
-        ord: res.data.TMove.ord,
-        tile: res.data.TMove.tile,
-        pos: { y: res.data.TMove.pos[0], x: res.data.TMove.pos[1] },
-        rot: res.data.TMove.rot,
+      const tileMoveResult: TileMoveResult = {
+        meepleablePositions: res.data.meepleable_positions,
       };
-      return tileMove;
-    } catch (e) {
-      console.log({ e });
-      throw e;
-    }
-  }
-
-  async createMeepleMove(
-    gameID: number | null,
-    playerID: number,
-    meepleID: number,
-    pos: number,
-    tilePosY: number,
-    tilePosX: number
-  ): Promise<MeepleMove> {
-    try {
-      const res = await axios.post(`${this.base_url}/meeple-moves/create`, {
-        game_id: gameID,
-        player_id: playerID,
-        meeple_id: meepleID,
-        pos: pos,
-        tile_pos_y: tilePosY,
-        tile_pos_x: tilePosX,
-      });
-      console.log({ res });
-
-      const meepleMove: MeepleMove = {
-        id: res.data.MMove.id,
-        playerID: res.data.MMove.player_id,
-        ord: res.data.MMove.ord,
-        meepleID: res.data.MMove.meeple_id,
-        pos: res.data.MMove.meeple_pos,
-      };
-      return meepleMove;
+      return tileMoveResult;
     } catch (e) {
       console.log({ e });
       throw e;
@@ -470,6 +435,65 @@ export class API {
     }
   }
 
+  async createMove(
+    gameID: number | null,
+    playerID: number,
+    tileID: number,
+    rot: number,
+    posY: number,
+    posX: number,
+    meepleID: number,
+    meeplePos: number,
+    waitAIMove: boolean
+  ): Promise<CreateMoveResult> {
+    try {
+      const res = await axios.post(`${this.base_url}/moves/create`, {
+        game_id: gameID,
+        player_id: playerID,
+        tile_id: tileID,
+        rot: rot,
+        pos_y: posY - Math.floor(boardSize / 2),
+        pos_x: posX - Math.floor(boardSize / 2),
+        meeple_id: meepleID,
+        meeple_pos: meeplePos,
+        wait_ai_move: waitAIMove,
+      });
+      console.log({ res });
+      return {
+        tileMove: {
+          id: res.data.tile_move.TMove.id,
+          playerID: res.data.tile_move.TMove.player_id,
+          ord: res.data.tile_move.TMove.ord,
+          tile: res.data.tile_move.TMove.tile,
+          pos: {
+            y: res.data.tile_move.TMove.pos[0] + Math.floor(boardSize / 2),
+            x: res.data.tile_move.TMove.pos[1] + Math.floor(boardSize / 2),
+          },
+          rot: res.data.tile_move.TMove.rot,
+        },
+        meepleMove: {
+          id: res.data.meeple_move.MMove.id,
+          playerID: res.data.meeple_move.MMove.player_id,
+          ord: res.data.meeple_move.MMove.ord,
+          meepleID: res.data.meeple_move.MMove.meeple_id,
+          pos: res.data.meeple_move.MMove.meeple_pos,
+        },
+        completeEvents: res.data.complete_events.map(
+          (e: any): CompleteEvent => {
+            return {
+              meepleIDs: e.meeple_ids,
+              feature: e.feature,
+              point: e.point,
+            };
+          }
+        ),
+      };
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
   async waitAIMove(gameID: number) {
     try {
       const res = await axios.post(`${this.base_url}/wait-ai-move`, {
@@ -495,7 +519,10 @@ export class API {
             playerID: mv.TMove.player_id,
             ord: mv.TMove.ord,
             tile: mv.TMove.tile,
-            pos: { y: mv.TMove.pos[0], x: mv.TMove.pos[1] },
+            pos: {
+              y: mv.TMove.pos[0] + Math.floor(boardSize / 2),
+              x: mv.TMove.pos[1] + Math.floor(boardSize / 2),
+            },
             rot: mv.TMove.rot,
           };
           return tm;
@@ -525,13 +552,13 @@ export class API {
     }
   }
 
-  async getFinalEevnts(gameID: number): Promise<MeepleMoveResult> {
+  async getFinalEevnts(gameID: number): Promise<FinalEvents> {
     try {
       const res = await axios.get(
         `${this.base_url}/final-events?game=${gameID}`
       );
       console.log({ res });
-      const meepleMoveResult: MeepleMoveResult = {
+      const finalEvents: FinalEvents = {
         completeEvents: res.data.complete_events.map(
           (e: any): CompleteEvent => {
             return {
@@ -541,12 +568,8 @@ export class API {
             };
           }
         ),
-        currentPlayerID: res.data.current_player_id,
-        nextPlayerID: res.data.next_player_id,
-        currentTileID: res.data.current_tile_id,
-        nextTileID: res.data.next_tile_id,
       };
-      return meepleMoveResult;
+      return finalEvents;
     } catch (e) {
       console.log({ e });
       throw e;
@@ -745,7 +768,10 @@ export class API {
         playerID: res.data.tile_move.player_id,
         ord: res.data.tile_move.ord,
         tile: res.data.tile_move.tile,
-        pos: { y: res.data.tile_move.pos[0], x: res.data.tile_move.pos[1] },
+        pos: {
+          y: res.data.tile_move.pos[0] + Math.floor(boardSize / 2),
+          x: res.data.tile_move.pos[1] + Math.floor(boardSize / 2),
+        },
         rot: res.data.tile_move.rot,
       };
       const meepleMove: MeepleMove = {
@@ -798,7 +824,10 @@ export class API {
             playerID: v.tile_move.player_id,
             ord: v.tile_move.ord,
             tile: v.tile_move.tile,
-            pos: { y: v.tile_move.pos[0], x: v.tile_move.pos[1] },
+            pos: {
+              y: v.tile_move.pos[0] + Math.floor(boardSize / 2),
+              x: v.tile_move.pos[1] + Math.floor(boardSize / 2),
+            },
             rot: v.tile_move.rot,
           };
         }

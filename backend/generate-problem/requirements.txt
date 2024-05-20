@@ -1,4 +1,4 @@
-chromedriver_binary==123.0.6312.86
+chromedriver_binary==125.0.6422.60
 get_chrome_driver==1.3.19
 Requests==2.31.0
 selenium==4.16.0

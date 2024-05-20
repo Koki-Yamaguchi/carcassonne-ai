@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Tile, Color } from "../tiles";
 import { lyingMeepleSrc, standingMeepleSrc } from "../meeples";
+import { ref, watch } from "vue";
 
 type State = "meepling" | "normal" | "placing" | "shadow" | "empty";
 
-defineProps<{
+const props = defineProps<{
   tile: Tile | null;
   state: State;
   meepleablePositions?: number[];
@@ -13,6 +14,8 @@ defineProps<{
 defineEmits<{
   (e: "placeMeeple", pos: number): void;
 }>();
+
+const tileDeg = ref<number>(props.tile ? props.tile.direction * 90 : 0);
 
 const tileSize = 60;
 const spotRadius = 4; // px
@@ -27,6 +30,24 @@ const frameStyle = (frame: Color) => {
     "outline-offset": frame !== null ? "-2px" : "none",
   };
 };
+watch(
+  () => props.tile?.direction,
+  (newDirection, oldDirection) => {
+    if (newDirection === undefined || oldDirection === undefined) {
+      return;
+    }
+
+    if (Math.abs(newDirection - oldDirection) === 2) {
+      tileDeg.value = tileDeg.value + 180;
+    } else {
+      if (newDirection === (oldDirection + 1) % 4) {
+        tileDeg.value = tileDeg.value + 90;
+      } else {
+        tileDeg.value = tileDeg.value - 90;
+      }
+    }
+  }
+);
 </script>
 
 <template>
@@ -97,7 +118,8 @@ const frameStyle = (frame: Color) => {
   >
     <img
       :style="{
-        transform: `rotate(${tile.direction * 90}deg)`,
+        transform: `rotate(${tileDeg}deg)`,
+        transition: '0.5s',
         ...frameStyle(tile.frame),
       }"
       :src="tile.src"

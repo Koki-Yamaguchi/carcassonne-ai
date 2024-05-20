@@ -238,8 +238,8 @@ onMounted(async () => {
     }
     count++;
     const tileMove = moves[i] as TileMove;
-    const tilePosY = tileMove.pos.y + Math.floor(boardSize / 2);
-    const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
+    const tilePosY = tileMove.pos.y;
+    const tilePosX = tileMove.pos.x;
     if (tileMove.playerID === game.value?.player0ID) {
       tiles.value[tilePosY][tilePosX]?.addFrame(game.value.player0Color);
     } else {
