@@ -24,6 +24,7 @@ const router = useRouter();
 
 // common variables
 const TILE_TOTAL_COUNT = 72;
+const player = ref<Player | null>(null);
 const game = ref<Game | null>(null);
 const player0ProfileImageURL = ref<string>("");
 const player1ProfileImageURL = ref<string>("");
@@ -43,7 +44,6 @@ const finished = ref<boolean>(false);
 const evtSource = ref<any>(null);
 
 // variables that is only needed from player0's point of view
-const player = ref<Player | null>(null);
 const placingTile = ref<Tile | null>(null);
 const placeablePositions = ref<TilePosition[]>([]);
 const meepleablePositions = ref<number[]>([]);
@@ -727,9 +727,9 @@ onMounted(async () => {
               {{
                 game?.currentPlayerID === player?.id
                   ? translate("you")
-                  : player?.id === game?.player0ID
-                  ? game?.player1Name
-                  : game?.player0Name
+                  : game?.currentPlayerID === game?.player0ID
+                  ? game?.player0Name
+                  : game?.player1Name
               }}<span v-if="mustDiscard">{{ translate("must_discard") }}</span>
               <span v-else>{{ translate("must_place") }}</span>
             </p>

@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import { API } from "../api";
-import { boardSize, newTile, Tile, TileKind } from "../tiles";
+import { newTile, Tile, TileKind } from "../tiles";
 import { Board, DiscardMove, Game, TileMove, Player } from "../types";
 import { translate } from "../locales/translate";
 import GameBoard from "../components/GameBoard.vue";
@@ -22,6 +22,8 @@ const player0Point = ref<number>(0);
 const player1Point = ref<number>(0);
 const player0Meeples = ref<Set<number>>(new Set([0, 1, 2, 3, 4, 5, 6]));
 const player1Meeples = ref<Set<number>>(new Set([7, 8, 9, 10, 11, 12, 13]));
+const player0ProfileImageURL = ref<string>("");
+const player1ProfileImageURL = ref<string>("");
 const tileCount = ref<number>(1);
 const discardedTileKinds = ref<TileKind[]>([]);
 const showDiscardedTiles = ref<boolean>(false);
@@ -34,6 +36,12 @@ const initGame = async () => {
   game.value = await api.getGame(gameID);
 
   player.value = await api.getPlayerByUserID(store.userID);
+
+  const player0 = await api.getPlayer(game.value.player0ID);
+  const player1 = await api.getPlayer(game.value.player1ID);
+
+  player0ProfileImageURL.value = player0.profileImageURL;
+  player1ProfileImageURL.value = player1.profileImageURL;
 
   const moves = await api.getMoves(game.value.id);
   maxMoveOrd.value = moves[moves.length - 1].ord;
@@ -111,8 +119,8 @@ const update = async () => {
     }
     count++;
     const tileMove = moves[i] as TileMove;
-    const tilePosY = tileMove.pos.y + Math.floor(boardSize / 2);
-    const tilePosX = tileMove.pos.x + Math.floor(boardSize / 2);
+    const tilePosY = tileMove.pos.y;
+    const tilePosX = tileMove.pos.x;
     if (tileMove.playerID === game.value?.player0ID) {
       tiles.value[tilePosY][tilePosX]?.addFrame(game.value.player0Color);
     } else {
@@ -248,6 +256,7 @@ onMounted(async () => {
       :meepleNumber="player0Meeples.size"
       :meepleColor="game ? game.player0Color : null"
       :tileSrc="null"
+      :profileImageURL="player0ProfileImageURL"
     />
     <PlayerInfo
       :name="game ? game.player1Name : ''"
@@ -255,6 +264,7 @@ onMounted(async () => {
       :meepleNumber="player1Meeples.size"
       :meepleColor="game ? game.player1Color : null"
       :tileSrc="null"
+      :profileImageURL="player1ProfileImageURL"
     />
   </div>
   <div class="board mt-3">

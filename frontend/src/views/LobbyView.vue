@@ -20,7 +20,6 @@ const search = async () => {
 
   const api = new API();
   const waitingGames = await api.getWaitingGames();
-  console.log({ waitingGames });
   if (
     waitingGames.length === 0 ||
     waitingGames[0].playerID === player.value.id
@@ -94,7 +93,6 @@ const joinGameHandler = async (event: any) => {
 };
 
 const waitGameHandler = async (event: any) => {
-  console.log("waitGameHandler", { event });
   const api = new API();
   const waitingGameID: number = JSON.parse(event.data).id;
 

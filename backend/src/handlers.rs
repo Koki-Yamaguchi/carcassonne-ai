@@ -199,7 +199,7 @@ pub fn create_game(
         Ok(game) => {
             if game.current_player_id == Some(1) {
                 thread::spawn(move || {
-                    thread::sleep(std::time::Duration::from_secs(2));
+                    thread::sleep(std::time::Duration::from_secs(1));
 
                     let (mvs, complete_events) = game::wait_ai_move(&cloned_db, game.id).unwrap();
 
