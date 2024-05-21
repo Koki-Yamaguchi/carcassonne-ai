@@ -237,6 +237,7 @@ const cancel = () => {
   tiles.value[placingPosition.value.y][placingPosition.value.x] = null;
   placingPosition.value = null;
   placingTile.value.addFrame(null);
+  placingTile.value.removeMeeple();
   meepleablePositions.value = [];
   placeablePositions.value = getPlaceablePositions(placingTile.value);
   canConfirm.value = true;

@@ -54,7 +54,7 @@ const boardStyle = computed(() => {
     "
     :style="boardStyle"
   >
-    <div ref="elem">
+    <div class="relative" ref="elem">
       <div class="flex" v-for="(row, y) in tiles" :key="y">
         <div v-for="(tile, x) in row" :key="x">
           <TileSquare
@@ -77,16 +77,6 @@ const boardStyle = computed(() => {
           />
           <TileSquare
             v-else-if="
-              placingPosition !== null &&
-              placingPosition.y === y &&
-              placingPosition.x === x
-            "
-            :state="'placing'"
-            :tile="placingTile"
-            :onClick="() => $emit('turnTile')"
-          />
-          <TileSquare
-            v-else-if="
               placeablePositions.filter((pos) => {
                 return pos.y === y && pos.x === x;
               }).length > 0
@@ -97,6 +87,21 @@ const boardStyle = computed(() => {
           />
           <TileSquare v-else :state="'empty'" :tile="null" />
         </div>
+      </div>
+      <div
+        v-if="placingPosition !== null && meepleablePositions.length === 0"
+        :style="{
+          position: 'absolute',
+          top: `${60 * (placingPosition ? placingPosition.y : 0)}px`,
+          left: `${60 * (placingPosition ? placingPosition.x : 0)}px`,
+          transition: '0.5s',
+        }"
+      >
+        <TileSquare
+          :state="'placing'"
+          :tile="placingTile"
+          :onClick="() => $emit('turnTile')"
+        />
       </div>
     </div>
   </div>

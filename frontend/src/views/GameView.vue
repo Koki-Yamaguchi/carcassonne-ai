@@ -131,11 +131,19 @@ const update = async (e: any) => {
 
   updateTileMove(event.rot, event.tile, event.tilePos);
 
-  await sleep(500);
-
   if (isMyGame.value && placingTile.value) {
     placeablePositions.value = getPlaceablePositions(placingTile.value);
+
+    if (
+      placingPosition.value &&
+      placingPosition.value.y === event.tilePos.y &&
+      placingPosition.value.x === event.tilePos.x
+    ) {
+      placingPosition.value = null;
+    }
   }
+
+  await sleep(500);
 
   updateMeepleMove(
     event.meepleID,
@@ -480,6 +488,9 @@ const handlePlaceMeeple = async (meeplePos: number) => {
         player.value.tileEdition
       );
       placeablePositions.value = getPlaceablePositions(placingTile.value);
+    } else {
+      placingTile.value = null;
+      placeablePositions.value = [];
     }
   }
 
@@ -672,6 +683,11 @@ const handleTilePositionSelected = (pos: TilePosition) => {
     }
     placingTile.value?.rotate();
   }
+  if (dirs.length === 0) {
+    placingPosition.value = null;
+    return;
+  }
+
   placeableDirections.value = dirs;
 
   // initial valid direction
