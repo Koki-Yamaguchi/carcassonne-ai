@@ -567,16 +567,20 @@ pub async fn upload_profile_image(
     }
 }
 
-#[get("/problems/<id>", format = "application/json")]
-pub async fn get_problem(id: Option<i32>, db: &State<DbPool>) -> (Status, (ContentType, String)) {
-    match problem::get_problem(db.inner(), id.unwrap()) {
+#[get("/problems/<id>?<player>", format = "application/json")]
+pub async fn get_problem(
+    id: Option<i32>,
+    player: Option<i32>,
+    db: &State<DbPool>,
+) -> (Status, (ContentType, String)) {
+    match problem::get_problem(db.inner(), id.unwrap(), player) {
         Ok(p) => (Status::Ok, (ContentType::JSON, to_string(&p).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
 
 #[get(
-    "/problems?<page>&<order_by>&<limit>&<creator>&<is_draft>&<is_private>",
+    "/problems?<page>&<order_by>&<limit>&<creator>&<is_draft>&<is_private>&<player>",
     format = "application/json"
 )]
 pub fn get_problems(
@@ -586,6 +590,7 @@ pub fn get_problems(
     creator: Option<i32>,
     is_draft: Option<bool>,
     is_private: Option<bool>,
+    player: Option<i32>,
     db: &State<DbPool>,
 ) -> (Status, (ContentType, String)) {
     match problem::get_problems(
@@ -596,6 +601,7 @@ pub fn get_problems(
         creator,
         is_draft,
         is_private,
+        player,
     ) {
         Ok(ps) => (Status::Ok, (ContentType::JSON, to_string(&ps).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
@@ -653,11 +659,22 @@ pub fn create_favorite(
 ) -> (Status, (ContentType, String)) {
     match problem::create_favorite(
         db.inner(),
-        params.vote_id,
+        params.problem_id,
         params.player_id,
         params.player_name.clone(),
     ) {
         Ok(f) => (Status::Ok, (ContentType::JSON, to_string(&f).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}
+
+#[post("/favorites/delete", format = "application/json", data = "<params>")]
+pub fn delete_favorite(
+    params: Json<problem::DeleteFavorite>,
+    db: &State<DbPool>,
+) -> (Status, (ContentType, String)) {
+    match problem::delete_favorite(db.inner(), params.problem_id, params.player_id) {
+        Ok(v) => (Status::Ok, (ContentType::JSON, to_string(&v).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }

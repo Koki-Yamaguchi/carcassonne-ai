@@ -41,6 +41,9 @@ pub struct Problem {
     pub note: String,
     pub is_deleted: bool,
     pub num: Option<i32>,
+    pub favorite_count: i32,
+    pub voted: Option<bool>,
+    pub favorited: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -59,7 +62,6 @@ pub struct Vote {
     pub player_name: String,
     pub player_profile_image_url: String,
     pub note: String,
-    pub favorite_count: i32,
     pub tile_move_id: i32,
     pub tile_move: Option<TileMove>,
     pub meeple_move_id: i32,
@@ -108,7 +110,7 @@ pub struct UpdateProblem {
 #[diesel(table_name = schema::favorite)]
 pub struct Favorite {
     pub id: i32,
-    pub vote_id: i32,
+    pub problem_id: i32,
     pub player_id: i32,
     pub player_name: String,
     pub created_at: chrono::NaiveDateTime,
@@ -117,9 +119,16 @@ pub struct Favorite {
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct CreateFavorite {
-    pub vote_id: i32,
+    pub problem_id: i32,
     pub player_id: i32,
     pub player_name: String,
+}
+
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
+pub struct DeleteFavorite {
+    pub problem_id: i32,
+    pub player_id: i32,
 }
 
 #[derive(Deserialize)]
@@ -239,12 +248,24 @@ pub fn create_draft_problem(db: &DbPool, params: &CreateProblem) -> Result<Probl
             note: params.note.clone(),
             is_deleted: false,
             num: None,
+            favorite_count: 0,
         },
     )
 }
 
-pub fn get_problem(db: &DbPool, id: i32) -> Result<Problem, Error> {
-    database::get_problem(db, id)
+pub fn get_problem(db: &DbPool, id: i32, player: Option<i32>) -> Result<Problem, Error> {
+    let mut problem = database::get_problem(db, id)?;
+
+    if let Some(plid) = player {
+        let votes = database::get_votes(db, Some(id), Some(plid), false)?;
+
+        let favorites = database::get_favorites(db, Some(id), Some(plid))?;
+
+        problem.voted = Some(votes.len() > 0);
+        problem.favorited = Some(favorites.len() > 0);
+    }
+
+    Ok(problem)
 }
 
 pub fn get_problems(
@@ -255,6 +276,7 @@ pub fn get_problems(
     creator: Option<i32>,
     is_draft: Option<bool>,
     is_private: Option<bool>,
+    player: Option<i32>,
 ) -> Result<ProblemsResponse, Error> {
     let mut p = 0;
     if let Some(pg) = page {
@@ -285,7 +307,20 @@ pub fn get_problems(
         is_prvt = isp;
     }
 
-    database::get_problems(db, p, o, l, creator, is_drft, is_prvt)
+    let mut problem_res = database::get_problems(db, p, o, l, creator, is_drft, is_prvt)?;
+
+    if let Some(plid) = player {
+        let votes = database::get_votes(db, None, Some(plid), false)?; // TODO: pagination
+
+        let favorites = database::get_favorites(db, None, Some(plid))?; // TODO: pagination
+
+        for problem in &mut problem_res.problems {
+            problem.voted = Some(votes.iter().any(|v| v.problem_id == problem.id));
+            problem.favorited = Some(favorites.iter().any(|f| f.problem_id == problem.id));
+        }
+    }
+
+    Ok(problem_res)
 }
 
 #[allow(dead_code)]
@@ -584,6 +619,7 @@ fn create_problem_test() {
             note: "".to_string(),
             is_deleted: false,
             num: None,
+            favorite_count: 0,
         },
     )
     .unwrap();
@@ -614,7 +650,6 @@ pub fn create_vote(
             player_id,
             player_name,
             note,
-            favorite_count: 0,
             tile_move_id,
             meeple_move_id,
             player_profile_image_url: player.profile_image_url,
@@ -678,18 +713,22 @@ pub fn update_vote_translation(db: &DbPool, vote_id: i32) {
 
 pub fn create_favorite(
     db: &DbPool,
-    vote_id: i32,
+    problem_id: i32,
     player_id: i32,
     player_name: String,
 ) -> Result<Favorite, Error> {
     database::create_favorite(
         db,
         &database::NewFavorite {
-            vote_id,
             player_id,
             player_name,
+            problem_id,
         },
     )
+}
+
+pub fn delete_favorite(db: &DbPool, problem_id: i32, player_id: i32) -> Result<(), Error> {
+    database::delete_favorite(db, problem_id, player_id)
 }
 
 pub fn get_favorites(
