@@ -167,3 +167,8 @@ export interface Favorite {
   problemID: number;
   createdAt: Date;
 }
+
+export interface Creator {
+  id: number;
+  name: string;
+}

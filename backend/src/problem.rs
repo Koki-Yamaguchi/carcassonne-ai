@@ -13,6 +13,7 @@ use diesel::r2d2::ConnectionManager;
 use diesel::r2d2::Pool;
 use diesel::Queryable;
 use rocket::serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 
 use super::game::decoder;
 use super::game::mov::Move::*;
@@ -150,6 +151,13 @@ pub struct ProblemProposal {
     pub used_at: Option<chrono::NaiveDateTime>,
     pub created_at: chrono::NaiveDateTime,
     pub note: String,
+}
+
+#[derive(Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct Creator {
+    pub id: i32,
+    pub name: String,
 }
 
 pub fn create_draft_problem(db: &DbPool, params: &CreateProblem) -> Result<Problem, Error> {
@@ -998,4 +1006,42 @@ fn update_all_num() {
 
         cur += 1;
     }
+}
+
+pub fn get_creators(db: &DbPool) -> Result<Vec<Creator>, Error> {
+    let mut page = 0;
+    let mut all_problems = vec![];
+    loop {
+        let mut problem_res =
+            database::get_problems(db, page, "-started_at".to_string(), 300, None, false, false)?;
+        if problem_res.problems.len() == 0 {
+            break;
+        }
+
+        all_problems.append(&mut problem_res.problems);
+        page += 1;
+    }
+
+    let mut count = HashMap::new();
+    for problem in &all_problems {
+        if problem.creator_id.is_some() {
+            *count.entry(problem.creator_id.unwrap()).or_insert(0) += 1;
+        }
+    }
+
+    let mut creators: Vec<Creator> = all_problems
+        .into_iter()
+        .filter(|p| p.creator_id.is_some() && p.creator_name.is_some())
+        .map(|p| (p.creator_id, p.creator_name))
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .map(|(id, name)| Creator {
+            id: id.unwrap(),
+            name: name.unwrap(),
+        })
+        .collect::<Vec<Creator>>();
+
+    creators.sort_by(|a, b| count.get(&b.id).cmp(&count.get(&a.id)));
+
+    Ok(creators)
 }

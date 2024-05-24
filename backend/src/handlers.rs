@@ -775,3 +775,13 @@ pub fn use_problem_proposal(id: i32, db: &State<DbPool>) -> (Status, (ContentTyp
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
     }
 }
+
+#[get("/creators", format = "application/json")]
+pub fn get_creators(
+    db: &State<DbPool>,
+) -> (Status, (ContentType, String)) {
+    match problem::get_creators(db.inner()) {
+        Ok(vs) => (Status::Ok, (ContentType::JSON, to_string(&vs).unwrap())),
+        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
+    }
+}

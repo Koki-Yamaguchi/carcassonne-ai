@@ -2,7 +2,7 @@
 import { onMounted, ref } from "vue";
 import ProblemItem from "../components/ProblemItem.vue";
 import { API } from "../api";
-import { Problem, Player, Vote } from "../types";
+import { Problem, Player, Vote, Creator } from "../types";
 import { translate } from "../locales/translate";
 import { store } from "../store";
 import SpinnerIcon from "../components/SpinnerIcon.vue";
@@ -25,6 +25,8 @@ const LIMIT = 10;
 
 const recentVotes = ref<Vote[]>([]);
 
+const creators = ref<Creator[]>([]);
+
 onMounted(async () => {
   loading.value = true;
 
@@ -36,6 +38,8 @@ onMounted(async () => {
   await updateProblems();
 
   recentVotes.value = await api.getVotes(null, null);
+
+  creators.value = await api.getCreators();
 
   loading.value = false;
 });
@@ -143,8 +147,14 @@ const handleClickProblemName = (problemID: number) => {
         @change="handleChange"
         v-model="creator"
       >
-        <option :value="-1">作成者</option>
-        <option :value="2">admin</option>
+        <option :value="-1">{{ translate("created_by") }}</option>
+        <option
+          v-for="creator in creators"
+          :key="creator.id"
+          :value="creator.id"
+        >
+          {{ creator.name }}
+        </option>
       </select>
     </div>
     <div v-if="loading"><SpinnerIcon /></div>

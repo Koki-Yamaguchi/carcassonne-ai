@@ -19,6 +19,7 @@ use handlers::create_player;
 use handlers::create_problem_proposal;
 use handlers::events;
 use handlers::get_board;
+use handlers::get_creators;
 use handlers::get_final_events;
 use handlers::get_moves;
 use handlers::get_player;
@@ -134,6 +135,7 @@ async fn rocket() -> _ {
                 publish_problem,
                 delete_problem,
                 get_problem_proposals,
+                get_creators,
             ],
         );
     r

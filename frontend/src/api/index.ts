@@ -26,6 +26,7 @@ import {
   CreateMoveResult,
   FinalEvents,
   Favorite,
+  Creator,
 } from "../types";
 
 export class API {
@@ -1067,6 +1068,24 @@ export class API {
         player_id: playerID,
         problem_id: problemID,
       });
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async getCreators(): Promise<Creator[]> {
+    try {
+      const res = await axios.get(`${this.base_url}/creators`);
+      console.log({ res });
+      const creators = res.data.map((v: any) => {
+        const creator: Creator = {
+          id: v.id,
+          name: v.name,
+        };
+        return creator;
+      });
+      return creators;
     } catch (e) {
       console.log({ e });
       throw e;
