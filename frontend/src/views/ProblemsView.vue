@@ -14,9 +14,7 @@ const route = useRoute();
 const router = useRouter();
 
 const problems = ref<Problem[]>([]);
-const voted = ref<boolean[]>([]);
 const player = ref<Player | null>(null);
-const votedProblemIDs = ref<number[]>([]);
 const loading = ref<boolean>(false);
 
 const orderBy = ref<string>("-start_at");
@@ -33,9 +31,6 @@ onMounted(async () => {
   const api = new API();
 
   player.value = await api.getPlayerByUserID(store.userID);
-
-  const myVotes = await api.getVotes(null, player.value.id);
-  votedProblemIDs.value = myVotes.map((v) => v.problemID);
 
   await updateProblems();
 
@@ -84,11 +79,19 @@ const handlePageClicked = async (pg: number) => {
 };
 
 const updateProblems = async () => {
+  if (!player.value) {
+    return;
+  }
+
   const api = new API();
 
-  const res = await api.getProblems(page.value, orderBy.value, LIMIT);
+  const res = await api.getProblems(
+    page.value,
+    orderBy.value,
+    LIMIT,
+    player.value.id
+  );
   problems.value = res.problems;
-  voted.value = problems.value.map((p) => votedProblemIDs.value.includes(p.id));
   totalCount.value = res.totalCount;
   setQueryString();
 };
@@ -122,12 +125,11 @@ const handleClickProblemName = (problemID: number) => {
       <option value="vote_count">{{ translate("least_voted") }}</option>
     </select>
     <div v-if="loading"><SpinnerIcon /></div>
-    <div v-else-if="voted.length > 0">
+    <div>
       <div class="mt-4">
         <ProblemItem
-          v-for="(problem, idx) in problems"
+          v-for="problem in problems"
           :problem="problem"
-          :voted="voted[idx]"
           :key="problem.id"
         />
       </div>

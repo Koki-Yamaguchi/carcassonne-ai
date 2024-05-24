@@ -114,6 +114,9 @@ export interface Problem {
   pointDiff: number;
   note: string;
   num: number | null;
+  favoriteCount: number;
+  favorited: boolean;
+  voted: boolean;
 }
 
 export interface ProblemsResponse {
@@ -155,4 +158,12 @@ export interface MoveCreatedEvent {
   meepleID: number;
   meeplePos: number;
   completeEvents: CompleteEvent[];
+}
+
+export interface Favorite {
+  id: number;
+  playerID: number;
+  playerName: string;
+  problemID: number;
+  createdAt: Date;
 }
