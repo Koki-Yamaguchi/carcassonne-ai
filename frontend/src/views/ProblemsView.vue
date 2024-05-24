@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { onMounted, ref } from "vue";
 import ProblemItem from "../components/ProblemItem.vue";
 import { API } from "../api";
 import { Problem, Player, Vote } from "../types";
@@ -20,6 +20,7 @@ const loading = ref<boolean>(false);
 const orderBy = ref<string>("-start_at");
 const page = ref<number>(0);
 const totalCount = ref<number>(0);
+const creator = ref<number>(-1);
 const LIMIT = 10;
 
 const recentVotes = ref<Vote[]>([]);
@@ -46,6 +47,9 @@ const handleQueryString = () => {
   if (route.query.page) {
     page.value = parseInt(route.query.page as string, 10);
   }
+  if (route.query.creator) {
+    creator.value = parseInt(route.query.creator as string, 10);
+  }
 };
 
 const setQueryString = () => {
@@ -53,18 +57,19 @@ const setQueryString = () => {
     query: {
       order_by: orderBy.value,
       page: page.value,
+      creator: creator.value,
     },
   });
 };
 
-watch(orderBy, async () => {
+const handleChange = async () => {
   loading.value = true;
 
   page.value = 0;
   await updateProblems();
 
   loading.value = false;
-});
+};
 
 const handlePageClicked = async (pg: number) => {
   if (pg === page.value) {
@@ -89,7 +94,8 @@ const updateProblems = async () => {
     page.value,
     orderBy.value,
     LIMIT,
-    player.value.id
+    player.value.id,
+    creator.value !== -1 ? creator.value : undefined
   );
   problems.value = res.problems;
   totalCount.value = res.totalCount;
@@ -115,17 +121,32 @@ const handleClickProblemName = (problemID: number) => {
       />
     </div>
     <p class="mt-4">{{ translate("problem_list") }}</p>
-    <select
-      class="text-xs border-2 rounded py-1 px-2 mt-2 text-gray-700 focus:outline-none focus:bg-white focus:border-green-300"
-      v-model="orderBy"
-    >
-      <option value="-start_at">{{ translate("newest") }}</option>
-      <option value="start_at">{{ translate("oldest") }}</option>
-      <option value="-vote_count">{{ translate("most_voted") }}</option>
-      <option value="vote_count">{{ translate("least_voted") }}</option>
-      <option value="-favorite_count">{{ translate("most_favorited") }}</option>
-      <option value="favorite_count">{{ translate("least_favorited") }}</option>
-    </select>
+    <div class="flex gap-2">
+      <select
+        class="text-xs border-2 rounded py-1 px-2 mt-2 text-gray-700 focus:outline-none focus:bg-white focus:border-green-300"
+        @change="handleChange"
+        v-model="orderBy"
+      >
+        <option value="-start_at">{{ translate("newest") }}</option>
+        <option value="start_at">{{ translate("oldest") }}</option>
+        <option value="-vote_count">{{ translate("most_voted") }}</option>
+        <option value="vote_count">{{ translate("least_voted") }}</option>
+        <option value="-favorite_count">
+          {{ translate("most_favorited") }}
+        </option>
+        <option value="favorite_count">
+          {{ translate("least_favorited") }}
+        </option>
+      </select>
+      <select
+        class="text-xs border-2 rounded py-1 px-2 mt-2 text-gray-700 focus:outline-none focus:bg-white focus:border-green-300"
+        @change="handleChange"
+        v-model="creator"
+      >
+        <option :value="-1">作成者</option>
+        <option :value="2">admin</option>
+      </select>
+    </div>
     <div v-if="loading"><SpinnerIcon /></div>
     <div>
       <div class="mt-4">

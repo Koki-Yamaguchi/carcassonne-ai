@@ -665,13 +665,15 @@ export class API {
     page: number,
     orderBy: string,
     limit: number,
-    player: number
+    player: number,
+    creator?: number
   ): Promise<ProblemsResponse> {
     const params = new URLSearchParams();
     params.set("page", `${page}`);
     params.set("order_by", orderBy);
     params.set("limit", `${limit}`);
     params.set("player", `${player}`);
+    params.set("creator", `${creator}`);
     try {
       const url = `${this.base_url}/problems?` + params.toString();
       const res = await axios.get(url);
