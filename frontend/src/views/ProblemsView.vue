@@ -114,9 +114,6 @@ const handleClickProblemName = (problemID: number) => {
 <template>
   <div class="p-6">
     <p class="text-lg">{{ translate("problems") }}</p>
-    <p class="my-2 text-sm text-gray-700">
-      {{ translate("problems_description") }}
-    </p>
     <p class="mt-4">{{ translate("recent_votes") }}</p>
     <div v-if="recentVotes.length > 0" class="mt-2">
       <RecentVoteItems
