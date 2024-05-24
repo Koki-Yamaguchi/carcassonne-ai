@@ -722,7 +722,7 @@ pub fn get_problems(
 ) -> Result<problem::ProblemsResponse, Error> {
     let conn = &mut db.get().unwrap();
     use self::schema::problem::dsl::{
-        creator_id, id, is_deleted, is_draft, problem as p, start_at, vote_count,
+        creator_id, favorite_count, id, is_deleted, is_draft, problem as p, start_at, vote_count,
     };
     let now = chrono::Utc::now().naive_utc();
 
@@ -753,6 +753,8 @@ pub fn get_problems(
         "-start_at" => query = query.order((start_at.desc(), id.desc())),
         "vote_count" => query = query.order((vote_count.asc(), id.desc())),
         "-vote_count" => query = query.order((vote_count.desc(), id.desc())),
+        "favorite_count" => query = query.order((favorite_count.asc(), id.desc())),
+        "-favorite_count" => query = query.order((favorite_count.desc(), id.desc())),
         _ => {}
     }
     query = query.limit(limit as i64);

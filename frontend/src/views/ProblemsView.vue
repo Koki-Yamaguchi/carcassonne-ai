@@ -123,6 +123,8 @@ const handleClickProblemName = (problemID: number) => {
       <option value="start_at">{{ translate("oldest") }}</option>
       <option value="-vote_count">{{ translate("most_voted") }}</option>
       <option value="vote_count">{{ translate("least_voted") }}</option>
+      <option value="-favorite_count">{{ translate("most_favorited") }}</option>
+      <option value="favorite_count">{{ translate("least_favorited") }}</option>
     </select>
     <div v-if="loading"><SpinnerIcon /></div>
     <div>

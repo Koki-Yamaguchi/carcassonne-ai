@@ -69,6 +69,8 @@
   "oldest": "Oldest",
   "most_voted": "Most Voted",
   "least_voted": "Least Voted",
+  "most_favorited": "Most Liked",
+  "least_favorited": "Least Liked",
   "propose_problem": "Proposal",
   "propose_problem_title": "Propose Problems",
   "propose_problem_short_description": "You can also propose a problem idea by yourself. Utilize this feature if you have encountered a difficult situation of Carcassonne and want to know what other strong players think about it.",
