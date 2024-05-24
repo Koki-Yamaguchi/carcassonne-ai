@@ -122,12 +122,36 @@ pub struct NewProblem {
     pub note: String,
     pub is_deleted: bool,
     pub num: Option<i32>,
+    pub favorite_count: i32,
+}
+
+#[derive(Queryable, Clone)]
+#[diesel(table_name = schema::problem)]
+pub struct QueryProblem {
+    pub id: i32,
+    pub game_id: i32,
+    pub created_at: chrono::NaiveDateTime,
+    pub name: String,
+    pub start_at: Option<chrono::NaiveDateTime>,
+    pub creator_id: Option<i32>,
+    pub creator_name: Option<String>,
+    pub vote_count: i32,
+    pub is_solved: bool,
+    pub optimal_move_count: Option<i32>,
+    pub tester_id: Option<i32>,
+    pub tester_name: Option<String>,
+    pub is_draft: bool,
+    pub point_diff: Option<i32>,
+    pub note: String,
+    pub is_deleted: bool,
+    pub num: Option<i32>,
+    pub favorite_count: i32,
 }
 
 #[derive(Insertable)]
 #[diesel(table_name = schema::favorite)]
 pub struct NewFavorite {
-    pub vote_id: i32,
+    pub problem_id: i32,
     pub player_id: i32,
     pub player_name: String,
 }
@@ -139,7 +163,6 @@ pub struct NewVote {
     pub player_id: i32,
     pub player_name: String,
     pub note: String,
-    pub favorite_count: i32,
     pub tile_move_id: i32,
     pub meeple_move_id: i32,
     pub player_profile_image_url: String,
@@ -156,7 +179,6 @@ pub struct QueryVote {
     pub player_id: i32,
     pub player_name: String,
     pub note: String,
-    pub favorite_count: i32,
     pub tile_move_id: i32,
     pub meeple_move_id: i32,
     pub created_at: chrono::NaiveDateTime,
@@ -668,7 +690,7 @@ pub fn create_problem(db: &DbPool, new_problem: &NewProblem) -> Result<problem::
         .values(new_problem)
         .get_result(conn)
     {
-        Ok(prb) => Ok(prb),
+        Ok(prb) => Ok(to_problem(prb)),
         Err(e) => Err(internal_server_error(e.to_string())),
     }
 }
@@ -677,16 +699,12 @@ pub fn get_problem(db: &DbPool, prid: i32) -> Result<problem::Problem, Error> {
     let conn = &mut db.get().unwrap();
     use self::schema::problem::dsl::{id, problem as p};
 
-    match p
-        .filter(id.eq(prid))
-        .limit(1)
-        .load::<problem::Problem>(conn)
-    {
+    match p.filter(id.eq(prid)).limit(1).load::<QueryProblem>(conn) {
         Ok(ps) => {
             if ps.len() == 0 {
                 return Err(not_found_error("problem".to_string()));
             }
-            return Ok(ps[0].clone());
+            return Ok(to_problem(ps[0].clone()));
         }
         Err(e) => {
             return Err(internal_server_error(e.to_string()));
@@ -704,7 +722,7 @@ pub fn get_problems(
 ) -> Result<problem::ProblemsResponse, Error> {
     let conn = &mut db.get().unwrap();
     use self::schema::problem::dsl::{
-        creator_id, id, is_deleted, is_draft, problem as p, start_at, vote_count,
+        creator_id, favorite_count, id, is_deleted, is_draft, problem as p, start_at, vote_count,
     };
     let now = chrono::Utc::now().naive_utc();
 
@@ -735,12 +753,14 @@ pub fn get_problems(
         "-start_at" => query = query.order((start_at.desc(), id.desc())),
         "vote_count" => query = query.order((vote_count.asc(), id.desc())),
         "-vote_count" => query = query.order((vote_count.desc(), id.desc())),
+        "favorite_count" => query = query.order((favorite_count.asc(), id.desc())),
+        "-favorite_count" => query = query.order((favorite_count.desc(), id.desc())),
         _ => {}
     }
     query = query.limit(limit as i64);
     query = query.offset((page * limit) as i64);
-    let problems: Vec<problem::Problem> = match query.load::<problem::Problem>(conn) {
-        Ok(ps) => ps,
+    let problems: Vec<problem::Problem> = match query.load::<QueryProblem>(conn) {
+        Ok(prs) => prs.into_iter().map(|pr| to_problem(pr)).collect(),
         Err(e) => {
             return Err(internal_server_error(e.to_string()));
         }
@@ -779,7 +799,7 @@ pub fn update_problem(
         ))
         .get_result(conn)
     {
-        Ok(pr) => return Ok(pr),
+        Ok(pr) => return Ok(to_problem(pr)),
         Err(e) => Err(internal_server_error(e.to_string())),
     }
 }
@@ -875,28 +895,78 @@ pub fn update_vote(
 pub fn create_favorite(db: &DbPool, nf: &NewFavorite) -> Result<problem::Favorite, Error> {
     let conn = &mut db.get().unwrap();
 
-    match diesel::insert_into(schema::favorite::table)
+    use self::schema::problem::dsl::{favorite_count, problem};
+
+    let f = match diesel::insert_into(schema::favorite::table)
         .values(nf)
         .get_result(conn)
     {
-        Ok(f) => Ok(f),
+        Ok(f) => f,
+        Err(e) => return Err(internal_server_error(e.to_string())),
+    };
+
+    match diesel::update(problem.find(nf.problem_id))
+        .set(favorite_count.eq(favorite_count + 1))
+        .execute(conn)
+    {
+        Ok(_) => Ok(f),
+        Err(e) => Err(internal_server_error(e.to_string())),
+    }
+}
+
+pub fn delete_favorite(db: &DbPool, prid: i32, plid: i32) -> Result<(), Error> {
+    let conn = &mut db.get().unwrap();
+
+    use self::schema::favorite::dsl::*;
+    use self::schema::problem::dsl::{favorite_count, problem as pr};
+
+    let _ = match favorite
+        .filter(problem_id.eq(prid))
+        .filter(player_id.eq(plid))
+        .load::<problem::Favorite>(conn)
+    {
+        Ok(fs) => {
+            if fs.len() == 0 {
+                return Err(not_found_error("favorite".to_string()));
+            }
+            fs[0].clone()
+        }
+        Err(e) => return Err(internal_server_error(e.to_string())),
+    };
+
+    let _ = match diesel::delete(
+        favorite
+            .filter(problem_id.eq(prid))
+            .filter(player_id.eq(plid)),
+    )
+    .execute(conn)
+    {
+        Ok(_) => Ok(()),
+        Err(e) => Err(internal_server_error(e.to_string())),
+    };
+
+    match diesel::update(pr.find(prid))
+        .set(favorite_count.eq(favorite_count - 1))
+        .execute(conn)
+    {
+        Ok(_) => Ok(()),
         Err(e) => Err(internal_server_error(e.to_string())),
     }
 }
 
 pub fn get_favorites(
     db: &DbPool,
-    vid: Option<i32>,
-    pid: Option<i32>,
+    prid: Option<i32>,
+    plid: Option<i32>,
 ) -> Result<Vec<problem::Favorite>, Error> {
     let conn = &mut db.get().unwrap();
-    use self::schema::favorite::dsl::{created_at, favorite as f, player_id, vote_id};
+    use self::schema::favorite::dsl::{created_at, favorite as f, player_id, problem_id};
 
     let mut query = f.order(created_at.desc()).into_boxed();
-    if let Some(v) = vid {
-        query = query.filter(vote_id.eq(v))
+    if let Some(v) = prid {
+        query = query.filter(problem_id.eq(v))
     }
-    if let Some(p) = pid {
+    if let Some(p) = plid {
         query = query.filter(player_id.eq(p))
     }
     query = query.limit(100);
@@ -1030,7 +1100,6 @@ fn to_vote(
         player_name: v.player_name,
         player_profile_image_url: v.player_profile_image_url,
         note: v.note,
-        favorite_count: v.favorite_count,
         tile_move_id: v.tile_move_id,
         tile_move,
         meeple_move_id: v.meeple_move_id,
@@ -1040,4 +1109,29 @@ fn to_vote(
         lang: v.lang,
         translation: v.translation,
     })
+}
+
+fn to_problem(p: QueryProblem) -> problem::Problem {
+    problem::Problem {
+        id: p.id,
+        game_id: p.game_id,
+        created_at: p.created_at,
+        name: p.name,
+        start_at: p.start_at,
+        creator_id: p.creator_id,
+        creator_name: p.creator_name,
+        vote_count: p.vote_count,
+        is_solved: p.is_solved,
+        optimal_move_count: p.optimal_move_count,
+        tester_id: p.tester_id,
+        tester_name: p.tester_name,
+        is_draft: p.is_draft,
+        point_diff: p.point_diff,
+        note: p.note,
+        is_deleted: p.is_deleted,
+        num: p.num,
+        favorite_count: p.favorite_count,
+        voted: None,
+        favorited: None,
+    }
 }

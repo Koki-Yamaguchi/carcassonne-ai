@@ -28,6 +28,7 @@ import {
   getRemainingTileKinds,
 } from "../tiles";
 import { translate, translate_with_arg } from "../locales/translate";
+import HeartIcon from "../components/HeartIcon.vue";
 
 const problem = ref<Problem | null>(null);
 const game = ref<Game | null>(null);
@@ -298,7 +299,7 @@ onMounted(async () => {
     return;
   }
 
-  problem.value = await api.getProblem(id);
+  problem.value = await api.getProblem(id, player.value.id);
   game.value = await api.getGame(problem.value.gameID);
   board.value = await api.getBoard(
     game.value.id,
@@ -507,6 +508,28 @@ const formatNumber = computed(() => {
   }
   return "XXX";
 });
+
+const toggleFavorite = async () => {
+  if (!problem.value || !player.value) {
+    return;
+  }
+
+  const api = new API();
+
+  if (!problem.value.favorited) {
+    await api.createFavorite(
+      player.value.id,
+      player.value.name,
+      problem.value.id
+    );
+
+    problem.value.favorited = true;
+  } else {
+    await api.deleteFavorite(player.value.id, problem.value.id);
+
+    problem.value.favorited = false;
+  }
+};
 </script>
 
 <template>
@@ -584,41 +607,49 @@ const formatNumber = computed(() => {
           )
         }}
       </div>
-      <div class="flex">
-        <div class="flex flex-col justify-center mr-3">
-          <p>{{ translate("tile_in_hand") }}</p>
+      <div class="flex justify-between">
+        <div class="flex">
+          <div class="flex flex-col justify-center mr-3">
+            <p>{{ translate("tile_in_hand") }}</p>
+          </div>
+          <div class="flex flex-col justify-center min-w-[30px] mr-3">
+            <img
+              v-if="game?.currentTileID !== -1"
+              class="min-h-[30px]"
+              width="30"
+              height="30"
+              :src="currentTile() ? currentTile()!.src : null"
+            />
+          </div>
+          <div v-if="!voted" class="flex flex-col justify-center">
+            <button
+              class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
+              v-if="canConfirm"
+              @click.once="confirm"
+            >
+              {{ translate("confirm") }}
+            </button>
+            <button
+              class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
+              v-if="canMeeple"
+              @click.once="skip"
+            >
+              {{ translate("skip") }}
+            </button>
+            <button
+              class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
+              v-if="canCancel"
+              @click="cancel"
+            >
+              {{ translate("try_again") }}
+            </button>
+          </div>
         </div>
-        <div class="flex flex-col justify-center min-w-[30px] mr-3">
-          <img
-            v-if="game?.currentTileID !== -1"
-            class="min-h-[30px]"
-            width="30"
-            height="30"
-            :src="currentTile() ? currentTile()!.src : null"
+        <div @click="toggleFavorite">
+          <HeartIcon
+            :isRed="problem ? problem.favorited : false"
+            :isLarge="true"
           />
-        </div>
-        <div v-if="!voted" class="flex flex-col justify-center">
-          <button
-            class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
-            v-if="canConfirm"
-            @click.once="confirm"
-          >
-            {{ translate("confirm") }}
-          </button>
-          <button
-            class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
-            v-if="canMeeple"
-            @click.once="skip"
-          >
-            {{ translate("skip") }}
-          </button>
-          <button
-            class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
-            v-if="canCancel"
-            @click="cancel"
-          >
-            {{ translate("try_again") }}
-          </button>
         </div>
       </div>
       <div

@@ -19,6 +19,7 @@ use handlers::create_player;
 use handlers::create_problem_proposal;
 use handlers::events;
 use handlers::get_board;
+use handlers::get_creators;
 use handlers::get_final_events;
 use handlers::get_moves;
 use handlers::get_player;
@@ -31,7 +32,7 @@ use handlers::update_player;
 use handlers::upload_profile_image;
 use handlers::use_problem_proposal;
 use handlers::{create_discard_move, create_move, try_create_tile_move};
-use handlers::{create_favorite, get_favorites};
+use handlers::{create_favorite, delete_favorite, get_favorites};
 use handlers::{create_game, get_game, get_games};
 use handlers::{create_problem, delete_problem, publish_problem, update_problem};
 use handlers::{create_vote, get_vote, get_votes};
@@ -125,6 +126,7 @@ async fn rocket() -> _ {
                 get_vote,
                 get_votes,
                 create_favorite,
+                delete_favorite,
                 get_favorites,
                 create_problem_proposal,
                 use_problem_proposal,
@@ -133,6 +135,7 @@ async fn rocket() -> _ {
                 publish_problem,
                 delete_problem,
                 get_problem_proposals,
+                get_creators,
             ],
         );
     r

@@ -25,6 +25,8 @@ import {
   TileMoveResult,
   CreateMoveResult,
   FinalEvents,
+  Favorite,
+  Creator,
 } from "../types";
 
 export class API {
@@ -628,9 +630,9 @@ export class API {
     }
   }
 
-  async getProblem(id: number): Promise<Problem> {
+  async getProblem(id: number, player: number): Promise<Problem> {
     try {
-      const url = `${this.base_url}/problems/${id}`;
+      const url = `${this.base_url}/problems/${id}?player=${player}`;
       const res = await axios.get(url);
       console.log({ res });
       const prob: Problem = {
@@ -649,6 +651,9 @@ export class API {
         pointDiff: res.data.point_diff,
         note: res.data.note,
         num: res.data.num,
+        favoriteCount: res.data.favorite_count,
+        favorited: res.data.favorited,
+        voted: res.data.voted,
       };
       return prob;
     } catch (e) {
@@ -660,12 +665,16 @@ export class API {
   async getProblems(
     page: number,
     orderBy: string,
-    limit: number
+    limit: number,
+    player: number,
+    creator?: number
   ): Promise<ProblemsResponse> {
     const params = new URLSearchParams();
     params.set("page", `${page}`);
     params.set("order_by", orderBy);
     params.set("limit", `${limit}`);
+    params.set("player", `${player}`);
+    params.set("creator", `${creator}`);
     try {
       const url = `${this.base_url}/problems?` + params.toString();
       const res = await axios.get(url);
@@ -687,6 +696,9 @@ export class API {
           pointDiff: p.point_diff,
           note: p.note,
           num: p.num,
+          favoriteCount: p.favorite_count,
+          favorited: p.favorited,
+          voted: p.voted,
         };
       });
       const totalCount = res.data.total_count;
@@ -733,6 +745,9 @@ export class API {
           pointDiff: p.point_diff,
           note: p.note,
           num: p.num,
+          favoriteCount: p.favorite_count,
+          favorited: p.favorited,
+          voted: p.voted,
         };
       });
       const totalCount = res.data.total_count;
@@ -945,6 +960,9 @@ export class API {
         pointDiff: res.data.point_diff,
         note: res.data.note,
         num: res.data.num,
+        favoriteCount: res.data.favorite_count,
+        favorited: res.data.favorited,
+        voted: res.data.voted,
       };
       return problem;
     } catch (e) {
@@ -975,6 +993,9 @@ export class API {
         pointDiff: res.data.point_diff,
         note: res.data.note,
         num: res.data.num,
+        favoriteCount: res.data.favorite_count,
+        favorited: res.data.favorited,
+        voted: res.data.voted,
       };
       return problem;
     } catch (e) {
@@ -1005,8 +1026,66 @@ export class API {
         pointDiff: res.data.point_diff,
         note: res.data.note,
         num: res.data.num,
+        favoriteCount: res.data.favorite_count,
+        favorited: res.data.favorited,
+        voted: res.data.voted,
       };
       return problem;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async createFavorite(
+    playerID: number,
+    playerName: string,
+    problemID: number
+  ) {
+    try {
+      const res = await axios.post(`${this.base_url}/favorites/create`, {
+        player_id: playerID,
+        player_name: playerName,
+        problem_id: problemID,
+      });
+      const fav: Favorite = {
+        id: res.data.id,
+        playerID: res.data.player_id,
+        playerName: res.data.player_name,
+        problemID: res.data.problem_id,
+        createdAt: new Date(res.data.created_at),
+      };
+      return fav;
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async deleteFavorite(playerID: number, problemID: number) {
+    try {
+      await axios.post(`${this.base_url}/favorites/delete`, {
+        player_id: playerID,
+        problem_id: problemID,
+      });
+    } catch (e) {
+      console.log({ e });
+      throw e;
+    }
+  }
+
+  async getCreators(): Promise<Creator[]> {
+    try {
+      const res = await axios.get(`${this.base_url}/creators`);
+      console.log({ res });
+      const creators = res.data.map((v: any) => {
+        const creator: Creator = {
+          id: v.id,
+          name: v.name,
+        };
+        return creator;
+      });
+      return creators;
     } catch (e) {
       console.log({ e });
       throw e;

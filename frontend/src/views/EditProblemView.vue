@@ -203,7 +203,7 @@ onMounted(async () => {
     return;
   }
 
-  problem.value = await api.getProblem(id);
+  problem.value = await api.getProblem(id, player.value.id);
   game.value = await api.getGame(problem.value.gameID);
   board.value = await api.getBoard(
     game.value.id,

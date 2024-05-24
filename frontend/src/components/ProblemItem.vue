@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Problem } from "../types";
 import PersonIcon from "../components/PersonIcon.vue";
+import HeartIcon from "../components/HeartIcon.vue";
 import { computed } from "vue";
 
 const props = defineProps<{
   problem: Problem;
-  voted: boolean;
 }>();
 
 const formatNumber = computed(() => {
@@ -37,16 +37,18 @@ const formatNumber = computed(() => {
         {{ problem.name }}
       </div>
     </div>
-    <div class="flex justify-between w-16">
-      <div class="flex flex-col justify-center">
-        <div class="flex text-sm text-gray-500 gap-1">
-          <PersonIcon />
-          {{ problem.voteCount }}
-        </div>
+    <div class="flex w-28 items-center">
+      <div class="flex w-12 text-xs text-gray-500 gap-1 items-center">
+        <PersonIcon />
+        {{ problem.voteCount }}
       </div>
-      <div class="flex flex-col justify-center">
-        <div class="w-4">
-          <div v-if="voted">
+      <div class="flex w-12 text-xs text-gray-500 gap-1 items-center">
+        <HeartIcon :isLarge="false" :isRed="problem.favorited" />
+        {{ problem.favoriteCount }}
+      </div>
+      <div class="flex w-4 flex-col justify-center">
+        <div>
+          <div v-if="problem.voted">
             <img src="../assets/img/check.png" />
           </div>
           <div v-else></div>

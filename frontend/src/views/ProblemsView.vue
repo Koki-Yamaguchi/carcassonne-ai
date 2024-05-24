@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { onMounted, ref } from "vue";
 import ProblemItem from "../components/ProblemItem.vue";
 import { API } from "../api";
-import { Problem, Player, Vote } from "../types";
+import { Problem, Player, Vote, Creator } from "../types";
 import { translate } from "../locales/translate";
 import { store } from "../store";
 import SpinnerIcon from "../components/SpinnerIcon.vue";
@@ -14,17 +14,18 @@ const route = useRoute();
 const router = useRouter();
 
 const problems = ref<Problem[]>([]);
-const voted = ref<boolean[]>([]);
 const player = ref<Player | null>(null);
-const votedProblemIDs = ref<number[]>([]);
 const loading = ref<boolean>(false);
 
 const orderBy = ref<string>("-start_at");
 const page = ref<number>(0);
 const totalCount = ref<number>(0);
+const creator = ref<number>(-1);
 const LIMIT = 10;
 
 const recentVotes = ref<Vote[]>([]);
+
+const creators = ref<Creator[]>([]);
 
 onMounted(async () => {
   loading.value = true;
@@ -34,12 +35,11 @@ onMounted(async () => {
 
   player.value = await api.getPlayerByUserID(store.userID);
 
-  const myVotes = await api.getVotes(null, player.value.id);
-  votedProblemIDs.value = myVotes.map((v) => v.problemID);
-
   await updateProblems();
 
   recentVotes.value = await api.getVotes(null, null);
+
+  creators.value = await api.getCreators();
 
   loading.value = false;
 });
@@ -51,6 +51,9 @@ const handleQueryString = () => {
   if (route.query.page) {
     page.value = parseInt(route.query.page as string, 10);
   }
+  if (route.query.creator) {
+    creator.value = parseInt(route.query.creator as string, 10);
+  }
 };
 
 const setQueryString = () => {
@@ -58,18 +61,19 @@ const setQueryString = () => {
     query: {
       order_by: orderBy.value,
       page: page.value,
+      creator: creator.value,
     },
   });
 };
 
-watch(orderBy, async () => {
+const handleChange = async () => {
   loading.value = true;
 
   page.value = 0;
   await updateProblems();
 
   loading.value = false;
-});
+};
 
 const handlePageClicked = async (pg: number) => {
   if (pg === page.value) {
@@ -84,11 +88,20 @@ const handlePageClicked = async (pg: number) => {
 };
 
 const updateProblems = async () => {
+  if (!player.value) {
+    return;
+  }
+
   const api = new API();
 
-  const res = await api.getProblems(page.value, orderBy.value, LIMIT);
+  const res = await api.getProblems(
+    page.value,
+    orderBy.value,
+    LIMIT,
+    player.value.id,
+    creator.value !== -1 ? creator.value : undefined
+  );
   problems.value = res.problems;
-  voted.value = problems.value.map((p) => votedProblemIDs.value.includes(p.id));
   totalCount.value = res.totalCount;
   setQueryString();
 };
@@ -101,9 +114,6 @@ const handleClickProblemName = (problemID: number) => {
 <template>
   <div class="p-6">
     <p class="text-lg">{{ translate("problems") }}</p>
-    <p class="my-2 text-sm text-gray-700">
-      {{ translate("problems_description") }}
-    </p>
     <p class="mt-4">{{ translate("recent_votes") }}</p>
     <div v-if="recentVotes.length > 0" class="mt-2">
       <RecentVoteItems
@@ -112,22 +122,44 @@ const handleClickProblemName = (problemID: number) => {
       />
     </div>
     <p class="mt-4">{{ translate("problem_list") }}</p>
-    <select
-      class="text-xs border-2 rounded py-1 px-2 mt-2 text-gray-700 focus:outline-none focus:bg-white focus:border-green-300"
-      v-model="orderBy"
-    >
-      <option value="-start_at">{{ translate("newest") }}</option>
-      <option value="start_at">{{ translate("oldest") }}</option>
-      <option value="-vote_count">{{ translate("most_voted") }}</option>
-      <option value="vote_count">{{ translate("least_voted") }}</option>
-    </select>
+    <div class="flex gap-2">
+      <select
+        class="text-xs border-2 rounded py-1 px-2 mt-2 text-gray-700 focus:outline-none focus:bg-white focus:border-green-300"
+        @change="handleChange"
+        v-model="orderBy"
+      >
+        <option value="-start_at">{{ translate("newest") }}</option>
+        <option value="start_at">{{ translate("oldest") }}</option>
+        <option value="-vote_count">{{ translate("most_voted") }}</option>
+        <option value="vote_count">{{ translate("least_voted") }}</option>
+        <option value="-favorite_count">
+          {{ translate("most_favorited") }}
+        </option>
+        <option value="favorite_count">
+          {{ translate("least_favorited") }}
+        </option>
+      </select>
+      <select
+        class="text-xs border-2 rounded py-1 px-2 mt-2 text-gray-700 focus:outline-none focus:bg-white focus:border-green-300"
+        @change="handleChange"
+        v-model="creator"
+      >
+        <option :value="-1">{{ translate("created_by") }}</option>
+        <option
+          v-for="creator in creators"
+          :key="creator.id"
+          :value="creator.id"
+        >
+          {{ creator.name }}
+        </option>
+      </select>
+    </div>
     <div v-if="loading"><SpinnerIcon /></div>
-    <div v-else-if="voted.length > 0">
+    <div>
       <div class="mt-4">
         <ProblemItem
-          v-for="(problem, idx) in problems"
+          v-for="problem in problems"
           :problem="problem"
-          :voted="voted[idx]"
           :key="problem.id"
         />
       </div>

@@ -69,6 +69,8 @@
   "oldest": "古い順",
   "most_voted": "投票の多い順",
   "least_voted": "投票の少ない順",
+  "most_favorited": "お気に入りの多い順",
+  "least_favorited": "お気に入りの少ない順",
   "propose_problem": "問題案の提供",
   "propose_problem_title": "問題を提案する",
   "propose_problem_short_description": "どこ置くの問題に出題される問題を提案をすることもできます。自分が悩んだカルカソンヌの盤面があって他の人がどう考えるかを知りたいときなどに活用してください。",
