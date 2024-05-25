@@ -57,7 +57,6 @@ const showPointDiff = ref<boolean>(false);
 const remainingTilesSrc = ref<string[]>([]);
 const fixBoard = ref<boolean>(false);
 
-const voted = ref<boolean>(false);
 const votes = ref<Vote[]>([]);
 const currentVoteID = ref<number>(0);
 const prevVote = ref<Vote | null>(null);
@@ -98,7 +97,7 @@ const getPlaceablePositions = (placingTile: Tile): TilePosition[] => {
 };
 
 const handleTilePositionSelected = (pos: TilePosition) => {
-  if (voted.value) {
+  if (problem.value && problem.value.voted && !isAdmin.value) {
     return;
   }
 
@@ -284,7 +283,7 @@ const createVote = async () => {
   placingPosition.value = null;
   localStorage.removeItem(`problem-${problem.value.id}-note`);
 
-  voted.value = player.value.id !== 2;
+  problem.value.voted = true;
   votes.value = await api.getVotes(problem.value.id, null);
 };
 
@@ -376,17 +375,15 @@ onMounted(async () => {
       ).src
   );
 
-  // if there's already a vote from the player, show results
-  const tmpVotes = await api.getVotes(problem.value.id, null);
-  const myVotes = tmpVotes.filter((v) => v.playerID === player.value?.id);
-  if (myVotes.length > 0 && player.value.id !== 2) {
-    placeablePositions.value = [];
-    votes.value = tmpVotes;
-    voted.value = true;
+  if (problem.value.voted || isAdmin.value) {
+    votes.value = await api.getVotes(problem.value.id, null);
+    if (!isAdmin.value) {
+      placeablePositions.value = [];
+    }
   }
 
   document.addEventListener("scroll", () => {
-    if (window.scrollY >= 203 && voted.value) {
+    if (window.scrollY >= 203 && problem.value && problem.value.voted) {
       fixBoard.value = true;
     } else {
       fixBoard.value = false;
@@ -621,7 +618,10 @@ const toggleFavorite = async () => {
               :src="currentTile() ? currentTile()!.src : null"
             />
           </div>
-          <div v-if="!voted" class="flex flex-col justify-center">
+          <div
+            v-if="!(problem && problem.voted) || isAdmin"
+            class="flex flex-col justify-center"
+          >
             <button
               class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2 text-xs"
               v-if="canConfirm"
@@ -687,7 +687,7 @@ const toggleFavorite = async () => {
           )
         }}
       </div>
-      <div v-if="!voted" class="mt-4">
+      <div v-if="!(problem && problem.voted) || isAdmin" class="mt-4">
         <textarea
           class="rounded-md p-2 w-full focus:outline-none focus:border-orange-200 border-2"
           rows="3"
@@ -705,7 +705,7 @@ const toggleFavorite = async () => {
           </button>
         </div>
       </div>
-      <div v-else>
+      <div v-if="(problem && problem.voted) || isAdmin">
         <p class="mt-4">
           {{ translate("vote_results") }}
         </p>
