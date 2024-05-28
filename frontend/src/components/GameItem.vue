@@ -39,7 +39,7 @@ onMounted(() => {
     loserName.value = props.game.player0Name;
     loserPoint.value = props.game.player0Point;
   }
-  finished.value = props.game.nextTileID === -1;
+  finished.value = props.game.currentTileID === -1;
 
   let player_id = props.pointOfViewPlayerID ?? props.game.player0ID;
   if (props.game.player0ID === player_id) {

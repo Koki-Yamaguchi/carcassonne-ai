@@ -28,7 +28,8 @@ const elem = ref<HTMLElement>();
 onMounted(() => {
   if (elem.value) {
     const panzoom = Panzoom(elem.value, {
-      maxScale: 20,
+      maxScale: 2,
+      minScale: 0.3,
       startX: -60 * 18,
       startY: -60 * 18,
     });
@@ -49,7 +50,7 @@ const boardStyle = computed(() => {
   <div
     :class="
       isLarge
-        ? 'rounded h-[calc(100vh-215px)]'
+        ? 'rounded h-[calc(100vh-270px)]'
         : 'rounded h-[350px] md:h-[600px]'
     "
     :style="boardStyle"
