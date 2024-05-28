@@ -35,12 +35,19 @@ const propose = async () => {
   const rem = parseNumber(remainingTileCount.value);
   if (rem === -1) {
     alert("remaining tile count is not valid");
+    proposing.value = false;
+    return;
+  }
+  if (rem < 0 || rem >= 70) {
+    alert("remaining tile count must be between 0 and 69");
+    proposing.value = false;
     return;
   }
 
   const cid = parseNumber(creatorID.value);
   if (creatorID.value !== "" && cid === -1) {
     alert("creator id is not valid");
+    proposing.value = false;
     return;
   }
 
