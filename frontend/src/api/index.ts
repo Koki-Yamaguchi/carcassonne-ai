@@ -489,6 +489,8 @@ export class API {
             };
           }
         ),
+        currentTileID: res.data.current_tile_id,
+        nextTileID: res.data.next_tile_id,
       };
     } catch (e) {
       console.log({ e });

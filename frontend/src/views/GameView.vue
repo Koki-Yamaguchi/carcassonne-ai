@@ -19,6 +19,7 @@ import GameBoard from "../components/GameBoard.vue";
 import PlayerInfo from "../components/PlayerInfo.vue";
 import TrashIcon from "../components/TrashIcon.vue";
 import SpinnerIcon from "../components/SpinnerIcon.vue";
+import UndoIcon from "../components/UndoIcon.vue";
 
 const router = useRouter();
 
@@ -477,8 +478,8 @@ const handlePlaceMeeple = async (meeplePos: number) => {
 
   if (isMyGame.value) {
     placingPosition.value = null;
-    if (game.value.nextTileID !== -1) {
-      const placingTileKind = idToTileKind(game.value.nextTileID);
+    if (createMoveResult.nextTileID !== -1) {
+      const placingTileKind = idToTileKind(createMoveResult.nextTileID);
       placingTile.value = newTile(
         0,
         placingTileKind,
@@ -494,7 +495,7 @@ const handlePlaceMeeple = async (meeplePos: number) => {
     }
   }
 
-  if (game.value.currentTileID === -1) {
+  if (createMoveResult.currentTileID === -1) {
     finishGame();
   }
 };
@@ -503,7 +504,6 @@ const skip = async () => {
   await handlePlaceMeeple(-1);
 };
 
-/*
 const undo = async () => {
   if (!placingPosition.value || !placingTile.value) {
     return;
@@ -515,7 +515,6 @@ const undo = async () => {
   placeablePositions.value = getPlaceablePositions(placingTile.value);
   canPlaceMeeple.value = false;
 };
-*/
 
 const placingTileSrc = computed(() => {
   return placingTile.value?.src;
@@ -758,7 +757,7 @@ onMounted(async () => {
           </div>
           <SpinnerIcon v-if="game?.currentPlayerID === 1" />
           <div
-            class="flex flex-col justify-center"
+            class="flex items-center gap-2"
             v-if="game?.currentPlayerID === player?.id"
           >
             <button
@@ -782,15 +781,9 @@ onMounted(async () => {
             >
               {{ translate("discard") }}
             </button>
-            <!--
-            <button
-              class="bg-gray-400 hover:bg-gray-300 text-white rounded px-4 py-2"
-              v-if="isMyGame && canPlaceMeeple"
-              @click="undo"
-            >
-              undo
-            </button>
-            -->
+            <div v-if="isMyGame && canPlaceMeeple" @click="undo">
+              <UndoIcon />
+            </div>
           </div>
         </div>
         <div v-else>{{ translate("calculating_final_points") }}</div>
@@ -874,7 +867,7 @@ onMounted(async () => {
         :isLarge="true"
       />
     </div>
-    <div class="absolute bottom-36 w-full flex justify-between px-8">
+    <div class="absolute bottom-36 left-8">
       <div class="relative">
         <img
           class="w-14 rounded-md border-2 shadow-xl opacity-80"
@@ -886,6 +879,8 @@ onMounted(async () => {
           {{ Math.max(TILE_TOTAL_COUNT - tileCount - 2, 0) }}
         </div>
       </div>
+    </div>
+    <div class="absolute bottom-36 right-8">
       <img
         v-if="placingTileSrc"
         class="w-14 rounded-md border-2 shadow-xl"

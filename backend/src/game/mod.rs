@@ -25,7 +25,7 @@ use crate::game::tile::to_tile;
 use self::board::{Board, BoardTile};
 use self::calculate::calculate;
 use self::solver::solve;
-use self::tile::{tiles, Tile};
+use self::tile::Tile;
 use mov::Move::*;
 use mov::{DiscardMove, MeepleMove, TileMove};
 use rand::Rng;
@@ -101,6 +101,8 @@ pub struct CreateMoveResult {
     pub tile_move: mov::Move,
     pub meeple_move: mov::Move,
     pub complete_events: Vec<CompleteEvent>,
+    pub current_tile_id: i32,
+    pub next_tile_id: i32,
 }
 
 pub type DbPool = Pool<ConnectionManager<PgConnection>>;
@@ -222,13 +224,15 @@ pub fn create_move(
     meeple_pos: i32,
 ) -> Result<CreateMoveResult, Error> {
     let tm = create_tile_move(db, game_id, player_id, tile, rot, pos)?;
-    let (mm, complete_events) =
+    let (mm, complete_events, current_tile_id, next_tile_id) =
         create_meeple_move(db, game_id, player_id, meeple_id, pos, meeple_pos)?;
 
     Ok(CreateMoveResult {
         tile_move: tm,
         meeple_move: mm,
         complete_events,
+        current_tile_id,
+        next_tile_id,
     })
 }
 
@@ -359,7 +363,7 @@ pub fn create_meeple_move(
     meeple_id: i32,
     tile_pos: (i32, i32),
     meeple_pos: i32,
-) -> Result<(mov::Move, Vec<CompleteEvent>), Error> {
+) -> Result<(mov::Move, Vec<CompleteEvent>, i32, i32), Error> {
     // dangling move for voting
     if let None = game_id {
         return Ok((
@@ -376,6 +380,8 @@ pub fn create_meeple_move(
                 }),
             )?,
             vec![],
+            -1,
+            -1,
         ));
     }
 
@@ -498,7 +504,12 @@ pub fn create_meeple_move(
         Ok(_) => {}
     }
 
-    Ok((database::create_move(db, mv)?, complete_events))
+    Ok((
+        database::create_move(db, mv)?,
+        complete_events,
+        gm.next_tile_id.unwrap(),
+        next_tile.to_id(),
+    ))
 }
 
 pub fn create_discard_move(
@@ -643,7 +654,7 @@ pub fn wait_ai_move(
                 tile_move.pos,
             )?;
 
-            let (meeple_move, complete_events) = create_meeple_move(
+            let (meeple_move, complete_events, _, _) = create_meeple_move(
                 db,
                 Some(game.id),
                 1,

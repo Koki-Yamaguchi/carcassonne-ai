@@ -56,6 +56,8 @@ export interface CreateMoveResult {
   tileMove: TileMove;
   meepleMove: MeepleMove;
   completeEvents: CompleteEvent[];
+  currentTileID: number;
+  nextTileID: number;
 }
 
 export interface CompleteEvent {
