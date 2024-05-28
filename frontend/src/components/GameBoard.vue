@@ -28,7 +28,7 @@ const elem = ref<HTMLElement>();
 onMounted(() => {
   if (elem.value) {
     const panzoom = Panzoom(elem.value, {
-      maxScale: 2,
+      maxScale: 4,
       minScale: 0.3,
       startX: -60 * 18,
       startY: -60 * 18,
