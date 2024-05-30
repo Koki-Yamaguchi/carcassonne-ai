@@ -842,9 +842,9 @@ pub fn evaluate(moves: &Vec<Move>, debug: bool) -> (i32, i32) {
                     println!("complete_prob = {:?}", complete_prob);
                 }
                 if feature.player0_meeples > feature.player1_meeples {
-                    result0 = c;
+                    result0 += c;
                 } else if feature.player0_meeples < feature.player1_meeples {
-                    result1 = c;
+                    result1 += c;
                 }
             }
         }
