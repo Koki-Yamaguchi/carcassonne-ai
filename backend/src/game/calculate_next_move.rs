@@ -265,5 +265,32 @@ fn calculate_next_move_invade_test0() {
     */
 }
 
+/*
 #[test]
-fn calculate_next_move_test() {}
+fn calculate_next_move_test() {
+    use diesel::pg::PgConnection;
+    use diesel::r2d2::ConnectionManager;
+    use diesel::r2d2::Pool;
+    use dotenvy::dotenv;
+    use std::env;
+    use std::time::Duration;
+
+    dotenv().ok();
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    let db = Pool::builder()
+        .max_size(1) // FIXME: Didn't think about this number carefully
+        .connection_timeout(Duration::from_secs(300))
+        .build(manager)
+        .expect("Creating a pool failed");
+
+    let game_id = 19280;
+    let mut mvs = super::database::list_moves(&db, game_id, None).unwrap();
+    mvs = mvs[0..98].to_vec();
+
+    let (tile_move, meeple_move) = calculate_next_move(&mvs, None, 0, 1, 1, Tile::Curve).unwrap();
+
+    println!("tile_move = {:?}", tile_move);
+    println!("meeple_move = {:?}", meeple_move);
+}
+*/

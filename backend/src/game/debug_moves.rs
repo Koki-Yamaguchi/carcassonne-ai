@@ -127,7 +127,8 @@ pub fn list_evaluate_results(moves: &Vec<Move>, next_tile: Tile) {
                     };
                     mvs.push(Move::MMove(mmove.clone()));
 
-                    let (res0, res1) = evaluate(&mvs, false);
+                    let debug = false; /* tmove.pos == (-5, 2) && tmove.rot == 2 && mmove.meeple_pos == 1; */
+                    let (res0, res1) = evaluate(&mvs, debug);
 
                     results.push((tmove.clone(), mmove, res0, res1, res1 - res0));
 
@@ -211,16 +212,31 @@ fn compare_evaluate_results(moves: &Vec<Move>, next_tile: Tile, compare_moves: &
 
 /*
 #[test]
-fn test_results() {
-    let game_id = 689;
-    let mut mvs = super::database::list_moves(game_id, None).unwrap();
+fn test_evaluate_results() {
+    use diesel::pg::PgConnection;
+    use diesel::r2d2::ConnectionManager;
+    use diesel::r2d2::Pool;
+    use dotenvy::dotenv;
+    use std::env;
+    use std::time::Duration;
 
-    mvs = mvs[0..2].to_vec();
+    dotenv().ok();
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    let db = Pool::builder()
+        .max_size(1) // FIXME: Didn't think about this number carefully
+        .connection_timeout(Duration::from_secs(300))
+        .build(manager)
+        .expect("Creating a pool failed");
+
+    let game_id = 11720;
+    let mut mvs = super::database::list_moves(&db, game_id, None).unwrap();
+
+    mvs = mvs[0..18].to_vec();
     println!("mvs = {:?}", mvs);
     println!();
 
-    /*
-    let next_tile = Tile::ConnectorWithCOA;
+    let next_tile = Tile::TriangleWithRoad;
 
     list_evaluate_results(&mvs, next_tile);
 
@@ -241,6 +257,5 @@ fn test_results() {
         ],
     );
     assert!(true);
-    */
 }
 */
