@@ -19,15 +19,11 @@ import PlayerInfo from "../components/PlayerInfo.vue";
 import ReplayIcon from "../components/ReplayIcon.vue";
 import TrashIcon from "../components/TrashIcon.vue";
 import { store } from "../store";
-import VueSlider from "vue-slider-component";
-import "vue-slider-component/theme/default.css";
+import slider from "vue3-slider";
 
 const TILE_TOTAL_COUNT = 72;
 const player = ref<Player | null>(null);
 const game = ref<Game>();
-const maxMoveOrd = ref<number>(0);
-const currentMoveOrd = ref<number>(0);
-const board = ref<Board>();
 const tiles = ref<(Tile | null)[][]>([]);
 const player0Point = ref<number>(0);
 const player1Point = ref<number>(0);
@@ -35,7 +31,7 @@ const player0Meeples = ref<Set<number>>(new Set([0, 1, 2, 3, 4, 5, 6]));
 const player1Meeples = ref<Set<number>>(new Set([7, 8, 9, 10, 11, 12, 13]));
 const player0ProfileImageURL = ref<string>("");
 const player1ProfileImageURL = ref<string>("");
-const tileCount = ref<number>(71);
+const tileCount = ref<number>(0);
 const discardedTileKinds = ref<TileKind[]>([]);
 const showDiscardedTiles = ref<boolean>(false);
 const moves = ref<Move[]>([]);
@@ -91,9 +87,6 @@ const initGame = async () => {
   player1ProfileImageURL.value = player1.profileImageURL;
 
   moves.value = await api.getMoves(game.value.id);
-
-  maxMoveOrd.value = moves.value[moves.value.length - 1].ord;
-  currentMoveOrd.value = maxMoveOrd.value;
 };
 
 const resetMeeples = () => {
@@ -173,7 +166,9 @@ const next = async () => {
   }
   updating.value = true;
 
-  const tileMove = moves.value[currentMoveOrd.value + 1] as TileMove;
+  const lastOrd = tileCount.value * 2 + 1;
+
+  const tileMove = moves.value[lastOrd + 1] as TileMove;
 
   tiles.value[tileMove.pos.y][tileMove.pos.x] = newTile(
     tileMove.rot,
@@ -186,7 +181,7 @@ const next = async () => {
 
   await sleep(500);
 
-  const meepleMove = moves.value[currentMoveOrd.value + 2] as MeepleMove;
+  const meepleMove = moves.value[lastOrd + 2] as MeepleMove;
 
   if (meepleMove.meepleID !== -1) {
     const meepleColor =
@@ -234,17 +229,16 @@ const next = async () => {
     game.value.player0Color,
     game.value.player1Color,
     player.value.tileEdition,
-    currentMoveOrd.value + 2
+    lastOrd + 2
   );
+
+  tileCount.value++;
 
   await sleep(500);
 
   processCompleteEvents(board.completeEvents);
 
-  currentMoveOrd.value += 2;
-  tileCount.value++;
-
-  if (currentMoveOrd.value == maxMoveOrd.value) {
+  if (tileCount.value >= TILE_TOTAL_COUNT - 1) {
     finishGame();
   }
 
@@ -252,21 +246,38 @@ const next = async () => {
 };
 
 const refresh = async () => {
-  if (!game.value || !player.value) {
+  if (!game.value || !player.value || updating.value) {
     return;
   }
 
-  board.value = await getBoard(
+  const ord = tileCount.value * 2 + 1;
+
+  const board = await getBoard(
     game.value.id,
     game.value.player0Color,
     game.value.player1Color,
     player.value.tileEdition,
-    currentMoveOrd.value
+    ord
   );
 
-  tiles.value = board.value.tiles;
-  player0Point.value = board.value.player0Point;
-  player1Point.value = board.value.player1Point;
+  // this board.tiles is a reference to one of boardMemo, which should not be directly used as tiles.value
+  tiles.value = board.tiles.map((row) => {
+    return row.map((tile) =>
+      tile
+        ? newTile(
+            tile.direction,
+            tile.kind,
+            tile.meepleColor,
+            tile.meepledPosition,
+            tile.meepleID,
+            tile.tileEdition
+          )
+        : null
+    );
+  });
+
+  player0Point.value = board.player0Point;
+  player1Point.value = board.player1Point;
 
   resetMeeples();
   // manage meeples
@@ -287,7 +298,7 @@ const refresh = async () => {
 
   // frame tiles from last 1 or 2 tile moves
   let count = 0;
-  for (let i = currentMoveOrd.value; i >= 2 && count < 2; i--) {
+  for (let i = ord; i >= 2 && count < 2; i--) {
     // not tile move
     if (!("rot" in moves.value[i])) {
       continue;
@@ -303,13 +314,13 @@ const refresh = async () => {
     }
   }
 
-  if (currentMoveOrd.value === maxMoveOrd.value) {
+  if (tileCount.value === TILE_TOTAL_COUNT - 1) {
     player0Point.value = game.value.player0Point;
     player1Point.value = game.value.player1Point;
     resetMeeples();
   }
 
-  finished.value = currentMoveOrd.value === maxMoveOrd.value;
+  finished.value = tileCount.value === TILE_TOTAL_COUNT - 1;
 };
 
 const winner = computed(() => {
@@ -325,20 +336,22 @@ const winner = computed(() => {
 });
 
 const currentTileSrc = () => {
-  if (currentMoveOrd.value === maxMoveOrd.value || !player.value) {
+  if (tileCount.value === TILE_TOTAL_COUNT - 1 || !player.value) {
     return "";
   }
 
-  const tileMove = moves.value[currentMoveOrd.value + 1] as TileMove;
+  const lastOrd = tileCount.value * 2 + 1;
+  const tileMove = moves.value[lastOrd + 1] as TileMove;
   return newTile(0, tileMove.tile, null, -1, -1, player.value.tileEdition).src;
 };
 
 const currentPlayerName = () => {
-  if (currentMoveOrd.value === maxMoveOrd.value || !game.value) {
+  if (tileCount.value === TILE_TOTAL_COUNT - 1 || !game.value) {
     return "";
   }
 
-  const tileMove = moves.value[currentMoveOrd.value + 1] as TileMove;
+  const lastOrd = tileCount.value * 2 + 1;
+  const tileMove = moves.value[lastOrd + 1] as TileMove;
 
   if (tileMove.playerID === game.value.player0ID) {
     return game.value.player0Name;
@@ -354,22 +367,17 @@ onMounted(async () => {
 
 <template>
   <div class="p-4 bg-gray-100">
-    <VueSlider
+    <slider
       v-model="tileCount"
-      @change="
-        () => {
-          currentMoveOrd = tileCount * 2 + 1;
-          refresh();
-        }
-      "
-      :min="-1"
-      :max="TILE_TOTAL_COUNT"
-      :dotSize="25"
-      :disabled="updating"
-      :clickable="false"
-      :tooltip="'none'"
-      :processStyle="{ backgroundColor: '#81c784' }"
-    ></VueSlider>
+      @change="refresh"
+      :min="0"
+      :max="TILE_TOTAL_COUNT - 1"
+      color="#81c784"
+      track-color="#FEFEFE"
+      :handleScale="6.0"
+      :alwaysShowHandle="true"
+      :height="4"
+    />
   </div>
   <div
     class="bg-gray-100 text-gray-900 text-sm px-4 py-3 shadow-md flex justify-between"
@@ -380,10 +388,9 @@ onMounted(async () => {
           if (updating) {
             return;
           }
-          if (currentMoveOrd === 1) {
+          if (tileCount === 0) {
             return;
           }
-          currentMoveOrd -= 2;
           tileCount--;
           refresh();
         }
@@ -397,7 +404,7 @@ onMounted(async () => {
           if (updating) {
             return;
           }
-          if (currentMoveOrd === maxMoveOrd) {
+          if (tileCount === TILE_TOTAL_COUNT - 1) {
             return;
           }
           next();
@@ -437,7 +444,7 @@ onMounted(async () => {
       </div>
     </div>
   </div>
-  <div v-if="!finished">
+  <div v-if="!finished && currentPlayerName() !== ''">
     <div
       class="bg-gray-100 rounded text-gray-900 text-sm px-4 py-3 shadow-md flex items-center gap-2"
     >
@@ -475,7 +482,7 @@ onMounted(async () => {
       :profileImageURL="player1ProfileImageURL"
     />
   </div>
-  <div class="board mt-3">
+  <div class="mt-3">
     <GameBoard
       :tiles="tiles"
       :placeablePositions="[]"
@@ -486,9 +493,3 @@ onMounted(async () => {
     />
   </div>
 </template>
-<style scoped>
-.board {
-  height: 1000px;
-  border-radius: 0.5%;
-}
-</style>
