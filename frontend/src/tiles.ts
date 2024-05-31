@@ -113,6 +113,7 @@ export type Position = {
 };
 
 export class Tile {
+  kind: TileKind;
   direction: number;
   src: any;
   defaultMeepleablePositions: Position[] = [];
@@ -121,6 +122,7 @@ export class Tile {
   meepledPosition = -1;
   meepleColor: Color;
   frame: Color = null;
+  tileEdition: TileEdition;
   right(): Side {
     return this.sides[(0 + this.direction) % 4];
   }
@@ -167,21 +169,25 @@ export class Tile {
       });
   }
   constructor(
+    kind: TileKind,
     direction: number,
     sides: Side[],
     src: any,
     meepleColor: Color,
     meepledPostion: number,
     meepleID: number,
+    tileEdition: TileEdition,
     defaultMeepleablePositions?: Position[],
     frame?: Color
   ) {
+    this.kind = kind;
     this.direction = direction;
     this.sides = sides;
     this.src = src;
     this.meepleColor = meepleColor;
     this.meepledPosition = meepledPostion;
     this.meepleID = meepleID;
+    this.tileEdition = tileEdition;
     if (defaultMeepleablePositions) {
       this.defaultMeepleablePositions = defaultMeepleablePositions;
     }
@@ -242,12 +248,14 @@ export function newTile(
   tileEdition: TileEdition
 ): Tile {
   return new Tile(
+    tileKind,
     rot,
     getSides(tileKind),
     getSrc(tileKind, tileEdition),
     meepleColor,
     meepledPosition,
     meepleID,
+    tileEdition,
     getDefaultMeeplePositions(tileKind)
   );
 }
