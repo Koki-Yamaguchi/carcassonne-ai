@@ -369,7 +369,7 @@ onMounted(async () => {
   <div class="p-4 bg-gray-100">
     <slider
       v-model="tileCount"
-      @change="refresh"
+      @drag-end="refresh"
       :min="0"
       :max="TILE_TOTAL_COUNT - 1"
       color="#81c784"
