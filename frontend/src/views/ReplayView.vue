@@ -20,6 +20,8 @@ import PlayerInfo from "../components/PlayerInfo.vue";
 import ReplayIcon from "../components/ReplayIcon.vue";
 import TrashIcon from "../components/TrashIcon.vue";
 import { store } from "../store";
+import VueSlider from "vue-slider-component";
+import "vue-slider-component/theme/default.css";
 
 const TILE_TOTAL_COUNT = 72;
 const player = ref<Player | null>(null);
@@ -34,7 +36,7 @@ const player0Meeples = ref<Set<number>>(new Set([0, 1, 2, 3, 4, 5, 6]));
 const player1Meeples = ref<Set<number>>(new Set([7, 8, 9, 10, 11, 12, 13]));
 const player0ProfileImageURL = ref<string>("");
 const player1ProfileImageURL = ref<string>("");
-const tileCount = ref<number>(1);
+const tileCount = ref<number>(71);
 const discardedTileKinds = ref<TileKind[]>([]);
 const showDiscardedTiles = ref<boolean>(false);
 const moves = ref<Move[]>([]);
@@ -263,7 +265,6 @@ const refresh = async () => {
   }
 
   const moves = await api.getMoves(game.value.id, currentMoveOrd.value);
-  tileCount.value = moves.filter((m) => !("meepleID" in m)).length;
 
   // frame tiles from last 1 or 2 tile moves
   let count = 0;
@@ -341,22 +342,27 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div
-    class="bg-gray-100 text-gray-900 text-sm px-4 py-3 shadow-md flex justify-between"
-  >
-    <div
-      @click="
+  <div class="p-4 bg-gray-100">
+    <VueSlider
+      v-model="tileCount"
+      @change="
         () => {
-          if (updating) {
-            return;
-          }
-          currentMoveOrd = 1;
+          currentMoveOrd = tileCount * 2 + 1;
           refresh();
         }
       "
-    >
-      <ReplayIcon :kind="'beginning'" />
-    </div>
+      :min="-1"
+      :max="TILE_TOTAL_COUNT"
+      :dotSize="25"
+      :disabled="updating"
+      :clickable="false"
+      :tooltip="'none'"
+      :processStyle="{ backgroundColor: '#81c784' }"
+    ></VueSlider>
+  </div>
+  <div
+    class="bg-gray-100 text-gray-900 text-sm px-4 py-3 shadow-md flex justify-between"
+  >
     <div
       @click="
         () => {
@@ -367,6 +373,7 @@ onMounted(async () => {
             return;
           }
           currentMoveOrd -= 2;
+          tileCount--;
           refresh();
         }
       "
@@ -388,26 +395,7 @@ onMounted(async () => {
     >
       <ReplayIcon :kind="'next'" />
     </div>
-
-    <div
-      @click="
-        () => {
-          if (updating) {
-            return;
-          }
-          currentMoveOrd = maxMoveOrd;
-          refresh();
-        }
-      "
-    >
-      <ReplayIcon :kind="'end'" />
-    </div>
     <div class="flex">
-      <div class="flex flex-col justify-center">
-        {{ Math.max(TILE_TOTAL_COUNT - tileCount - 2, 0) }}/{{
-          TILE_TOTAL_COUNT
-        }}
-      </div>
       <div class="flex flex-col justify-center ml-2 relative">
         <TrashIcon @click="showDiscardedTiles = !showDiscardedTiles" />
         <div
