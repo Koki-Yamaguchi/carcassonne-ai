@@ -2,10 +2,9 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import { API } from "../api";
-import { newTile, Tile, TileKind } from "../tiles";
+import { Color, newTile, Tile, TileEdition, TileKind } from "../tiles";
 import {
   Board,
-  DiscardMove,
   Game,
   TileMove,
   Player,
@@ -45,6 +44,32 @@ const player0LastTilePos = ref<TilePosition>({ y: -1, x: -1 });
 const player1LastTilePos = ref<TilePosition>({ y: -1, x: -1 });
 const updating = ref<boolean>(false);
 const finished = ref<boolean>(false);
+
+const boardMemo = ref<Map<number, Board>>(new Map());
+const getBoard = async (
+  gameID: number,
+  player0MeepleColor: Color,
+  player1MeepleColor: Color,
+  tileEdition: TileEdition,
+  moveID: number
+): Promise<Board> => {
+  if (boardMemo.value?.has(moveID)) {
+    return boardMemo.value.get(moveID) as Board;
+  }
+
+  const api = new API();
+  const board = await api.getBoard(
+    gameID,
+    player0MeepleColor,
+    player1MeepleColor,
+    tileEdition,
+    moveID
+  );
+
+  boardMemo.value?.set(moveID, board);
+
+  return board;
+};
 
 const sleep = (ms: number) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -148,8 +173,6 @@ const next = async () => {
   }
   updating.value = true;
 
-  const api = new API();
-
   const tileMove = moves.value[currentMoveOrd.value + 1] as TileMove;
 
   tiles.value[tileMove.pos.y][tileMove.pos.x] = newTile(
@@ -206,7 +229,7 @@ const next = async () => {
     player1LastTilePos.value = { y: tileMove.pos.y, x: tileMove.pos.x };
   }
 
-  const board = await api.getBoard(
+  const board = await getBoard(
     game.value.id,
     game.value.player0Color,
     game.value.player1Color,
@@ -233,9 +256,7 @@ const refresh = async () => {
     return;
   }
 
-  const api = new API();
-
-  board.value = await api.getBoard(
+  board.value = await getBoard(
     game.value.id,
     game.value.player0Color,
     game.value.player1Color,
@@ -264,17 +285,15 @@ const refresh = async () => {
     }
   }
 
-  const moves = await api.getMoves(game.value.id, currentMoveOrd.value);
-
   // frame tiles from last 1 or 2 tile moves
   let count = 0;
-  for (let i = moves.length - 1; i >= 2 && count < 2; i--) {
+  for (let i = currentMoveOrd.value; i >= 2 && count < 2; i--) {
     // not tile move
-    if (!("rot" in moves[i])) {
+    if (!("rot" in moves.value[i])) {
       continue;
     }
     count++;
-    const tileMove = moves[i] as TileMove;
+    const tileMove = moves.value[i] as TileMove;
     const tilePosY = tileMove.pos.y;
     const tilePosX = tileMove.pos.x;
     if (tileMove.playerID === game.value?.player0ID) {
@@ -283,14 +302,6 @@ const refresh = async () => {
       tiles.value[tilePosY][tilePosX]?.addFrame(game.value.player1Color);
     }
   }
-
-  // list discarded tiles
-  discardedTileKinds.value = moves
-    .filter((mv) => !("rot" in mv) && "tile" in mv)
-    .map((mv) => {
-      const dm = mv as DiscardMove;
-      return dm.tile;
-    });
 
   if (currentMoveOrd.value === maxMoveOrd.value) {
     player0Point.value = game.value.player0Point;
