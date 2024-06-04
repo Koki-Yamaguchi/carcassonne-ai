@@ -44,6 +44,12 @@ struct NewWaitingGame {
 }
 
 #[derive(Insertable)]
+#[diesel(table_name = schema::waiting_game_history)]
+struct NewWaitingGameHistory {
+    player_id: i32,
+}
+
+#[derive(Insertable)]
 #[diesel(table_name = schema::game)]
 struct NewGame {
     player0_id: i32,
@@ -404,6 +410,11 @@ pub fn get_waiting_games(db: &DbPool) -> Result<Vec<game::WaitingGame>, Error> {
 
 pub fn create_waiting_game(db: &DbPool, player_id: i32) -> Result<game::WaitingGame, Error> {
     let conn = &mut db.get().unwrap();
+
+    let _ = diesel::insert_into(schema::waiting_game_history::table)
+        .values(NewWaitingGameHistory { player_id })
+        .execute(conn);
+
     let new_waiting_game = NewWaitingGame { player_id };
     match diesel::insert_into(schema::waiting_game::table)
         .values(&new_waiting_game)
