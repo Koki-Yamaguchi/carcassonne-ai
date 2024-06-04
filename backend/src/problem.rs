@@ -111,10 +111,10 @@ pub struct UpdateProblem {
 #[diesel(table_name = schema::favorite)]
 pub struct Favorite {
     pub id: i32,
-    pub problem_id: i32,
     pub player_id: i32,
     pub player_name: String,
     pub created_at: chrono::NaiveDateTime,
+    pub problem_id: i32,
 }
 
 #[derive(Deserialize)]

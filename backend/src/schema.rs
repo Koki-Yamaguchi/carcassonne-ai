@@ -10,10 +10,10 @@ diesel::table! {
 diesel::table! {
     favorite (id) {
         id -> Int4,
-        problem_id -> Int4,
         player_id -> Int4,
         player_name -> Varchar,
         created_at -> Timestamp,
+        problem_id -> Int4,
     }
 }
 
@@ -144,6 +144,14 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    waiting_game_history (id) {
+        id -> Int4,
+        player_id -> Int4,
+        created_at -> Timestamp,
+    }
+}
+
 diesel::joinable!(player -> color (meeple_color));
 
 diesel::allow_tables_to_appear_in_same_query!(
@@ -157,4 +165,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     problem_proposal,
     vote,
     waiting_game,
+    waiting_game_history,
 );

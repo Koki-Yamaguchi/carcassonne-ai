@@ -7,3 +7,5 @@ scripts/
 secret.key
 self-signed.cert
 
+generate-problem/tournament.py
+
