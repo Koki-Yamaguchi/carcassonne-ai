@@ -17,7 +17,6 @@ import GameBoard from "../components/GameBoard.vue";
 import PlayerInfo from "../components/PlayerInfo.vue";
 import VoteItems from "../components/VoteItems.vue";
 import ChevronIcon from "../components/ChevronIcon.vue";
-import SolvedSign from "../components/SolvedSign.vue";
 
 import {
   boardSize,
@@ -453,6 +452,15 @@ const creatorName = computed(() => {
   return problem.value.creatorName ?? "admin";
 });
 
+const testerName = computed(() => {
+  if (!problem.value) {
+    return "";
+  }
+  return (
+    (problem.value.testerName ? `${problem.value.testerName}, ` : "") + "admin"
+  );
+});
+
 const tweetText = computed(() => {
   if (!problem.value || !player.value) {
     return "";
@@ -540,19 +548,13 @@ const toggleFavorite = async () => {
           {{ formatNumber }}.
           {{ problem ? problem.name : "" }}
         </div>
-        <div
-          v-if="problem && problem.isSolved"
-          class="flex flex-col justify-center items-center ml-2"
-        >
-          <SolvedSign />
-        </div>
       </div>
       <div class="text-xs ml-1 mt-1 flex">
         <div>
           {{ translate("created_by") }} <b>{{ creatorName }}</b>
         </div>
         <div v-if="problem && problem.isSolved" class="ml-2">
-          {{ translate("tested_by") }} <b>admin</b>
+          {{ translate("tested_by") }} <b>{{ testerName }}</b>
         </div>
       </div>
     </div>

@@ -14,7 +14,6 @@ import { useRoute, useRouter } from "vue-router";
 import { store } from "../store";
 import GameBoard from "../components/GameBoard.vue";
 import PlayerInfo from "../components/PlayerInfo.vue";
-import SolvedSign from "../components/SolvedSign.vue";
 import ChevronIcon from "../components/ChevronIcon.vue";
 import {
   boardSize,
@@ -289,6 +288,15 @@ const creatorName = computed(() => {
   return problem.value.creatorName ?? "admin";
 });
 
+const testerName = computed(() => {
+  if (!problem.value) {
+    return "";
+  }
+  return (
+    (problem.value.testerName ? `${problem.value.testerName}, ` : "") + "admin"
+  );
+});
+
 const isAdmin = computed(() => {
   return player.value && player.value.id === 2;
 });
@@ -313,19 +321,13 @@ const isCreator = computed(() => {
         <div v-else>
           <input v-model="name" class="border" type="text" />
         </div>
-        <div
-          v-if="problem && problem.isSolved"
-          class="flex flex-col justify-center items-center ml-2"
-        >
-          <SolvedSign />
-        </div>
       </div>
       <div class="text-xs ml-1 mt-1 flex">
         <div>
           {{ translate("created_by") }} <b>{{ creatorName }}</b>
         </div>
         <div v-if="problem && problem.isSolved" class="ml-2">
-          {{ translate("tested_by") }} <b>admin</b>
+          {{ translate("tested_by") }} <b>{{ testerName }}</b>
         </div>
       </div>
     </div>
