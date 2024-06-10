@@ -899,6 +899,7 @@ fn create_optimal_move(db: &DbPool, game_id: i32, last_n: i32, player0_id: i32, 
         player1_id,
         next_tile,
         false,
+        false,
     );
 
     if solve_result != SolveResult::AlwaysWin {
