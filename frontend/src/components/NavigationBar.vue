@@ -10,7 +10,7 @@ const router = useRouter();
 const isOpen = ref<boolean>(false);
 </script>
 <template>
-  <div class="bg-gray-200 w-full h-14 flex justify-between px-4 relative z-10">
+  <div class="bg-gray-200 w-full h-14 flex justify-between px-4 relative z-30">
     <div
       class="flex flex-col justify-center text-lg hover:cursor-pointer"
       @click="
@@ -74,6 +74,15 @@ const isOpen = ref<boolean>(false);
             class="hover:bg-gray-100 md:hover:bg-gray-200"
           >
             {{ translate("propose_problem") }}
+          </div>
+          <div
+            @click="
+              isOpen = false;
+              router.push('/simulator');
+            "
+            class="hover:bg-gray-100 md:hover:bg-gray-200"
+          >
+            {{ translate("simulator") }}
           </div>
           <div
             v-if="store.authenticated"

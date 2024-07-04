@@ -95,5 +95,13 @@
   "del": "Delete",
   "tile_edition": "Tile Edition",
   "first_edition": "Old Edition",
-  "second_edition": "New Edition"
+  "second_edition": "New Edition",
+  "simulator": "Simulator",
+  "frame": "Frame",
+  "reset": "Reset",
+  "no_fitting_square": "There is no square that the selected tile fits.",
+  "reset_confirm": "Do you reset the entire board?",
+  "background": "Background",
+  "wood": "Wood",
+  "white": "White"
 }

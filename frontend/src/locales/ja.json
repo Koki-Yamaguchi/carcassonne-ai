@@ -95,5 +95,13 @@
   "del": "削除する",
   "tile_edition": "タイルの種類",
   "first_edition": "旧版",
-  "second_edition": "新版"
+  "second_edition": "新版",
+  "simulator": "シミュレーター",
+  "frame": "フレーム",
+  "reset": "リセット",
+  "no_fitting_square": "選択されたタイルを配置できるマスがありません",
+  "reset_confirm": "盤面をリセットしますか？",
+  "background": "背景",
+  "wood": "木",
+  "white": "白"
 }
