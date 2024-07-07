@@ -28,8 +28,9 @@ pub fn calculate_next_move(
         }
     }
     if tile_count >= 72 - 2 {
-        let ((tm, mm), solve_result) =
-            solve(&mvs, game_id, player0_id, player1_id, next_tile, true);
+        let ((tm, mm), solve_result) = solve(
+            &mvs, game_id, player0_id, player1_id, next_tile, true, false,
+        );
         if solve_result != SolveResult::AlwaysLose {
             return Some((tm, mm));
         }

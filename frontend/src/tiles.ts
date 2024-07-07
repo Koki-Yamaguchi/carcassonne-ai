@@ -245,7 +245,8 @@ export function newTile(
   meepleColor: Color,
   meepledPosition: number,
   meepleID: number,
-  tileEdition: TileEdition
+  tileEdition: TileEdition,
+  frameColor?: Color
 ): Tile {
   return new Tile(
     tileKind,
@@ -256,7 +257,8 @@ export function newTile(
     meepledPosition,
     meepleID,
     tileEdition,
-    getDefaultMeeplePositions(tileKind)
+    getDefaultMeeplePositions(tileKind),
+    frameColor
   );
 }
 
@@ -745,4 +747,54 @@ export function getInitialBoard(tileEdition: TileEdition): (Tile | null)[][] {
     tileEdition
   );
   return initialBoard;
+}
+
+export function allTiles(tileEdition: TileEdition): Tile[] {
+  const tileKinds: TileKind[] = [
+    "Monastery",
+    "MonasteryWithRoad",
+    "Straight",
+    "Curve",
+    "TripleRoad",
+    "QuadrupleRoad",
+    "Triangle",
+    "TriangleWithCOA",
+    "TriangleWithRoad",
+    "TriangleWithRoadWithCOA",
+    "CityCap",
+    "Left",
+    "Right",
+    "StartingTile",
+    "CityCapWithCrossroad",
+    "Separator",
+    "VerticalSeparator",
+    "Connector",
+    "ConnectorWithCOA",
+    "TripleCity",
+    "TripleCityWithCOA",
+    "TripleCityWithRoad",
+    "TripleCityWithRoadWithCOA",
+    "QuadrupleCityWithCOA",
+  ];
+  return tileKinds.map((tileKind) => {
+    return newTile(0, tileKind, null, -1, -1, tileEdition);
+  });
+}
+
+export function resetBoard(board: (Tile | null)[][], tileEdition: TileEdition) {
+  for (let y = 0; y < boardSize; y++) {
+    for (let x = 0; x < boardSize; x++) {
+      if (y !== (boardSize - 1) / 2 || x !== (boardSize - 1) / 2) {
+        board[y][x] = null;
+      }
+    }
+  }
+  board[(boardSize - 1) / 2][(boardSize - 1) / 2] = newTile(
+    0,
+    "StartingTile",
+    null,
+    -1,
+    -1,
+    tileEdition
+  );
 }

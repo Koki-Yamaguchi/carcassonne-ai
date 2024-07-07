@@ -10,6 +10,7 @@ import SettingsView from "../views/SettingsView.vue";
 import CompetitiveView from "../views/CompetitiveView.vue";
 import NormalView from "../views/NormalView.vue";
 import LobbyView from "../views/LobbyView.vue";
+import SimulatorView from "../views/SimulatorView.vue";
 import ReplayView from "../views/ReplayView.vue";
 import ResultView from "../views/ResultView.vue";
 import ProposeProblemView from "../views/ProposeProblemView.vue";
@@ -101,6 +102,11 @@ const router = createRouter({
       name: "lobby",
       component: LobbyView,
     },
+    {
+      path: "/simulator",
+      name: "simulator",
+      component: SimulatorView,
+    },
   ],
   scrollBehavior(_, __, savedPosition) {
     if (savedPosition) {
@@ -137,7 +143,12 @@ router.beforeEach(async (to) => {
   store.setAuthenticating(true);
   const currentUser = (await getCurrentUser()) as any;
   store.setAuthenticating(false);
-  if (to.path !== "/" && to.path !== "/signin" && to.path !== "/signup") {
+  if (
+    to.path !== "/" &&
+    to.path !== "/simulator" &&
+    to.path !== "/signin" &&
+    to.path !== "/signup"
+  ) {
     if (currentUser) {
       store.setAuthenticated(true);
       store.setUserID(currentUser.uid);

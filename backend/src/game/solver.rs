@@ -54,6 +54,7 @@ pub fn search(
     depth: i32,
     second_player_id: i32,
     is_last_1_or_2: bool,
+    debug: bool,
 ) -> (Vec<Win>, i32) {
     let mut moves = mvs.clone();
     let next_tile = ordered_tiles.first().unwrap();
@@ -106,11 +107,9 @@ pub fn search(
         };
         meepleable_positions.push(-1); // not meeple the tile
 
-        /*
-        if depth == 0 {
+        if debug && depth == 0 {
             println!("first mv = {:?}", moves.last().unwrap());
         }
-        */
 
         for meepleable_position in &meepleable_positions {
             let mut meeple_id = -1;
@@ -175,6 +174,7 @@ pub fn search(
                     depth + 1,
                     second_player_id,
                     is_last_1_or_2,
+                    debug,
                 );
 
                 if winner == player_id {
@@ -211,6 +211,7 @@ pub fn solve(
     player1_id: i32,
     next_tile: Tile,
     is_last_1_or_2: bool,
+    debug: bool,
 ) -> ((TileMove, MeepleMove), SolveResult) {
     // check who is playing
     assert!(moves.len() >= 4);
@@ -291,7 +292,9 @@ pub fn solve(
         let mut ordered_tiles = vec![next_tile];
         ordered_tiles.append(&mut ordered_remaining_tiles);
 
-        // println!("ordered_tiles = {:?}", ordered_tiles);
+        if debug {
+            println!("ordered_tiles = {:?}", ordered_tiles);
+        }
 
         let wins = if memo.contains_key(&ordered_tiles) {
             memo.get(&ordered_tiles).unwrap().clone().to_vec()
@@ -307,6 +310,7 @@ pub fn solve(
                 0,
                 second_player_id,
                 is_last_1_or_2,
+                debug,
             )
             .0;
             memo.insert(ordered_tiles.clone(), ws.clone());
@@ -452,7 +456,7 @@ fn solve_test0() {
     mvs.pop();
     mvs.pop();
 
-    let ((tm, mm), solve_result) = solve(&mvs, -1, 0, 1, Tile::VerticalSeparator, false);
+    let ((tm, mm), solve_result) = solve(&mvs, -1, 0, 1, Tile::VerticalSeparator, false, true);
 
     assert_eq!(solve_result, SolveResult::AlwaysWin);
     assert_eq!(tm.pos, (-5, 7));
@@ -481,7 +485,7 @@ fn solve_test1() {
         mvs.pop();
     }
 
-    let ((tm, mm), solve_result) = solve(&mvs, -1, 0, 1, Tile::Left, false);
+    let ((tm, mm), solve_result) = solve(&mvs, -1, 0, 1, Tile::Left, false, true);
 
     assert_eq!(solve_result, SolveResult::AlwaysWin);
     assert_eq!(tm.pos, (-2, -1));
@@ -614,7 +618,65 @@ fn solve_test2() {
 
         for next_tile in &next_tiles {
             println!("next_tile = {:?}", next_tile);
-            let ((_, _), _) = solve(&mvs, None, 0, 1, next_tile.clone(), false);
+            let ((_, _), _) = solve(&mvs, None, 0, 1, next_tile.clone(), false, true);
+        }
+
+        mvs.pop();
+        mvs.pop();
+
+        println!("");
+    }
+}
+
+#[test]
+fn solve_test3() {
+    use super::decoder;
+    let mut mvs = decoder::decode_from_file_path("src/data/473330986.json".to_string());
+
+    for _ in 0..10 {
+        mvs.pop();
+    }
+
+    for mv in &mvs {
+        println!("mv = {:?}", mv);
+    }
+
+    let cand_mvs = vec![vec![
+        TMove(TileMove {
+            id: -1,
+            ord: 134,
+            game_id: None,
+            player_id: 1,
+            tile: Tile::TriangleWithRoad,
+            rot: 3,
+            pos: (3, 4),
+        }),
+        MMove(MeepleMove {
+            id: -1,
+            ord: 135,
+            game_id: None,
+            player_id: 1,
+            meeple_id: 13,
+            meeple_pos: 0,
+            tile_pos: (3, 4),
+        }),
+    ]];
+
+    for cand_mv in &cand_mvs {
+        mvs.push(cand_mv[0].clone());
+        mvs.push(cand_mv[1].clone());
+
+        let next_tiles = vec![
+            Tile::Curve,
+            Tile::TripleRoad,
+            Tile::TriangleWithCOA,
+            Tile::TripleCityWithRoadWithCOA,
+        ];
+        println!("move = {:?}, {:?}", cand_mv[0], cand_mv[1]);
+
+        for next_tile in &next_tiles {
+            println!("next_tile = {:?}", next_tile);
+            let ((_, _), _) = solve(&mvs, None, 0, 1, next_tile.clone(), false, true);
         }
 
         mvs.pop();
