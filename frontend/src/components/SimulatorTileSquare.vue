@@ -2,12 +2,13 @@
 import type { Tile, Color } from "../tiles";
 import { lyingMeepleSrc, standingMeepleSrc } from "../meeples";
 import CrossIcon from "./CrossIcon.vue";
+import { ref, watch } from "vue";
 
 const tileSize = 60; // px
 const spotRadius = 4; // px
 const spotColor = "#ffffff";
 
-defineProps<{
+const props = defineProps<{
   tile: Tile | null;
   placeable: boolean;
   placing: boolean;
@@ -22,6 +23,8 @@ defineEmits<{
   (e: "addFrame"): void;
 }>();
 
+const tileDeg = ref<number>(props.tile ? props.tile.direction * 90 : 0);
+
 const boxStyle = {
   height: `${tileSize}px`,
   width: `${tileSize}px`,
@@ -33,12 +36,34 @@ const tileStyle = (dir: number, frame: Color) => {
     "outline-offset": frame !== null ? "-2px" : "none",
   };
 };
+
+watch(
+  () => props.tile?.direction,
+  (newDirection, oldDirection) => {
+    if (newDirection === undefined || oldDirection === undefined) {
+      return;
+    }
+
+    if (Math.abs(newDirection - oldDirection) === 2) {
+      tileDeg.value = tileDeg.value + 180;
+    } else {
+      if (newDirection === (oldDirection + 1) % 4) {
+        tileDeg.value = tileDeg.value + 90;
+      } else {
+        tileDeg.value = tileDeg.value - 90;
+      }
+    }
+  }
+);
 </script>
 
 <template>
   <div class="box placing" :style="boxStyle" v-if="tile && placing">
     <img
-      :style="{ transform: `rotate(${tile.direction * 90}deg)` }"
+      :style="{
+        transform: `rotate(${tileDeg}deg)`,
+        transition: '0.5s',
+      }"
       :src="tile.src"
     />
   </div>
