@@ -140,27 +140,10 @@ pub fn decode(data: String) -> Vec<Move> {
                                     }
                                 }
 
-                                let tile_type = packet["data"][0]["args"]["type"]
-                                    .as_str()
-                                    .unwrap()
-                                    .parse()
-                                    .unwrap();
-                                let y = packet["data"][0]["args"]["y"]
-                                    .as_str()
-                                    .unwrap()
-                                    .parse()
-                                    .unwrap();
-                                let x = packet["data"][0]["args"]["x"]
-                                    .as_str()
-                                    .unwrap()
-                                    .parse()
-                                    .unwrap();
-                                let rot = packet["data"][0]["args"]["ori"]
-                                    .as_str()
-                                    .unwrap()
-                                    .parse::<i32>()
-                                    .unwrap()
-                                    - 1;
+                                let tile_type = parse_number(&packet["data"][0]["args"]["type"]);
+                                let y = parse_number(&packet["data"][0]["args"]["y"]);
+                                let x = parse_number(&packet["data"][0]["args"]["x"]);
+                                let rot = parse_number(&packet["data"][0]["args"]["ori"]) - 1;
                                 tile_id = convert_tile(tile_type);
 
                                 moves.push(Move::TMove(TileMove {
@@ -176,21 +159,9 @@ pub fn decode(data: String) -> Vec<Move> {
                                 ord += 1;
                             }
                             "playPartisan" => {
-                                let y = packet["data"][0]["args"]["y"]
-                                    .as_str()
-                                    .unwrap()
-                                    .parse()
-                                    .unwrap();
-                                let x = packet["data"][0]["args"]["x"]
-                                    .as_str()
-                                    .unwrap()
-                                    .parse()
-                                    .unwrap();
-                                let pos = packet["data"][0]["args"]["pos"]
-                                    .as_str()
-                                    .unwrap()
-                                    .parse()
-                                    .unwrap();
+                                let y = parse_number(&packet["data"][0]["args"]["y"]);
+                                let x = parse_number(&packet["data"][0]["args"]["x"]);
+                                let pos = parse_number(&packet["data"][0]["args"]["pos"]);
 
                                 if remaining_meeples[player_id as usize].len() == 0 {
                                     panic!("decode failed: no meeple is available");
@@ -403,5 +374,13 @@ fn convert_pos(tile_id: i32, pos: i32) -> i32 {
             _ => -1,
         },
         _ => -1,
+    }
+}
+
+fn parse_number(v: &Value) -> i32 {
+    match v {
+        Value::Number(n) => n.as_i64().unwrap() as i32,
+        Value::String(s) => s.parse().unwrap(),
+        _ => panic!("parse failed for {:?}", v),
     }
 }
