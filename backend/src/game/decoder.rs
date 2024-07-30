@@ -41,47 +41,79 @@ pub fn decode(data: String) -> Vec<Move> {
         }),
     ];
     ord += 2;
+    player_id = 1 - player_id;
 
-    match v["data"]["data"].as_array() {
-        Some(packets) => {
-            for packet in packets {
-                // check if there's a discard move
-                let mut is_discard = false;
-                for d in packet["data"].as_array().unwrap() {
-                    if let "cantPlay" = d["type"].as_str().unwrap() {
-                        is_discard = true;
-                    }
-                }
-                if is_discard {
-                    let prev_move = moves.last().unwrap().clone();
-                    match prev_move {
-                        Move::TMove(t) => {
-                            moves.push(Move::MMove(MeepleMove {
-                                id: -1,
-                                ord,
-                                game_id: None,
-                                player_id,
-                                meeple_id: -1,
-                                tile_pos: t.pos,
-                                meeple_pos: -1,
-                            }));
-                            ord += 1;
-                            player_id = 1 - player_id;
-                        }
-                        Move::MMove(_) => {
-                            player_id = 1 - player_id;
-                        }
-                        _ => {}
-                    }
-
-                    for d in packet["data"].as_array().unwrap() {
-                        if let Some(args0) = d["args"].as_object() {
-                            if !args0.contains_key("args") {
-                                continue;
+    if let Some(packets) = v["data"]["data"].as_array() {
+        for packet in packets {
+            if let Some(ds) = packet["data"].as_array() {
+                for d in ds {
+                    let args = &d["args"];
+                    match d["type"].as_str() {
+                        Some("playTile") | Some("cantPlay") => {
+                            // create empty meeple move if there is no playPartisan packet before
+                            let prev_move = moves.last().unwrap().clone();
+                            match prev_move {
+                                Move::TMove(t) => {
+                                    moves.push(Move::MMove(MeepleMove {
+                                        id: -1,
+                                        ord,
+                                        game_id: None,
+                                        player_id,
+                                        meeple_id: -1,
+                                        tile_pos: t.pos,
+                                        meeple_pos: -1,
+                                    }));
+                                    ord += 1;
+                                    player_id = 1 - player_id;
+                                }
+                                _ => {}
                             }
-                            if let Some(args1) = args0["args"].as_object() {
-                                if let Some(tile_type) = args1["tile_id"].as_str() {
-                                    let tile_id = convert_tile(tile_type.parse().unwrap());
+
+                            // check which meeples are retrieved (which can't be known easily from the data)
+                            let status = calculate(&moves, false);
+                            match status {
+                                Ok(res) => {
+                                    for e in &res.complete_events {
+                                        for meeple_id in &e.meeple_ids {
+                                            if *meeple_id < 7 {
+                                                remaining_meeples[0].insert(*meeple_id);
+                                            } else {
+                                                remaining_meeples[1].insert(*meeple_id);
+                                            }
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    panic!("Error: {:?}", e.detail);
+                                }
+                            }
+
+                            match d["type"].as_str() {
+                                Some("playTile") => {
+                                    let tile_type = parse_number(&args["type"]);
+                                    let y = parse_number(&args["y"]);
+                                    let x = parse_number(&args["x"]);
+                                    let rot = parse_number(&args["ori"]) - 1;
+                                    tile_id = convert_from_bga_tile_type_to_tile_id(tile_type);
+
+                                    moves.push(Move::TMove(TileMove {
+                                        id: -1,
+                                        ord,
+                                        game_id: None,
+                                        player_id,
+                                        tile: to_tile(tile_id),
+                                        rot,
+                                        pos: (y, x),
+                                    }));
+
+                                    ord += 1;
+                                }
+                                Some("cantPlay") => {
+                                    let bga_tile_id = parse_number(&args["tile_id"]);
+                                    let tile_id = convert_from_bga_tile_type_to_tile_id(
+                                        convert_from_bga_tile_id_to_bga_tile_type(bga_tile_id),
+                                    );
+
                                     moves.push(Move::DMove(DiscardMove {
                                         id: -1,
                                         ord,
@@ -89,110 +121,45 @@ pub fn decode(data: String) -> Vec<Move> {
                                         game_id: None,
                                         player_id,
                                     }));
+
                                     ord += 1;
                                 }
+                                _ => {}
                             }
                         }
-                    }
-                }
-                match packet["data"][0]["type"].as_str() {
-                    Some(t) => {
-                        match t {
-                            "playTile" => {
-                                // add empty meeple move if there is no playPartisan packet
-                                let prev_move = moves.last().unwrap().clone();
-                                match prev_move {
-                                    Move::TMove(t) => {
-                                        moves.push(Move::MMove(MeepleMove {
-                                            id: -1,
-                                            ord,
-                                            game_id: None,
-                                            player_id,
-                                            meeple_id: -1,
-                                            tile_pos: t.pos,
-                                            meeple_pos: -1,
-                                        }));
-                                        ord += 1;
-                                        player_id = 1 - player_id;
-                                    }
-                                    Move::MMove(_) => {
-                                        player_id = 1 - player_id;
-                                    }
-                                    _ => {}
-                                }
+                        Some("playPartisan") => {
+                            let y = parse_number(&args["y"]);
+                            let x = parse_number(&args["x"]);
+                            let pos = parse_number(&args["pos"]);
 
-                                // check which meeples are retrieved (which can't be known easily from the data)
-                                let status = calculate(&moves, false);
-                                match status {
-                                    Ok(res) => {
-                                        for e in &res.complete_events {
-                                            for meeple_id in &e.meeple_ids {
-                                                if *meeple_id < 7 {
-                                                    remaining_meeples[0].insert(*meeple_id);
-                                                } else {
-                                                    remaining_meeples[1].insert(*meeple_id);
-                                                }
-                                            }
-                                        }
-                                    }
-                                    Err(e) => {
-                                        panic!("Error: {:?}", e.detail);
-                                    }
-                                }
-
-                                let tile_type = parse_number(&packet["data"][0]["args"]["type"]);
-                                let y = parse_number(&packet["data"][0]["args"]["y"]);
-                                let x = parse_number(&packet["data"][0]["args"]["x"]);
-                                let rot = parse_number(&packet["data"][0]["args"]["ori"]) - 1;
-                                tile_id = convert_tile(tile_type);
-
-                                moves.push(Move::TMove(TileMove {
-                                    id: -1,
-                                    ord,
-                                    game_id: None,
-                                    player_id,
-                                    tile: to_tile(tile_id),
-                                    rot,
-                                    pos: (y, x),
-                                }));
-
-                                ord += 1;
+                            if remaining_meeples[player_id as usize].len() == 0 {
+                                panic!("decode failed: no meeple is available");
                             }
-                            "playPartisan" => {
-                                let y = parse_number(&packet["data"][0]["args"]["y"]);
-                                let x = parse_number(&packet["data"][0]["args"]["x"]);
-                                let pos = parse_number(&packet["data"][0]["args"]["pos"]);
+                            let meeple_id = remaining_meeples[player_id as usize]
+                                .iter()
+                                .next()
+                                .unwrap()
+                                .clone();
+                            remaining_meeples[player_id as usize].remove(&meeple_id);
 
-                                if remaining_meeples[player_id as usize].len() == 0 {
-                                    panic!("decode failed: no meeple is available");
-                                }
-                                let meeple_id = remaining_meeples[player_id as usize]
-                                    .iter()
-                                    .next()
-                                    .unwrap()
-                                    .clone();
-                                remaining_meeples[player_id as usize].remove(&meeple_id);
+                            moves.push(Move::MMove(MeepleMove {
+                                id: -1,
+                                ord,
+                                game_id: None,
+                                player_id,
+                                meeple_id,
+                                tile_pos: (y, x),
+                                meeple_pos: convert_pos(tile_id, pos),
+                            }));
 
-                                moves.push(Move::MMove(MeepleMove {
-                                    id: -1,
-                                    ord,
-                                    game_id: None,
-                                    player_id,
-                                    meeple_id,
-                                    tile_pos: (y, x),
-                                    meeple_pos: convert_pos(tile_id, pos),
-                                }));
-
-                                ord += 1;
-                            }
-                            _ => {}
+                            ord += 1;
+                            player_id = 1 - player_id;
                         }
+                        _ => {}
                     }
-                    None => {}
                 }
             }
         }
-        None => {}
     }
 
     // add empty meeple move if there is no playPartisan packet in the end
@@ -223,7 +190,7 @@ pub fn decode_from_file_path(file_path: String) -> Vec<Move> {
     decode(data)
 }
 
-fn convert_tile(typ: i32) -> i32 {
+fn convert_from_bga_tile_type_to_tile_id(typ: i32) -> i32 {
     match typ {
         15 => 0,
         20 => 1,
@@ -249,6 +216,84 @@ fn convert_tile(typ: i32) -> i32 {
         3 => 21,
         4 => 22,
         22 => 23,
+        _ => -1,
+    }
+}
+
+fn convert_from_bga_tile_id_to_bga_tile_type(tid: i32) -> i32 {
+    match tid {
+        1 => 1,
+        2 => 2,
+        3 => 2,
+        4 => 3,
+        5 => 3,
+        6 => 3,
+        7 => 4,
+        8 => 4,
+        9 => 5,
+        10 => 5,
+        11 => 5,
+        12 => 6,
+        13 => 6,
+        14 => 7,
+        15 => 8,
+        16 => 8,
+        17 => 9,
+        18 => 9,
+        19 => 10,
+        20 => 10,
+        21 => 10,
+        22 => 11,
+        23 => 11,
+        24 => 11,
+        25 => 11,
+        26 => 11,
+        27 => 12,
+        28 => 12,
+        29 => 12,
+        30 => 13,
+        31 => 13,
+        32 => 13,
+        33 => 14,
+        34 => 14,
+        35 => 14,
+        36 => 15,
+        37 => 15,
+        38 => 15,
+        39 => 15,
+        40 => 16,
+        41 => 16,
+        42 => 16,
+        43 => 16,
+        44 => 16,
+        45 => 16,
+        46 => 16,
+        47 => 16,
+        48 => 17,
+        49 => 17,
+        50 => 17,
+        51 => 17,
+        52 => 17,
+        53 => 17,
+        54 => 17,
+        55 => 17,
+        56 => 17,
+        57 => 18,
+        58 => 18,
+        59 => 18,
+        60 => 18,
+        61 => 19,
+        62 => 20,
+        63 => 20,
+        64 => 20,
+        65 => 20,
+        66 => 21,
+        67 => 21,
+        68 => 22,
+        69 => 23,
+        70 => 23,
+        71 => 23,
+        72 => 24,
         _ => -1,
     }
 }
