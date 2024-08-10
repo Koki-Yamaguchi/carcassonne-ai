@@ -2,11 +2,12 @@ import os
 import sys
 import re
 import time
-import chromedriver_binary
-from selenium import webdriver
-from selenium.webdriver.common.by import By
 import requests
-from get_chrome_driver import GetChromeDriver
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
 
 username = os.environ["BGA_USERNAME"]
 password = os.environ["BGA_PASSWORD"]
@@ -46,15 +47,9 @@ def run():
     if len(proposals) == 0:
         return
 
-    # local
-    # driver = webdriver.Chrome()
-
-    # remote
-    get_driver = GetChromeDriver()
-    get_driver.install()
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
-    driver = webdriver.Chrome(options=options)
+    driver = webdriver.Chrome(options=options, service=ChromeService(ChromeDriverManager().install()))
 
     print("found proposals")
     print(proposals)
