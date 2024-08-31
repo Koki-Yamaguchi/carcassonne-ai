@@ -265,9 +265,9 @@ pub fn get_problem(db: &DbPool, id: i32, player: Option<i32>) -> Result<Problem,
     let mut problem = database::get_problem(db, id)?;
 
     if let Some(plid) = player {
-        let votes = database::get_votes(db, Some(id), Some(plid), false)?;
+        let votes = database::get_votes(db, Some(id), Some(plid), false, 0, 1)?;
 
-        let favorites = database::get_favorites(db, Some(id), Some(plid))?;
+        let favorites = database::get_favorites(db, Some(id), Some(plid), 0, 1)?;
 
         problem.voted = Some(votes.len() > 0);
         problem.favorited = Some(favorites.len() > 0);
@@ -324,9 +324,27 @@ pub fn get_problems(
     let mut problem_res = database::get_problems(db, p, o, l, creator, is_drft, is_prvt)?;
 
     if let Some(plid) = player {
-        let votes = database::get_votes(db, None, Some(plid), false)?; // TODO: pagination
+        let mut votes = vec![];
+        let mut page = 0;
+        loop {
+            let mut vs = database::get_votes(db, None, Some(plid), false, page, 100)?;
+            if vs.len() == 0 {
+                break;
+            }
+            votes.append(&mut vs);
+            page += 1;
+        }
 
-        let favorites = database::get_favorites(db, None, Some(plid))?; // TODO: pagination
+        let mut favorites = vec![];
+        let mut page = 0;
+        loop {
+            let mut fs = database::get_favorites(db, None, Some(plid), page, 100)?;
+            if fs.len() == 0 {
+                break;
+            }
+            favorites.append(&mut fs);
+            page += 1;
+        }
 
         for problem in &mut problem_res.problems {
             problem.voted = Some(votes.iter().any(|v| v.problem_id == problem.id));
@@ -702,7 +720,7 @@ pub fn get_votes(
         fill_moves = true;
     }
 
-    database::get_votes(db, problem_id, player_id, fill_moves)
+    database::get_votes(db, problem_id, player_id, fill_moves, 0, 300) // TODO: pagination (in frontend)
 }
 
 pub fn update_vote_translation(db: &DbPool, vote_id: i32) {
@@ -750,36 +768,8 @@ pub fn get_favorites(
     vote_id: Option<i32>,
     player_id: Option<i32>,
 ) -> Result<Vec<Favorite>, Error> {
-    database::get_favorites(db, vote_id, player_id)
+    database::get_favorites(db, vote_id, player_id, 0, 100)
 }
-
-/*
-#[test]
-fn update_all_vote_translation() {
-    use dotenvy::dotenv;
-    use std::env;
-    use std::time::Duration;
-
-    dotenv().ok();
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let manager = ConnectionManager::<PgConnection>::new(database_url);
-    let db = Pool::builder()
-        .max_size(1) // FIXME: Didn't think about this number carefully
-        .connection_timeout(Duration::from_secs(300))
-        .build(manager)
-        .expect("Creating a pool failed");
-
-    for problem_id in 1..47 {
-        println!("problem id = {:?}", problem_id);
-        let votes = database::get_votes(&db, Some(problem_id), None, false).unwrap();
-        for vote in &votes {
-            if vote.note != "".to_string() {
-                update_vote_translation(&db, vote.id);
-            }
-        }
-    }
-}
-*/
 
 /*
 #[test]
