@@ -112,7 +112,17 @@ pub async fn upload_profile_image(
             profile_image_url.clone(),
         );
 
-        let votes = database::get_votes(db, None, Some(player_id), false)?;
+        let mut votes = vec![];
+        let mut page = 0;
+        loop {
+            let mut vs = database::get_votes(db, None, Some(player_id), false, page, 100)?;
+            if vs.len() == 0 {
+                break;
+            }
+            votes.append(&mut vs);
+            page += 1;
+        }
+
         for vote in &votes {
             database::update_vote(
                 db,

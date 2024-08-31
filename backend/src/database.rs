@@ -849,6 +849,8 @@ pub fn get_votes(
     prid: Option<i32>,
     plyrid: Option<i32>,
     fill_moves: bool,
+    page: i32,
+    limit: i32,
 ) -> Result<Vec<problem::Vote>, Error> {
     let conn = &mut db.get().unwrap();
     use self::schema::vote::dsl::{created_at, player_id, problem_id, vote as v};
@@ -863,7 +865,8 @@ pub fn get_votes(
     if prid == None && plyrid == None {
         query = query.filter(player_id.ne(2) /* not admin */).limit(10);
     } else {
-        query = query.limit(300);
+        query = query.limit(limit as i64);
+        query = query.offset((page * limit) as i64);
     }
 
     match query.load::<QueryVote>(conn) {
@@ -969,6 +972,8 @@ pub fn get_favorites(
     db: &DbPool,
     prid: Option<i32>,
     plid: Option<i32>,
+    page: i32,
+    limit: i32,
 ) -> Result<Vec<problem::Favorite>, Error> {
     let conn = &mut db.get().unwrap();
     use self::schema::favorite::dsl::{created_at, favorite as f, player_id, problem_id};
@@ -980,7 +985,8 @@ pub fn get_favorites(
     if let Some(p) = plid {
         query = query.filter(player_id.eq(p))
     }
-    query = query.limit(100);
+    query = query.limit(limit as i64);
+    query = query.offset((page * limit) as i64);
 
     match query.load::<problem::Favorite>(conn) {
         Ok(fs) => {
