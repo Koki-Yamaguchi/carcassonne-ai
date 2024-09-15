@@ -228,7 +228,7 @@ onMounted(async () => {
         </div>
       </div>
     </form>
-    <div class="mt-4 underline" @click="signout">
+    <div class="mt-4 underline cursor-pointer" @click="signout">
       {{ translate("sign_out") }}
     </div>
   </div>
