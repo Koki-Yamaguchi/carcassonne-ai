@@ -16,6 +16,7 @@ import ResultView from "../views/ResultView.vue";
 import ProposeProblemView from "../views/ProposeProblemView.vue";
 import EditProblemView from "../views/EditProblemView.vue";
 import DraftProblemsView from "../views/DraftProblemsView.vue";
+import ResetPasswordView from "../views/ResetPasswordView.vue";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { store } from "../store";
 
@@ -31,6 +32,11 @@ const router = createRouter({
       path: "/signup",
       name: "signup",
       component: SignupView,
+    },
+    {
+      path: "/reset-password",
+      name: "reset password",
+      component: ResetPasswordView,
     },
     {
       path: "/signin",
@@ -147,7 +153,8 @@ router.beforeEach(async (to) => {
     to.path !== "/" &&
     to.path !== "/simulator" &&
     to.path !== "/signin" &&
-    to.path !== "/signup"
+    to.path !== "/signup" &&
+    to.path !== "/reset-password"
   ) {
     if (currentUser) {
       store.setAuthenticated(true);

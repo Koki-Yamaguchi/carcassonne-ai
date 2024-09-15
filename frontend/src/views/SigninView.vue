@@ -75,8 +75,19 @@ const signin = async () => {
         </div>
       </div>
     </form>
-    <div class="mt-4 underline" @click="router.push('/signup')">
-      {{ translate("sign_up_here") }}
+    <div class="flex gap-6">
+      <div
+        class="mt-4 underline cursor-pointer"
+        @click="router.push('/signup')"
+      >
+        {{ translate("sign_up_here") }}
+      </div>
+      <div
+        class="mt-4 underline cursor-pointer"
+        @click="router.push('/reset-password')"
+      >
+        {{ translate("reset_password") }}
+      </div>
     </div>
   </div>
 </template>

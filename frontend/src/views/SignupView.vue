@@ -96,7 +96,7 @@ const signup = async () => {
         </div>
       </div>
     </form>
-    <div class="mt-4 underline" @click="router.push('/signin')">
+    <div class="mt-4 underline cursor-pointer" @click="router.push('/signin')">
       {{ translate("sign_in_here") }}
     </div>
   </div>
