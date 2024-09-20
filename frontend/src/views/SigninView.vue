@@ -3,6 +3,7 @@ import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { translate } from "../locales/translate";
+import { store } from "../store";
 
 const router = useRouter();
 
@@ -13,7 +14,14 @@ const error = ref<string>("");
 const signin = async () => {
   const auth = getAuth();
   try {
-    await signInWithEmailAndPassword(auth, email.value, password.value);
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email.value,
+      password.value
+    );
+    store.setAuthenticated(true);
+    store.setUserID(userCredential.user.uid);
+
     router.push(`/`);
   } catch (e) {
     error.value = translate("failed_to_sign_in_message");
