@@ -86,26 +86,38 @@ export class API {
     try {
       const res = await axios.get(`${this.base_url}/players?user=${userID}`);
       console.log({ res });
-      const p: Player = {
-        id: res.data.id,
-        name: res.data.name,
-        userID: res.data.user_id,
-        email: res.data.email,
-        meepleColor: colorIDToColor(res.data.meeple_color),
-        profileImageURL: res.data.profile_image_url,
-        rating: res.data.rating,
-        tileEdition: res.data.tile_edition,
-      };
-      return p;
+      const players = res.data.map((v: any) => {
+        const player: Player = {
+          id: v.id,
+          name: v.name,
+          userID: v.user_id,
+          email: v.email,
+          meepleColor: colorIDToColor(v.meeple_color),
+          profileImageURL: v.profile_image_url,
+          rating: v.rating,
+          tileEdition: v.tile_edition,
+        };
+        return player;
+      });
+
+      return players[0];
     } catch (e) {
       console.log({ e });
       throw e;
     }
   }
 
-  async getPlayers(): Promise<Player[]> {
+  async getPlayers(name?: string): Promise<Player[]> {
+    const params = new URLSearchParams();
+    if (name) {
+      params.set("name", name);
+    }
+    const paramsStr = params.toString();
+
     try {
-      const res = await axios.get(`${this.base_url}/players`);
+      const res = await axios.get(
+        `${this.base_url}/players` + (paramsStr ? `?${paramsStr}` : "")
+      );
       console.log({ res });
       const players = res.data.map((v: any) => {
         const player: Player = {

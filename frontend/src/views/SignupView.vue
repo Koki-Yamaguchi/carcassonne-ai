@@ -10,6 +10,7 @@ const router = useRouter();
 const email = ref<string>("");
 const password = ref<string>("");
 const name = ref<string>("");
+const error = ref<string>("");
 
 const signup = async () => {
   const auth = getAuth();
@@ -24,6 +25,17 @@ const signup = async () => {
   await api.createPlayer(name.value, email.value, userID);
 
   router.push(`/`);
+};
+
+const checkName = async () => {
+  const api = new API();
+  const players = await api.getPlayers(name.value);
+  console.log({ players });
+  if (players.length > 0) {
+    error.value = translate("name_taken");
+  } else {
+    error.value = "";
+  }
 };
 </script>
 
@@ -45,7 +57,11 @@ const signup = async () => {
             id="inline-full-name"
             type="text"
             v-model="name"
+            @blur="checkName"
           />
+        </div>
+        <div v-if="error" class="text-red-500 text-xs">
+          {{ error }}
         </div>
       </div>
       <div class="md:flex md:items-center mb-6">

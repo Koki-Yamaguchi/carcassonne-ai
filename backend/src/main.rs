@@ -23,7 +23,6 @@ use handlers::get_creators;
 use handlers::get_final_events;
 use handlers::get_moves;
 use handlers::get_player;
-use handlers::get_player_by_uid;
 use handlers::get_players;
 use handlers::get_problem_proposals;
 use handlers::health;
@@ -98,7 +97,6 @@ async fn rocket() -> _ {
             "/",
             routes![
                 get_player,
-                get_player_by_uid,
                 get_players,
                 update_player,
                 get_game,

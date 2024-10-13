@@ -96,17 +96,13 @@ pub fn get_player(player_id: i32, db: &State<DbPool>) -> (Status, (ContentType, 
     }
 }
 
-#[get("/players?<user>", format = "application/json")]
-pub fn get_player_by_uid(user: String, db: &State<DbPool>) -> (Status, (ContentType, String)) {
-    match player::get_player_by_uid(db.inner(), user) {
-        Ok(player) => (Status::Ok, (ContentType::JSON, to_string(&player).unwrap())),
-        Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),
-    }
-}
-
-#[get("/players", format = "application/json")]
-pub fn get_players(db: &State<DbPool>) -> (Status, (ContentType, String)) {
-    match player::get_players(db.inner()) {
+#[get("/players?<user>&<name>", format = "application/json")]
+pub fn get_players(
+    user: Option<String>,
+    name: Option<String>,
+    db: &State<DbPool>,
+) -> (Status, (ContentType, String)) {
+    match player::get_players(user, name, db.inner()) {
         Ok(players) => (
             Status::Ok,
             (ContentType::JSON, to_string(&players).unwrap()),
@@ -777,9 +773,7 @@ pub fn use_problem_proposal(id: i32, db: &State<DbPool>) -> (Status, (ContentTyp
 }
 
 #[get("/creators", format = "application/json")]
-pub fn get_creators(
-    db: &State<DbPool>,
-) -> (Status, (ContentType, String)) {
+pub fn get_creators(db: &State<DbPool>) -> (Status, (ContentType, String)) {
     match problem::get_creators(db.inner()) {
         Ok(vs) => (Status::Ok, (ContentType::JSON, to_string(&vs).unwrap())),
         Err(e) => (e.status, (ContentType::JSON, to_string(&e.detail).unwrap())),

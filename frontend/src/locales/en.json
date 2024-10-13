@@ -25,6 +25,7 @@
   "back_to_sign_in": "Back to Sign In",
   "failed_to_send_reset_password_link": "Failed to send a link to reset your password. Please try again later.",
   "failed_to_sign_in_message": "Failed to sign in. Please try again.",
+  "name_taken": "This name is already taken.",
   "ai_must_place": "AI must place",
   "must_place": " must place",
   "must_discard": " must discard",
