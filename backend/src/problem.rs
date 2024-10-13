@@ -534,29 +534,30 @@ fn create_problem_test() {
         .expect("Creating a pool failed");
 
     // should-be-modified lines start
-    let all_mvs = decoder::decode_from_file_path("src/data/484158010.json".to_string());
+    let all_mvs = decoder::decode_from_file_path("src/data/559900177.json".to_string());
     // let all_mvs = create_moves_manually();
     // let all_mvs = create_moves_from_game_against_ai(&db, 7944);
 
-    let remaining_tile_count = 67;
-    let problem_name = "test".to_string();
+    let remaining_tile_count = 1;
+    let problem_name = "Endgame 8".to_string();
     let start_at = Some(
-        chrono::DateTime::parse_from_rfc3339("2023-12-09T18:00:00+09:00")
+        chrono::DateTime::parse_from_rfc3339("2024-10-14T18:00:00+09:00")
             .unwrap()
             .naive_utc(),
     );
     // let start_at = None;
-    let creator_id = None;
+    let creator_id = Some(332);
     let mut creator_name = None;
     if let Some(pid) = creator_id {
         let player = database::get_player(&db, pid).unwrap();
         creator_name = Some(player.name);
     }
     let is_draft = false;
+    let num = Some(365);
 
     // for solved problems
-    let is_solved = false;
-    let optimal_move_count = None;
+    let is_solved = true;
+    let optimal_move_count = Some(1);
     let tester_id = None;
     let mut tester_name = None;
     if let Some(pid) = tester_id {
@@ -650,7 +651,7 @@ fn create_problem_test() {
             point_diff: Some(point_diff),
             note: "".to_string(),
             is_deleted: false,
-            num: None,
+            num,
             favorite_count: 0,
         },
     )
