@@ -59,21 +59,23 @@ pub fn update_player(
     )
 }
 
-pub fn get_player_by_uid(db: &DbPool, uid: String) -> Result<Player, Error> {
-    database::get_player_by_uid(db, uid)
-}
-
-pub fn get_players(db: &DbPool) -> Result<Vec<Player>, Error> {
-    let mut players = match database::get_players(db) {
+pub fn get_players(
+    uid: Option<String>,
+    name: Option<String>,
+    db: &DbPool,
+) -> Result<Vec<Player>, Error> {
+    let mut players = match database::get_players(db, &uid, name) {
         Ok(ps) => ps,
         Err(e) => {
             return Err(e);
         }
     };
 
-    for player in &mut players {
-        player.email = "".to_string();
-        player.user_id = "".to_string();
+    if uid.is_none() {
+        for player in &mut players {
+            player.email = "".to_string();
+            player.user_id = "".to_string();
+        }
     }
 
     Ok(players)

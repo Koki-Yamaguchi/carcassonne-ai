@@ -25,6 +25,7 @@
   "back_to_sign_in": "ログイン画面に戻る",
   "failed_to_send_reset_password_link": "パスワード再設定用のリンクの送信に失敗しました。時間をあけて再度お試しください。",
   "failed_to_sign_in_message": "ログインに失敗しました。再度お試しください。",
+  "name_taken": "この名前は既に使用されています。",
   "ai_must_place": "AI がタイルを配置しています",
   "must_place": "の手番です",
   "must_discard": "の手番です",
