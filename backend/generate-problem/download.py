@@ -3,8 +3,6 @@ import sys
 import re
 import time
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 
 username = os.environ["BGA_USERNAME"]
@@ -14,8 +12,7 @@ base_url = os.environ["BGA_BASE_URL"]
 def download():
     table_id = sys.argv[1]
 
-    # driver = webdriver.Chrome()
-    driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
+    driver = webdriver.Chrome()
 
     driver.get(f'{base_url}/account')
     time.sleep(1)
