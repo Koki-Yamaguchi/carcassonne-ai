@@ -220,17 +220,29 @@ pub fn get_player(db: &DbPool, pid: i32) -> Result<player::Player, Error> {
     }
 }
 
-pub fn get_players(db: &DbPool) -> Result<Vec<player::Player>, Error> {
+pub fn get_players(
+    db: &DbPool,
+    uid: &Option<String>,
+    nm: Option<String>,
+) -> Result<Vec<player::Player>, Error> {
     let conn = &mut db.get().unwrap();
-    use self::schema::player::dsl::{id, player as p, rating};
+    use self::schema::player::dsl::{id, name, player as p, rating, user_id};
 
-    match p
-        .filter(rating.is_not_null())
-        .filter(id.ne(1)) // not AI
-        .order(rating.desc())
-        .limit(10)
-        .load::<QueryPlayer>(conn)
-    {
+    let mut query = p.into_boxed();
+
+    if uid.is_some() {
+        query = query.filter(user_id.eq(uid.clone().unwrap()));
+    } else if nm.is_some() {
+        query = query.filter(name.eq(nm.unwrap()));
+    } else {
+        query = query
+            .filter(rating.is_not_null())
+            .filter(id.ne(1)) // not AI
+            .order(rating.desc())
+            .limit(10)
+    }
+
+    match query.load::<QueryPlayer>(conn) {
         Ok(ps) => {
             return Ok(ps.into_iter().map(|v| to_player(v)).collect());
         }
@@ -252,23 +264,6 @@ pub fn get_all_players(db: &DbPool) -> Result<Vec<player::Player>, Error> {
     {
         Ok(ps) => {
             return Ok(ps.into_iter().map(|v| to_player(v)).collect());
-        }
-        Err(e) => {
-            return Err(internal_server_error(e.to_string()));
-        }
-    }
-}
-
-pub fn get_player_by_uid(db: &DbPool, uid: String) -> Result<player::Player, Error> {
-    let conn = &mut db.get().unwrap();
-    use self::schema::player::dsl::{player as p, user_id};
-
-    match p.filter(user_id.eq(uid)).load::<QueryPlayer>(conn) {
-        Ok(ps) => {
-            if ps.len() == 0 {
-                return Err(not_found_error("player".to_string()));
-            }
-            return Ok(to_player(ps[0].clone()));
         }
         Err(e) => {
             return Err(internal_server_error(e.to_string()));
