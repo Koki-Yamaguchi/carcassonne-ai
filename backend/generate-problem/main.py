@@ -9,8 +9,8 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 
-username = os.environ["BGA_USERNAME"]
-password = os.environ["BGA_PASSWORD"]
+from signin import signin
+
 base_url = os.environ["BGA_BASE_URL"]
 api_base_url = os.environ["API_BASE_URL"]
 
@@ -53,25 +53,12 @@ def run():
 
     print("found proposals")
     print(proposals)
-    signed_in = False
+
+    if len(proposals) > 0:
+        signin(driver)
+
     for proposal in proposals:
         table_id = proposal['table_id']
-
-        if not signed_in:
-            driver.get(f'{base_url}/account')
-            time.sleep(1)
-
-            user_input = driver.find_element(By.ID, 'username_input')
-            user_input.send_keys(username)
-            user_pass = driver.find_element(By.ID, 'password_input')
-            user_pass.send_keys(password)
-            time.sleep(1)
-
-            submit_button = driver.find_element(By.ID, 'submit_login_button')
-            submit_button.click()
-            time.sleep(3)
-
-            signed_in = True
 
         driver.get(f'{base_url}/gamereview?table={table_id}')
         time.sleep(1)

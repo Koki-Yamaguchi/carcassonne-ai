@@ -5,8 +5,8 @@ import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
-username = os.environ["BGA_USERNAME"]
-password = os.environ["BGA_PASSWORD"]
+from signin import signin
+
 base_url = os.environ["BGA_BASE_URL"]
 
 def download():
@@ -14,18 +14,7 @@ def download():
 
     driver = webdriver.Chrome()
 
-    driver.get(f'{base_url}/account')
-    time.sleep(1)
-
-    user_input = driver.find_element(By.ID, 'username_input')
-    user_input.send_keys(username)
-    user_pass = driver.find_element(By.ID, 'password_input')
-    user_pass.send_keys(password)
-    time.sleep(1)
-
-    submit_button = driver.find_element(By.ID, 'submit_login_button')
-    submit_button.click()
-    time.sleep(3)
+    signin(driver)
 
     driver.get(f'{base_url}/gamereview?table={table_id}')
     time.sleep(1)
